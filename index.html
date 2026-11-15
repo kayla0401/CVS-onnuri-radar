@@ -2029,7 +2029,8 @@ function polyToggle(force) {
   if (!(L.key === e.p.id && (L.state === 'ok' || L.state === 'empty'))) t1Live(e);
   if (KMap.ready) {
     const m = KMap.map('map1');
-    m.setCenter(KMap.ll(e.p)); m.setLevel(4);
+    /* 그리기 시작 시 지도를 살짝 넓혀 주변 상가까지 보이게 한다(작은 점포는 100m급, 큰 구역은 더 넓게) */
+    m.setCenter(KMap.ll(e.p)); m.setLevel(e.r <= 60 ? 3 : 4);
     if (!m.__drawWired) {
       m.__drawWired = true;
       kakao.maps.event.addListener(m, 'click', ev => { if (T1.poly.on) polyClick(ev); });
