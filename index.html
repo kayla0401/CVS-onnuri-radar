@@ -2084,9 +2084,14 @@ function syncPolyUI() {
   const bar = $('#draw-bar'); if (bar) bar.hidden = !on;
   const mz = $('#mapzone'); if (mz) mz.classList.toggle('drawing', on);
   const lg = $('#lg-poly'); if (lg) lg.hidden = !(on || P.pts.length);
-  const cap = $('#map-caption');
-  if (cap && T1.ev && on) cap.textContent = `${T1.ev.p.name} · 구역 직접 그리기 (꼭짓점 ${P.pts.length})`;
+  syncCaption();
   syncDrawBar();
+}
+/* 지도 캡션은 꼭짓점 개수와 함께 계속 갱신한다(그리는 중 → 검토 반경 복귀) */
+function syncCaption() {
+  const cap = $('#map-caption'), e = T1.ev, P = T1.poly;
+  if (!cap || !e) return;
+  cap.textContent = P.on ? `${e.p.name} · 구역 직접 그리기 (꼭짓점 ${P.pts.length})` : `${e.p.name} · 검토 반경 ${Math.round(e.r)}m`;
 }
 function syncDrawBar() {
   const P = T1.poly, sim = polySim(T1.ev), n = P.pts.length;
@@ -2098,6 +2103,7 @@ function syncDrawBar() {
   if (undo) undo.disabled = !n;
   if (done) done.disabled = n < 3 || P.done;
   if (clr) clr.disabled = !n && !P.done;
+  syncCaption();
 }
 
 /* --- 결과 카드 --- */
