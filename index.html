@@ -182,6 +182,20 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:12.5px}
 .vhead{display:flex;align-items:center;gap:12px;padding:16px 16px 12px}
 .vhead .h{font-size:16px;font-weight:800}
 .vhead .s{font-size:12px;color:var(--text-secondary)}
+/* 이미 온누리 가맹점 — 신규 지정 대상이 아님을 카드 맨 위에서 알린다 */
+.mhead{display:flex;align-items:center;gap:12px;padding:16px;background:linear-gradient(180deg,#E7F4EF,#F4FAF7);border-bottom:1px solid var(--success-100)}
+.mhead .mi{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:#fff;border:1.5px solid var(--success);color:var(--success);flex:none}
+.mhead .h{font-size:17px;font-weight:900;color:var(--success);line-height:1.2;letter-spacing:-.3px}
+.mhead .s{font-size:12.5px;color:var(--text-secondary);margin-top:3px;line-height:1.45}
+.mhead .tagline{font-size:11.5px;font-weight:800;color:var(--success);background:#fff;border:1px solid var(--success-100);border-radius:999px;padding:4px 10px;white-space:nowrap;flex:none}
+.snote{display:flex;align-items:flex-start;gap:8px;padding:9px 12px;border-radius:var(--r-sm);font-size:12px;line-height:1.55;border:1px solid var(--border)}
+.snote.warn{background:var(--warning-50);border-color:var(--warning-100);color:var(--warning)}
+.snote.danger{background:var(--danger-50);border-color:var(--danger-100);color:var(--danger)}
+.snote.info{background:var(--accent-50);border-color:var(--accent-100);color:var(--accent)}
+.snote svg{margin-top:2px}
+.stype{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.stype .select{height:30px;width:132px}
+.stype .hint{font-size:11.5px;color:var(--text-tertiary);line-height:1.4}
 .vrows{margin:0 16px;border-top:1px solid var(--border)}
 .vrow{display:grid;grid-template-columns:120px 1fr;gap:12px;padding:8px 0;border-bottom:1px solid var(--surface-3);font-size:12.5px;align-items:center}
 .vrow .k{color:var(--text-secondary);font-weight:600}
@@ -924,6 +938,23 @@ function priority(e) {
   const total = Math.round(P.rule + P.density + P.zone + P.form + P.trust);
   return { ...P, total: Math.min(PRIORITY_TOTAL_MAX, total), max: PRIORITY_TOTAL_MAX };
 }
+/* 우선순위 점수 산식 툴팁 — 칸에 마우스를 올리면 항목별 배점 근거를 보여준다 */
+function priorityTip(r) {
+  const e = r.e, pr = r.pr, pct = e.ratio != null ? Math.round(e.ratio * 100) : null;
+  const nearWhy = !e.nearest ? '기존 구역 없음 → 3점'
+    : e.nearest.edge <= CONFIG.MEMBER_NEAR_M ? `최근접 경계 ${fmtD(e.nearest.edge)} (300m 이내) → 15점`
+    : e.nearest.edge <= CONFIG.MEMBER_NEAR_M * 3 ? `최근접 경계 ${fmtD(e.nearest.edge)} (300~900m) → 10점`
+    : `최근접 경계 ${fmtD(e.nearest.edge)} (900m 초과) → 3점`;
+  const zoneWhy = e.inside.length ? `이미 구역 안 → 4점` : e.overlapping.length ? `경계 중첩 → 6점` : `미중복 · ${nearWhy}`;
+  return [
+    `우선순위 점수 ${pr.total}/${pr.max || 100} — 내부 검토 참고용(법적 판정 아님)`,
+    `· 지자체 기준 ${pr.rule}/35 = 충족률 ${pct != null ? pct + '%' : '—'} × 35 (120%에서 만점)`,
+    `· 밀집도 ${pr.density}/25 = ${fmt(e.base)}㎡ 환산 ${e.per != null ? e.per.toFixed(1) : '—'}개 ÷ (기준 ${e.th ?? '-'}개 × 1.5) × 25`,
+    `· 기존 구역·가맹 ${pr.zone}/15 = ${zoneWhy}`,
+    `· 후보 형성 ${pr.form}/15 = (충족률 - 60%) ÷ 40% × 15 (60% 이하 0 · 100% 이상 15)`,
+    `· 데이터 신뢰 ${pr.trust}/10 = 조례 ${e.rule ? '등록 4' : '미등록 0'} + 기준일 ${e.rule && daysSince(e.rule.updated) <= UI.STALE_DAYS ? '최신 3' : '갱신 필요 0'} + 실측 ${e.counts ? '있음 3' : '없음 0'}`,
+  ].join('\n');
+}
 const FIELD_ITEMS = ['구역 경계(도로·블록) 실측 확인', '소상공인 점포 실재·영업 여부 확인', '상인 조직(상인회) 구성 의사 확인', '기존 온누리 구역 경계 중첩 확인', '지자체 담당 부서 사전 상담'];
 const fieldState = id => { const c = LS.get('chk:' + id, []); const n = c.filter(Boolean).length; return n === 0 ? '필요' : n >= FIELD_ITEMS.length ? '완료' : '진행 중'; };
 const fieldChip = st => st === '완료' ? '<span class="chip s">완료</span>' : st === '진행 중' ? '<span class="chip a">진행 중</span>' : '<span class="chip w">필요</span>';
@@ -954,6 +985,12 @@ const KMap = {
   },
   clear(id) { (this.overlays[id] || []).forEach(o => o.setMap(null)); this.overlays[id] = []; this.zoneLabels = this.zoneLabels || {}; this.zoneLabels[id] = []; },
   add(id, o) { o.setMap(this.map(id)); this.overlays[id].push(o); return o; },
+  /* 줌 컨트롤(+/-) — 같은 지도에 한 번만 붙인다 */
+  zoomCtl(id) {
+    const m = this.map(id);
+    if (m.__zoomCtl) return;
+    try { m.addControl(new kakao.maps.ZoomControl(), kakao.maps.ControlPosition.RIGHT); m.__zoomCtl = true; } catch (err) { m.__zoomCtl = true; }
+  },
   ll: p => new kakao.maps.LatLng(p.lat, p.lng),
   dot(id, p, color, size = 8, title = '') {
     const el = document.createElement('div');
@@ -1208,6 +1245,13 @@ function t1Init() {
     if (e.target.closest('#v-detail')) { T1.open = !T1.open; renderVerdict(T1.ev); }
     if (e.target.closest('#v-copy')) t1CopySummary();
   });
+  $('#t1-verdict').addEventListener('change', e => {
+    if (e.target.id !== 'v-stype' || !T1.ev) return;
+    const p = T1.ev.p;
+    LS.set('storeType:' + p.id, e.target.value);
+    renderVerdict(T1.ev);
+    toast(`점포 운영 형태를 '${STORE_TYPE[e.target.value] || '미확인'}'(으)로 저장했습니다 (이 브라우저에 보관)`);
+  });
   // D. 후속 조치 — 이벤트 위임
   $('#t1-action').addEventListener('click', e => {
     const id = T1.sel && T1.sel.id; if (!id) return;
@@ -1418,7 +1462,13 @@ function xcEstimate(e, xc) {
     net: mk('양쪽 반영 (실질 추정)', Math.max(0, nCur - nSus + nNew)),
   };
 }
-const xcRowLink = (name, addr) => `<a class="xc-new" href="${naverMapLink((addr ? addr + ' ' : '') + name)}" target="_blank" rel="noopener">네이버 확인 ↗</a>`;
+/* "네이버 확인" 링크 — 상호만 검색하면 동명 다지점 오탐이 생기므로 시군구·동 단서를 붙인다 */
+function xcLocHint(p) {
+  const addr = String((p && p.address) || '');
+  const dong = ((addr.match(/\(([^)]*?동)/) || [])[1] || (addr.match(/[가-힣]{1,4}동(?=[\s,)]|$)/) || [])[0] || '').trim();
+  return [p.sigungu || '', dong].filter(Boolean).join(' ');
+}
+const xcRowLink = (name, addr) => `<a class="xc-new" href="${naverMapLink((addr ? addr + ' ' : '') + name)}" target="_blank" rel="noopener" title="네이버 지도에서 ${esc((addr ? addr + ' ' : '') + name)} 검색">네이버 확인 ↗</a>`;
 function xcEstCell(c, on) {
   const pct = c.ratio != null ? Math.round(c.ratio * 100) : null;
   const col = c.ok == null ? 'inherit' : c.ok ? 'var(--success)' : 'var(--danger)';
@@ -1428,6 +1478,7 @@ function xcEstCell(c, on) {
 }
 function xcSummaryHTML(e, xc) {
   const est = xcEstimate(e, xc);
+  const loc = xcLocHint(e.p);          // 폐업 의심 표의 '네이버 확인'에 붙일 지역 단서
   const nBoth = xc.both.length + xc.dups.length, nSus = xc.suspect.length, nNew = xc.fresh.length;
   return `<div class="xc-top">
       <span class="chip s">영업 확실 ${nBoth}</span><span class="chip d">폐업 의심 ${nSus}</span><span class="chip a">신규 후보 ${nNew}</span>
@@ -1436,7 +1487,7 @@ function xcSummaryHTML(e, xc) {
       <div class="xc-sub">${ic('info', 13)} 폐업 의심 제외 / 신규 후보 반영 시 실질 예상 <span class="faint">(기준 ${est.th ?? '—'}개 / ${fmt(est.base)}㎡ · 참고치)</span></div>` : `<div class="xc-hint">상가정보 CSV가 없는 시도라 실질 충족률은 계산하지 않습니다. 카카오 조회 결과로만 확인하세요.</div>`}
     ${nSus ? `<div class="xc-sub" style="color:var(--danger)">${ic('warn', 13)} 폐업·미확인 의심 ${nSus}건 <span class="faint" style="font-weight:500">— 공단 CSV에만 있고 카카오 조회에서 안 잡힌 점포</span></div>
       <div class="tbl-wrap"><table class="tbl num"><thead><tr><th>상호(공단)</th><th>업종</th><th>거리</th><th>확인</th></tr></thead><tbody>
-      ${xc.suspect.slice(0, 12).map(r => `<tr><td><b>${esc(r.s.name)}</b></td><td>${esc(r.s.category)}</td><td>${Math.round(r.d)}m${r.inc === '경계' ? ' <span class="chip o">경계</span>' : ''}</td><td>${xcRowLink(r.s.name, '')}</td></tr>`).join('')}</tbody></table></div>
+      ${xc.suspect.slice(0, 12).map(r => `<tr><td><b>${esc(r.s.name)}</b></td><td>${esc(r.s.category)}</td><td>${Math.round(r.d)}m${r.inc === '경계' ? ' <span class="chip o">경계</span>' : ''}</td><td>${xcRowLink(r.s.name, loc)}</td></tr>`).join('')}</tbody></table></div>
       ${nSus > 12 ? `<div class="faint" style="font-size:11px">외 ${nSus - 12}건 — 아래 C구역 리스트의 '카카오 미확인' 필터로 전체를 볼 수 있습니다.</div>` : ''}` : ''}
     ${nNew ? `<div class="xc-sub" style="color:var(--accent)">${ic('pass', 13)} 신규·누락 후보 ${nNew}건 <span class="faint" style="font-weight:500">— 카카오에서는 영업 중이나 공단 CSV에 없는 점포</span></div>
       <div class="tbl-wrap"><table class="tbl num"><thead><tr><th>상호(카카오)</th><th>업종</th><th>거리</th><th>주소</th></tr></thead><tbody>
@@ -1532,9 +1583,19 @@ function ruleBadges(r) {
   if (!r) return '<span class="chip w">조례 미확인</span>';
   const a = r.excludes_road_parking === true ? '<span class="chip s">도로·주차장 면적 제외 가능</span>'
     : r.excludes_road_parking === false ? '<span class="chip o">도로 면적 포함</span>' : '<span class="chip o">면적 제외 규정 없음</span>';
-  const b = r.owner_consent_waived === true ? '<span class="chip s">소유자 동의 불요 · 상인 동의만</span>'
+  const b = r.owner_consent_waived === true ? '<span class="chip s">조례상 소유자 동의 면제 (세부 절차 지자체 확인)</span>'
     : r.owner_consent_waived === false ? '<span class="chip w">토지·건축물 소유자 동의 필요</span>' : '<span class="chip o">동의 요건 조례 미기재</span>';
   return a + ' ' + b;
+}
+
+/* 점포 운영 형태 — 사용자가 사업자번호(가운데 2자리)로 확인해 직접 고르는 값. 점포코드별로 브라우저에 저장한다. */
+const STORE_TYPE = { '': '미확인', indiv: '개인 가맹점', corp: '법인 가맹점', direct: '본사 직영점' };
+const storeTypeOf = p => { const v = LS.get('storeType:' + p.id, ''); return STORE_TYPE[v] ? v : ''; };
+function storeTypeNote(v) {
+  if (v === 'direct') return { kind: 'danger', text: '<b>본사 직영점</b>은 소상공인이 아니어서(사업자등록번호 가운데 2자리 85 등) <b>온누리상품권 가맹이 불가</b>합니다 — 아래 조례 판정과 무관하게 가맹 검토 대상에서 제외하세요.' };
+  if (v === 'corp') return { kind: 'warn', text: '<b>법인 가맹점</b>은 2026.06 시행령 개정 기준, 동일 사업자 합산 직전 연도 매출(환전액) <b>30억 원 이하</b>일 때만 온누리 가맹이 가능합니다.' };
+  if (v === 'indiv') return { kind: 'info', text: '<b>개인 가맹점</b>(사업자등록번호 가운데 2자리 01~79)은 소상공인 요건을 충족하면 가맹 대상입니다.' };
+  return null;
 }
 
 function renderVerdict(e) {
@@ -1545,11 +1606,22 @@ function renderVerdict(e) {
   const rel = zoneRel(e);
   const dup = e.inside.length ? `<span class="chip a">기존 구역 내</span> ${esc(e.inside[0].z.name)}` : e.overlapping.length ? `<span class="chip w">경계 중첩</span> ${esc(e.overlapping[0].z.name)}` : '<span class="chip s">미중복</span> 검토 반경과 겹치는 구역 없음';
   const ruleName = r ? esc(r.ordinance) : esc(NAT_RULE.ordinance) + ' <span class="chip w">조례 미확인</span>';
+  const isM = !!e.p.onnuri_member, mm = e.p.member || {};
+  const mPay = [mm.paper ? '지류' : '', mm.digital ? '디지털' : ''].filter(Boolean).join('·') || '결제수단 미기재';
+  const st = storeTypeOf(e.p), stNote = storeTypeNote(st);
+  const bizHref = `https://bizno.net/?query=${encodeURIComponent(e.p.name)}`;
   $('#t1-verdict').innerHTML = `
-    <div class="card-h"><span class="step">B</span><h3>종합 판정</h3><span class="sub">(조례 기준 대비 실측 점포수)</span>
+    <div class="card-h"><span class="step">B</span><h3>종합 판정</h3><span class="sub">${isM ? '(이미 온누리 가맹점 — 아래 조례 판정은 참고용)' : '(조례 기준 대비 실측 점포수)'}</span>
       <div class="right"><button class="btn sm" id="v-copy">${ic('copy', 14)}요약 복사</button></div></div>
-    <div class="vhead">${badge(e.v, true)}<div><div class="h" style="color:${m.color}">${m.head}</div><div class="s">${esc(e.p.name)} · ${esc(e.label)}</div></div></div>
+    ${isM ? `<div class="mhead">
+        <span class="mi">${ic('check', 22)}</span>
+        <div style="flex:1;min-width:0"><div class="h">이미 온누리 가맹 등록 완료</div>
+          <div class="s">${esc(e.p.name)} · ${esc(mm.zone || '상권명 미기재')}${mm.year ? ` · ${esc(mm.year)}년 등록` : ''} · ${esc(mPay)}</div></div>
+        <span class="tagline">신규 지정 대상 아님</span></div>`
+      : `<div class="vhead">${badge(e.v, true)}<div><div class="h" style="color:${m.color}">${m.head}</div><div class="s">${esc(e.p.name)} · ${esc(e.label)}</div></div></div>`}
+    ${stNote ? `<div class="snote ${stNote.kind}" style="margin:10px 16px 0">${ic('warn', 14)}<span>${stNote.text}</span></div>` : ''}
     <div class="vrows">
+      ${isM ? `<div class="vrow"><span class="k">참고용 조례 입지 판정</span><span class="v">${badge(e.v)} <b style="color:${m.color}">${esc(e.label)}</b> <span class="faint">— 조례상 점포 밀집도만 본 값입니다. 이 점포는 이미 가맹 등록되어 신규 지정 판정 대상이 아닙니다.</span></span></div>` : ''}
       <div class="vrow"><span class="k">적용 기준</span><span class="v"><b>${ruleName}</b> ${r && r.updated ? `<span class="faint">(기준일 ${esc(r.updated)})</span>` : ''} ${r && r.source_url ? `<a class="faint" href="${esc(r.source_url)}" target="_blank" rel="noopener" style="margin-left:6px;text-decoration:underline">조례 원문</a>` : ''}${r && r.dept ? `<span class="faint" style="margin-left:6px">담당 ${esc(r.dept)}${r.phone ? ' ' + esc(r.phone) : ''}</span>` : ''}</span></div>
       <div class="vrow"><span class="k">점포 밀집 기준</span><span class="v">${ruleStdHTML(e)}</span></div>
       <div class="vrow"><span class="k">조례 완화 조건</span><span class="v">${ruleBadges(e.rule)}</span></div>
@@ -1557,6 +1629,11 @@ function renderVerdict(e) {
       <div class="vrow"><span class="k">충족률</span><span class="v" style="display:flex;align-items:center;gap:12px"><span class="prog" style="flex:1"><i style="width:${w}%;background:${m.color}"></i><span class="tick" style="left:${100 / 1.5}%" title="기준 100%"></span></span><b class="num" style="min-width:44px;text-align:right;color:${m.color}">${pct != null ? pct + '%' : '—'}</b></span></div>
       <div class="vrow"><span class="k">기존 구역 거리</span><span class="v">${e.nearest ? `<b>${esc(e.nearest.z.name)}</b> 중심 ${fmtD(e.nearest.d)} · 경계 ${fmtD(e.nearest.edge)} <span class="chip ${rel[1]}">${rel[0]}</span>` : '—'}</span></div>
       <div class="vrow"><span class="k">온누리 가맹</span><span class="v">${memberInfoHTML(e.p)}</span></div>
+      <div class="vrow"><span class="k">점포 운영 형태</span><span class="v"><span class="stype">
+        <select class="select" id="v-stype" aria-label="점포 운영 형태">${Object.keys(STORE_TYPE).map(k => `<option value="${esc(k)}" ${st === k ? 'selected' : ''}>${esc(STORE_TYPE[k])}</option>`).join('')}</select>
+        <a class="btn sm" id="v-bizno" href="${esc(bizHref)}" target="_blank" rel="noopener" title="bizno.net에서 이 점포의 사업자등록번호를 확인합니다 — 가운데 2자리 85 직영 · 01~79 개인 · 81·86·87·88 법인">사업자·직영 확인 ↗</a>
+        <span class="hint">사업자번호 가운데 2자리 — 85 직영 · 01~79 개인 · 81·86·87·88 법인</span>
+      </span></span></div>
       <div class="vrow" style="border-bottom:0"><span class="k">중복 여부</span><span class="v">${dup}</span></div>
     </div>
     <div class="trio num">
@@ -1571,8 +1648,38 @@ function renderVerdict(e) {
 }
 
 function t1CopySummary() {
-  const e = T1.ev, r = e.rule;
-  copyText(`[온누리 적격 판별] ${e.p.name}\n주소: ${e.p.address}\n판정: ${VMETA[e.v].label} (${e.label})\n기준: ${r ? r.ordinance : NAT_RULE.ordinance + ' (미확인·법정 기본)'} — ${e.thNon != null ? `${fmt(e.base)}㎡당 상업 ${e.thCom}개·비상업 ${e.thNon}개` : `${fmt(e.base)}㎡당 ${e.th}개`}\n완화 조건: ${r ? `${r.excludes_road_parking === true ? '도로·주차장 면적 제외 가능' : r.excludes_road_parking === false ? '도로 면적 포함' : '면적 제외 규정 없음'} / ${r.owner_consent_waived === true ? '소유자 동의 불요(상인 동의만)' : r.owner_consent_waived === false ? '소유자 동의 필요' : '동의 요건 미기재'}` : '-'}\n검토면적 ${fmt(e.area)}㎡ / 필요 ${e.required ?? '-'} · 반경 내 소상공인 ${e.counts ? e.nSmall : '미수집'} · ${fmt(e.base)}㎡ 환산 ${e.per != null ? e.per.toFixed(1) : '-'}개\n최근접 구역: ${e.nearest ? `${e.nearest.z.name} ${fmtD(e.nearest.d)}` : '-'}\n담당: ${r && r.phone ? `${r.sigungu} ${r.dept} ${r.team} ${r.phone}` : '-'}`, '판정 요약을 복사했습니다');
+  const e = T1.ev, r = e.rule, p = e.p, mm = p.member || {};
+  const pay = [mm.paper ? '지류' : '', mm.digital ? '디지털' : ''].filter(Boolean).join('·');
+  const memberLine = p.onnuri_member
+    ? `가맹 — ${mm.zone || '상권명 미기재'}${mm.year ? ` · ${mm.year}년 등록` : ''}${pay ? ` · ${pay}` : ''}`
+    : '미가맹 — 온누리 가맹점 DB(2026-07-31)에 같은 상호 없음';
+  const st = storeTypeOf(p);
+  const stLine = `점포 운영 형태: ${STORE_TYPE[st]}`
+    + (st === 'direct' ? ' — 본사 직영점(소상공인 아님)은 온누리 가맹 불가'
+      : st === 'corp' ? ' — 동일 사업자 합산 직전 연도 매출(환전액) 30억 원 이하일 때만 가맹 가능(2026.06 시행령)'
+      : st === 'indiv' ? ' — 소상공인 요건 충족 시 가맹 대상' : ' — 사업자·직영 확인 필요(85 직영 · 01~79 개인 · 81·86·87·88 법인)');
+  const xc = xcCompute(e);
+  let xcLine = '카카오 교차 검증: 미실행 — C구역 [실시간 카카오 조회 · 교차 검증]을 먼저 실행하면 여기에 함께 담깁니다';
+  if (xc) {
+    const est = xcEstimate(e, xc);
+    const estLine = est
+      ? `\n  실질 추정(참고치): 현재 ${est.cur.n}개 → 폐업 의심 제외 ${est.ex.n}개 · 신규 후보 반영 ${est.add.n}개 · 양쪽 반영 ${est.net.n}개 (${fmt(est.base)}㎡ 환산 ${est.net.per.toFixed(1)}개${est.net.ratio != null ? ` · 충족률 ${Math.round(est.net.ratio * 100)}%` : ''})`
+      : '';
+    xcLine = `카카오 교차 검증: 영업 확실 ${xc.both.length + xc.dups.length} · 폐업·미확인 의심 ${xc.suspect.length} · 신규 후보 ${xc.fresh.length} (공단 ${xc.rowTotal}건 ↔ 카카오 ${xc.inR}건)${estLine}`;
+  }
+  copyText([
+    `[온누리 적격 판별] ${p.name}`,
+    `주소: ${p.address}`,
+    `판정: ${VMETA[e.v].label} (${e.label})`,
+    `온누리 가맹: ${memberLine}`,
+    stLine,
+    `기준: ${r ? r.ordinance : NAT_RULE.ordinance + ' (미확인·법정 기본)'} — ${e.thNon != null ? `${fmt(e.base)}㎡당 상업 ${e.thCom}개·비상업 ${e.thNon}개` : `${fmt(e.base)}㎡당 ${e.th}개`}`,
+    `완화 조건: ${r ? `${r.excludes_road_parking === true ? '도로·주차장 면적 제외 가능' : r.excludes_road_parking === false ? '도로 면적 포함' : '면적 제외 규정 없음'} / ${r.owner_consent_waived === true ? '조례상 소유자 동의 면제 (세부 절차 지자체 확인)' : r.owner_consent_waived === false ? '소유자 동의 필요' : '동의 요건 미기재'}` : '-'}`,
+    `검토면적 ${fmt(e.area)}㎡ / 필요 ${e.required ?? '-'} · 반경 내 소상공인 ${e.counts ? e.nSmall : '미수집'} · ${fmt(e.base)}㎡ 환산 ${e.per != null ? e.per.toFixed(1) : '-'}개`,
+    `최근접 구역: ${e.nearest ? `${e.nearest.z.name} ${fmtD(e.nearest.d)}` : '-'}`,
+    xcLine,
+    `담당: ${r && r.phone ? `${r.sigungu} ${r.dept} ${r.team} ${r.phone}` : '-'}`,
+  ].join('\n'), '판정 요약을 복사했습니다 (가맹 여부·운영 형태·교차 검증 포함)');
 }
 
 
@@ -1619,6 +1726,7 @@ function renderShops(e) {
   $('#t1-shops').innerHTML = `
     <div class="card-h"><span class="step">C</span><h3>반경 내 상가 리스트</h3><span class="sub">(${loading ? '불러오는 중' : '경계 +15% 포함 ' + total + '개 · 실측'})</span>
       <div class="right">
+        <button class="btn sm" id="shops-csv" title="반경 내 상가 리스트를 CSV로 저장합니다(교차 검증·소상공인·온누리 열 포함)">${ic('down', 14)}CSV 다운로드</button>
         <select class="select" id="shops-filter" style="width:150px;height:28px" aria-label="상가 필터">
           <option value="">전체</option><option value="inc" ${f === 'inc' ? 'selected' : ''}>검토 구역 포함</option><option value="edge" ${f === 'edge' ? 'selected' : ''}>경계(+15%)</option>${xc ? `<option value="sus" ${f === 'sus' ? 'selected' : ''}>카카오 미확인 ${xc.suspect.length}</option>` : ''}</select>
         </div></div>
@@ -1697,6 +1805,7 @@ function renderMap1(e) {
     near.forEach(s => KMap.dot(id, s, '#315F95', 8, `${s.name} · ${s.cat}`));
     KMap.add(id, new kakao.maps.Marker({ position: KMap.ll(p), title: p.name }));
     m.setCenter(KMap.ll(p)); m.setLevel(e.r > 60 ? 3 : 2);
+    KMap.zoomCtl('map1');
     if (T1.rv) { if (KMap.rv) KMap.rv.relayout(); KMap.roadview('rv1', p, () => { $('#rv1').innerHTML = rvPlaceholder(p, '주변 60m 이내 로드뷰 파노라마가 없습니다.'); KMap.rv = null; }); }
   } else {
     const ext = Math.max(e.r * 2.1, 90);
@@ -1733,6 +1842,7 @@ function renderMap1(e) {
     near.forEach(s => KMap.dot(id, s, '#315F95', 8, `${s.name} · ${s.cat}`));
     KMap.add(id, new kakao.maps.Marker({ position: KMap.ll(p), title: p.name }));
     m.setCenter(KMap.ll(p)); m.setLevel(e.r > 60 ? 3 : 2);
+    KMap.zoomCtl('map1');
     if (T1.rv) { if (KMap.rv) KMap.rv.relayout(); KMap.roadview('rv1', p, () => { $('#rv1').innerHTML = rvPlaceholder(p, '주변 60m 이내 로드뷰 파노라마가 없습니다.'); KMap.rv = null; }); }
   } else {
     const ext = Math.max(e.r * 2.1, 90);
@@ -1903,8 +2013,10 @@ function t2Map(zones) {
     extent = Math.max(400, ...pts.map(p => dist(center, p) + (p.radius || 0))) * 1.15;
   } else { center = { lat: 36.4, lng: 127.8 }; extent = 260000; }
   const inView = p => dist(center, p) < extent * 1.6;
-  const stores = extent > 8000 ? [] : DB.stores.filter(inView).slice(0, 400);
-  const capBase = fo ? fo.name : `구역 ${zones.length} · GS25 ${stores.length}`;
+  /* 광역(extent>8km)에서는 점포 점이 너무 빽빽해 그리지 않는다 → 캡션이 'GS25 0'으로 오해되지 않게 문구를 바꾼다 */
+  const wideZoom = extent > 8000;
+  const stores = wideZoom ? [] : DB.stores.filter(inView).slice(0, 400);
+  const capBase = fo ? fo.name : `구역 ${zones.length} · ${wideZoom ? 'GS25 확대 시 표시' : `GS25 ${stores.length}`}`;
   $('#map2-caption').textContent = capBase;
   mapNote('map2');
   const zc = r => r.status === '지정 완료' ? '#7357C9' : '#C98A1B';
@@ -1915,6 +2027,7 @@ function t2Map(zones) {
     stores.forEach(s => KMap.gs(id, s, false, () => { switchView('check'); t1Select({ kind: 'store', ...s }); }));
     m.setCenter(KMap.ll(center));
     m.setLevel(extent < 300 ? 3 : extent < 800 ? 5 : extent < 3000 ? 7 : extent < 20000 ? 9 : 12);
+    KMap.zoomCtl(id);
     /* 줌을 바꿀 때마다 이름표를 다시 선별한다(광역에서 글씨가 겹치던 문제). 리스너는 지도당 1개만 등록한다. */
     T2.capBase = capBase;
     t2LabelStep();
@@ -1977,8 +2090,12 @@ function t3Init() {
     ['현장확인', r => r.field], ['담당', r => r.e.rule ? `${r.e.rule.dept} ${r.e.rule.team}` : ''], ['전화', r => r.e.rule?.phone || '']], T3.rows));
   $('#t3-table').addEventListener('click', e => {
     const th = e.target.closest('[data-sort]'); if (th) { const k = th.dataset.sort; T3.sort = T3.sort.k === k ? { k, dir: -T3.sort.dir } : { k, dir: k === 'score' || k === 'shops' || k === 'ratio' ? -1 : 1 }; t3Render(); return; }
-    const b = e.target.closest('[data-open]'); if (!b) return;
-    const s = DB.stores.find(x => x.id === b.dataset.open); T1.area = +$('#d-area').value; switchView('check'); t1Select({ kind: 'store', ...s });
+    const b = e.target.closest('[data-open]');
+    const tr = b ? null : e.target.closest('tr[data-row]');
+    if (!b && (!tr || e.target.closest('a,button,select,input,label'))) return;
+    const id = b ? b.dataset.open : tr.dataset.row;
+    const s = DB.stores.find(x => x.id === id); if (!s) return;
+    T1.area = +$('#d-area').value; switchView('check'); t1Select({ kind: 'store', ...s });
   });
   $('#t3-pager').onclick = e => { const b = e.target.closest('[data-pg]'); if (!b || b.disabled) return; T3.page = +b.dataset.pg; t3Render(); };
 }
@@ -2022,7 +2139,7 @@ function t3Render() {
         ${thSort('예상 적격 가능성', 'v', st, 'sep')}${thSort('충족률', 'ratio', st)}${thSort('주변 상가 수', 'shops', st, 'r')}${thSort('기존 구역 관계', 'rel', st)}
         ${thSort('우선순위 점수 (100)', 'score', st, 'sep')}${thSort('현장 확인', 'field', st)}<th class="sep"></th></tr></thead><tbody>
     ${slice.map(r => { const e = r.e, pct = e.ratio != null ? Math.round(e.ratio * 100) : null, col = VMETA[e.v].color;
-      return `<tr>
+      return `<tr class="click" data-row="${esc(e.p.id)}">
         <td><span class="crown">${r.rank <= 3 && T3.sort.k === 'score' && T3.sort.dir < 0 ? `<span style="color:${CROWN[r.rank - 1]}">${ic('crown', 16)}</span>` : '<span style="width:16px;display:inline-block"></span>'}${r.rank}</span></td>
         <td><div class="cell2"><b>${esc(e.p.name)}</b> ${memberChip(e.p)}<small>${esc(e.p.id)} · ${esc(e.p.address)}</small></div></td>
         <td>${esc(e.p.sido)} ${esc(e.p.sigungu)}</td>
@@ -2030,7 +2147,7 @@ function t3Render() {
         <td>${pct != null ? `<b style="color:${col}">${pct}%</b><span class="minibar"><i style="width:${Math.min(e.ratio, 1.5) / 1.5 * 100}%;background:${col}"></i></span>` : '<span class="faint">—</span>'}</td>
         <td class="r"><b>${e.nSmall}</b> <span class="faint">/ 필요 ${e.required ?? '-'}</span></td>
         <td><span class="chip ${r.rel[1]}">${r.rel[0]}</span> <span class="muted">${esc(r.rel[2])}${e.nearest && !e.inside.length ? ' · ' + fmtD(e.nearest.edge) : ''}</span></td>
-        <td class="sep"><div class="sbar" title="${SEG.map(([k, , l]) => `${l} ${r.pr[k]}`).join(' / ')}"><span class="track">${SEG.map(([k, c]) => `<i style="width:${r.pr[k]}%;background:${c}"></i>`).join('')}</span><b>${r.pr.total}<small>/${r.pr.max || 100}</small></b></div></td>
+        <td class="sep" title="${esc(priorityTip(r))}" style="cursor:help"><div class="sbar"><span class="track">${SEG.map(([k, c]) => `<i style="width:${r.pr[k]}%;background:${c}"></i>`).join('')}</span><b>${r.pr.total}<small>/${r.pr.max || 100}</small></b></div></td>
         <td>${fieldChip(r.field)}</td>
         <td class="sep"><button class="btn sm primary" data-open="${esc(e.p.id)}">상세 분석 ${ic('chev', 12)}</button></td></tr>`; }).join('')}
     </tbody></table>` : stateBox('empty', '조건에 맞는 후보가 없습니다', '최소 적격 가능성이나 점수 조건을 완화해 보세요', '<button class="btn sm" onclick="document.getElementById(\'d-reset\').click()">필터 초기화</button>');
