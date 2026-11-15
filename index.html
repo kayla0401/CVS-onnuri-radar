@@ -336,6 +336,20 @@ svg.fmap [data-sid],svg.fmap [data-zone],svg.fmap [data-gs]{cursor:pointer}
 @keyframes sp{to{transform:rotate(360deg)}}
 .foot{font-size:11.5px;color:var(--text-tertiary);padding:0 4px 8px}
 
+/* ---------- 구역 직접 그리기 (꺾인 다각형 도면) ---------- */
+.btn.sm.on{background:var(--success);border-color:var(--success);color:#fff}
+.btn.sm.on:hover{background:#1F7360;border-color:#1F7360}
+.mapzone.drawing .pane-canvas{cursor:crosshair}
+.draw-bar{position:absolute;left:50%;transform:translateX(-50%);bottom:12px;z-index:7;display:flex;align-items:center;gap:6px;padding:6px 8px;background:rgba(255,255,255,.97);border:1px solid var(--border-strong);border-radius:12px;box-shadow:0 6px 18px rgba(23,36,56,.14);max-width:calc(100% - 24px);flex-wrap:wrap}
+.draw-bar .rd{font-size:11.5px;color:var(--text-secondary);display:flex;gap:5px;align-items:center;padding:0 4px;white-space:nowrap}
+.draw-bar .rd b{color:var(--text-primary);font-variant-numeric:tabular-nums;font-size:12.5px}
+.draw-bar .sep{width:1px;height:18px;background:var(--border);margin:0 2px}
+.vtx{width:20px;height:20px;border-radius:50%;background:#0E7C66;color:#fff;border:2px solid #fff;font:800 10px/16px var(--font);display:grid;place-items:center;box-shadow:0 0 0 1px rgba(14,124,102,.55);pointer-events:none;box-sizing:border-box}
+.poly-lb{padding:3px 8px;background:#fff;border:1.5px solid #0E7C66;border-radius:999px;font:800 11.5px var(--font);color:#0E7C66;white-space:nowrap;box-shadow:0 2px 6px rgba(23,36,56,.14);pointer-events:none}
+.poly-acts{display:flex;gap:8px;flex-wrap:wrap;margin:12px 16px 0}
+.poly-note{font-size:11px;color:var(--text-tertiary);line-height:1.55;padding:8px 16px 12px}
+.poly-mode{display:inline-flex;align-items:center;gap:6px;padding:2px 8px;border-radius:999px;font-size:11.5px;font-weight:700;background:var(--success-50);color:var(--success);border:1px solid var(--success-100)}
+
 @media (max-width:1280px){ .hdr-title{display:none} .hdr{grid-template-columns:auto 1fr auto} .filters{grid-template-columns:repeat(4,minmax(0,1fr))} .filters .acts{grid-column:1/-1;justify-content:flex-end} }
 @media (max-width:1100px){
   .t1{grid-template-columns:1fr;height:auto}
@@ -406,8 +420,14 @@ svg.fmap [data-sid],svg.fmap [data-zone],svg.fmap [data-gs]{cursor:pointer}
                 <input class="input num" id="area-custom" type="number" min="300" step="500" placeholder="직접 입력" aria-label="검토 면적 직접 입력(㎡)">
                 <span class="faint" id="area-desc"></span>
               </div>
+              <div class="area-row" style="margin-top:6px">
+                <button class="btn sm" id="btn-draw-a" aria-pressed="false" title="카카오맵 위를 클릭해 꺾인 도면(다각형)을 직접 그리면 실측 면적과 구역 내 상가 수를 계산합니다">✏️ 구역 직접 그리기</button>
+                <span class="faint" style="font-size:11.5px">원형 반경 대신 공무원 실측처럼 꺾인 도면을 그려 판정합니다</span>
+              </div>
             </div>
           </div>
+          <!-- B-0. 직접 그린 구역 실측 시뮬레이션 -->
+          <div class="card" id="t1-poly" hidden></div>
           <!-- B. 종합 판정 -->
           <div class="card" id="t1-verdict"></div>
           <!-- C. 후보 상가 -->
@@ -422,15 +442,28 @@ svg.fmap [data-sid],svg.fmap [data-zone],svg.fmap [data-gs]{cursor:pointer}
             <div class="pane-bar">
               <span class="tag">카카오맵</span><span class="cap" id="map-caption">점포를 선택하세요</span>
               <div class="right">
+                <button class="btn sm" id="btn-draw" aria-pressed="false" title="카카오맵 위를 클릭해 꺾인 도면(다각형)을 직접 그립니다">✏️ 구역 직접 그리기</button>
                 <label class="switch"><input type="checkbox" id="rv-toggle" checked><i></i>로드뷰 동시보기</label>
                 <button class="btn sm icon" id="btn-max" title="전체화면 확대" aria-label="전체화면 확대"><span data-i="expand"></span></button>
               </div>
             </div>
             <div class="pane-canvas" id="map1"></div>
             <div class="map-note" id="map1-note" hidden></div>
+            <div class="draw-bar" id="draw-bar" hidden>
+              <span class="rd">꼭짓점 <b id="db-n">0</b></span>
+              <span class="sep"></span>
+              <span class="rd">도면 <b id="db-a">—</b></span>
+              <span class="rd">구역 내 상가 <b id="db-s">—</b></span>
+              <span class="sep"></span>
+              <button class="btn sm" id="db-undo">한 점 되돌리기</button>
+              <button class="btn sm primary" id="db-done">그리기 완료</button>
+              <button class="btn sm" id="db-clear">다시 그리기</button>
+              <button class="btn sm ghost" id="db-off">그리기 종료</button>
+            </div>
             <div class="legend">
               <span><svg width="10" height="12" viewBox="0 0 10 12"><path d="M5 12C1.5 7.5 0 5.8 0 4.5a5 5 0 0110 0C10 5.8 8.5 7.5 5 12z" fill="#D43B3B"/></svg>선택 점포</span>
               <span><i class="lg" style="background:#315F95"></i>실시간 조회 상가(카카오)</span>
+              <span id="lg-poly" hidden><i class="lg" style="background:#0E7C66"></i>직접 그린 구역 내 상가</span>
               <span><i class="lg sq" style="border:1.5px dashed var(--text-primary)"></i>검토 구역(후보)</span>
               <span><i class="lg sq" style="background:rgba(115,87,201,.18);border:1.5px solid var(--zone)"></i>기존 온누리 구역</span>
             </div>
@@ -1081,6 +1114,7 @@ function svgMap(el, { center, extent, layers }) {
   const w = el.clientWidth || 600, h = el.clientHeight || 400;
   const s = Math.min(w, h) / (2 * extent);
   const cos = Math.cos(center.lat * RAD);
+  APP.svg = { center, extent, w, h };   // 꼭짓점 클릭 → 좌표 역변환(키 없을 때 그리기 대체)
   const X = p => w / 2 + (p.lng - center.lng) * 111320 * cos * s;
   const Y = p => h / 2 - (p.lat - center.lat) * 110540 * s;
   const step = niceStep(extent / 3); let g = '';
@@ -1115,6 +1149,12 @@ function svgMap(el, { center, extent, layers }) {
       const x = X(L.p), y = Y(L.p);
       top += `<g transform="translate(${x},${y})" pointer-events="none"><path d="M0 0 C-10 -13 -12 -17 -12 -23 a12 12 0 0 1 24 0 c0 6 -2 10 -12 23z" fill="#D43B3B" stroke="#fff" stroke-width="1.8"/><circle cy="-23" r="4.5" fill="#fff"/></g>`;
       if (L.label) top += lbl(x, y - 46, L.label, '#172438', true);
+    } else if (L.t === 'poly') {
+      body += `<polygon points="${L.pts.map(q => `${X(q)},${Y(q)}`).join(' ')}" fill="${L.color}" fill-opacity=".16" stroke="${L.color}" stroke-width="2.4" pointer-events="none"/>`;
+    } else if (L.t === 'line') {
+      body += `<polyline points="${L.pts.map(q => `${X(q)},${Y(q)}`).join(' ')}" fill="none" stroke="${L.color}" stroke-width="2.4" stroke-dasharray="6 4" pointer-events="none"/>`;
+    } else if (L.t === 'vtx') {
+      top += `<g transform="translate(${X(L.p)},${Y(L.p)})" pointer-events="none"><circle r="9" fill="${L.color || '#0E7C66'}" stroke="#fff" stroke-width="2"/><text text-anchor="middle" y="3.4" font-size="9.5" font-weight="800" fill="#fff">${L.n}</text></g>`;
     }
   }
   const sb = niceStep(extent / 2.5), sbw = sb * s;
@@ -1211,7 +1251,9 @@ function bearing(a, b) { const y = (b.lat - a.lat) * 110540, x = (b.lng - a.lng)
 /* #####################################################################
    8. TAB 1 — 점포 적격 판별 + 카카오맵/로드뷰
    ##################################################################### */
-const T1 = { sel: null, area: CONFIG.DEFAULT_AREA, results: [], ev: null, hl: null, rv: true, max: false, sort: { k: 'd', dir: 1 }, page: 0, filter: '', ac: -1, open: false };
+const T1 = { sel: null, area: CONFIG.DEFAULT_AREA, results: [], ev: null, hl: null, rv: true, max: false, sort: { k: 'd', dir: 1 }, page: 0, filter: '', ac: -1, open: false,
+  /* 구역 직접 그리기 — 꺾인 다각형 도면(꼭짓점은 위도·경도 객체 배열) */
+  poly: { on: false, done: false, pts: [], excl: 0, list: false, store: null } };
 
 function t1Init() {
   $('#area-seg').innerHTML = CONFIG.AREA_PRESETS.map(a => `<button data-a="${a}">${fmt(a)}㎡</button>`).join('');
@@ -1231,6 +1273,43 @@ function t1Init() {
   $('#q-clear').onclick = () => { q.value = ''; $('#q-clear').hidden = true; q.focus(); t1Suggest(true); };
   $('#ac').addEventListener('mousedown', e => { const it = e.target.closest('.ac-item'); if (!it) return; e.preventDefault(); t1Select(T1.results[+it.dataset.i]); });
   $('#btn-analyze').onclick = t1Analyze;
+  $('#btn-draw').onclick = () => polyToggle();
+  $('#btn-draw-a').onclick = () => polyToggle();
+  /* 스키매틱 SVG 폴백(카카오 키 미설정·오류)에서도 그리기 — 화면 픽셀을 위·경도로 역변환 */
+  $('#map1').addEventListener('click', ev => {
+    if (KMap.ready || !T1.poly.on || T1.poly.done || !APP.svg) return;
+    const v = APP.svg, rect = $('#map1').getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const sc = Math.min(rect.width / v.w, rect.height / v.h);
+    const ox = (rect.width - v.w * sc) / 2, oy = (rect.height - v.h * sc) / 2;
+    const sx = (ev.clientX - rect.left - ox) / sc, sy = (ev.clientY - rect.top - oy) / sc;
+    const met = Math.min(v.w, v.h) / (2 * v.extent), cos = Math.cos(v.center.lat * RAD);
+    const dx = (sx - v.w / 2) / met, dy = (v.h / 2 - sy) / met;
+    T1.poly.pts.push({ lat: v.center.lat + dy / 110540, lng: v.center.lng + dx / (111320 * cos) });
+    polyAfterEdit();
+  });
+  $('#draw-bar').addEventListener('click', e => {
+    if (e.target.closest('#db-undo')) return polyUndo();
+    if (e.target.closest('#db-done')) return polyFinish();
+    if (e.target.closest('#db-clear')) return polyRedraw();
+    if (e.target.closest('#db-off')) return polyToggle(false);
+  });
+  $('#t1-poly').addEventListener('click', e => {
+    if (e.target.closest('#poly-list')) { T1.poly.list = !T1.poly.list; renderPolyCard(); return; }
+    if (e.target.closest('#poly-csv')) { polyCSV(); return; }
+    if (e.target.closest('#poly-copy')) { polyCopy(); return; }
+    if (e.target.closest('#poly-done')) { polyFinish(); return; }
+    if (e.target.closest('#poly-go')) { polyToggle(true); return; }
+  });
+  $('#t1-poly').addEventListener('change', e => {
+    if (e.target.id === 'poly-excl') {
+      const v = e.target.value;
+      if (v !== 'custom') T1.poly.excl = +v;
+      else setTimeout(() => { const el = $('#poly-excl-c'); if (el) { el.focus(); el.select(); } }, 0);
+      renderPolyCard(); return;
+    }
+    if (e.target.id === 'poly-excl-c') { T1.poly.excl = Math.max(0, Math.min(90, Math.round(+e.target.value || 0))); renderPolyCard(); }
+  });
   $('#rv-toggle').onchange = e => { T1.rv = e.target.checked; $('#mapzone').classList.toggle('no-rv', !T1.rv); requestAnimationFrame(() => T1.ev && renderMap1(T1.ev)); };
   $('#btn-max').onclick = () => t1Max(!T1.max);
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && T1.max) t1Max(false); });
@@ -1341,6 +1420,7 @@ function t1Run() {
   $('#area-desc').textContent = `원형 환산 반경 ${Math.round(Math.sqrt(T1.area / Math.PI))}m`;
   if (!T1.sel) return t1RenderEmpty();
   const e = T1.ev = ev(T1.sel, T1.area);
+  if (T1.poly.store !== e.p.id) { T1.poly.pts = []; T1.poly.done = false; T1.poly.list = false; T1.poly.store = e.p.id; T1.poly.on = false; polyClearOv(); }
   const r = e.rule;
   $('#t1-info').innerHTML = `<div class="info-grid">
       <span class="k">주소</span><span>${esc(e.p.address)}</span>
@@ -1349,6 +1429,7 @@ function t1Run() {
       ${e.p.kind === 'store' && e.nOther ? `<span class="k">행정경계</span><span>반경 56m 내 타 시·군·구 상가 <b>${e.nOther}</b>곳 혼입</span>` : ''}
     </div>`;
   renderVerdict(e); renderShops(e); renderAction(e); renderMap1(e);
+  renderPolyCard(); syncPolyUI();
   if (e.p.kind === 'store' && e.p.cov && !DB.nearby[e.p.sido]) {
     loadNearby(e.p.sido).then(() => { if (T1.ev === e) renderShops(e); });
   }
@@ -1533,7 +1614,9 @@ async function t1Live(e) {
   if (!KMap.ready || !kakao.maps.services) { APP.live.state = 'error'; renderShops(e); return; }
   const ps = new kakao.maps.services.Places();
   const center = new kakao.maps.LatLng(e.p.lat, e.p.lng);
-  const radius = Math.max(50, Math.round(e.r * 1.5));
+  /* 조회 반경 — 원형 교차검증은 e.r 기준으로 거르므로 결과가 그대로고(C구역 수치 불변),
+     직접 그린 다각형 시뮬레이션용 주변 상가 좌표를 max(150m, e.r×2.5)까지 넓게 모은다 */
+  const radius = Math.max(150, Math.round(e.r * 2.5));
   const seen = new Map();
   const jobs = KAKAO_GROUPS.map(([code, label]) => new Promise(res => {
     const collect = (data, status, pagination) => {
@@ -1551,6 +1634,7 @@ async function t1Live(e) {
   const list = [...seen.values()].sort((a, b) => a.d - b.d);
   APP.live = { key: e.p.id, places: list, state: list.length ? 'ok' : 'empty' };
   renderShops(e); renderMap1(e);
+  if (T1.poly.on || T1.poly.pts.length) { renderPolyCard(); syncDrawBar(); }
   toast(`실시간 조회 ${list.length}건`);
 }
 
@@ -1801,67 +1885,343 @@ function rvPlaceholder(p, msg, err) {
   return `<div class="rv-ph"><div class="box ${err ? 'err' : ''}"><b>${err ? '로드뷰 API 오류' : '로드뷰'}</b>
     <p>${esc(msg)}</p><a class="btn primary" href="${kakaoRvLink(p)}" target="_blank" rel="noopener">카카오맵 로드뷰 새 창 ↗</a></div></div>`;
 }
-function renderMap1(e) {
-  const p = e.p;
-  $('#map-caption').textContent = `${p.name} · 검토 반경 ${Math.round(e.r)}m`;
-  $('#rv-caption').textContent = p.address;
-  $('#rv-ext').href = kakaoRvLink(p);
-  const nvLink = $('#rv-naver'); if (nvLink) { nvLink.href = naverStoreLink(p); nvLink.style.display = ''; }
-  mapNote('map1');
-  const nearZones = e.zc.filter(x => x.d < 1500).map(x => x.z);
-  const near = APP.live.key === p.id ? APP.live.places.filter(x => dist(p, x) < e.r * 2.4) : [];
-  if (KMap.ready) {
-    const id = 'map1', m = KMap.map(id); KMap.clear(id); m.relayout();
-    nearZones.forEach(z => KMap.zoneColored(id, z, '#7357C9', e.inside.some(x => x.z === z)));
-    KMap.ring(id, p, e.r);
-    near.forEach(s => KMap.dot(id, s, '#315F95', 8, `${s.name} · ${s.cat}`));
-    KMap.add(id, new kakao.maps.Marker({ position: KMap.ll(p), title: p.name }));
-    m.setCenter(KMap.ll(p)); m.setLevel(e.r > 60 ? 3 : 2);
-    KMap.zoomCtl('map1');
-    if (T1.rv) { if (KMap.rv) KMap.rv.relayout(); KMap.roadview('rv1', p, () => { $('#rv1').innerHTML = rvPlaceholder(p, '주변 60m 이내 로드뷰 파노라마가 없습니다.'); KMap.rv = null; }); }
-  } else {
-    const ext = Math.max(e.r * 2.1, 90);
-    svgMap($('#map1'), { center: p, extent: ext, layers: [
-      ...nearZones.map(z => ({ t: 'zone', z, color: '#7357C9', strong: e.inside.some(x => x.z === z) })),
-      { t: 'ring', p, r: e.r },
-      ...near.map(s => ({ t: 'dot', p: s, color: '#315F95', size: 4, title: `${s.name} · ${s.cat}` })),
-      { t: 'pin', p, label: p.name },
-    ] });
-    if (T1.rv) $('#rv1').innerHTML = APP.mapState === 'error'
-      ? rvPlaceholder(p, '카카오 SDK를 불러오지 못했습니다. JavaScript 키와 [플랫폼 > Web] 도메인 등록을 확인하세요.', true)
-      : rvPlaceholder(p, '카카오 JavaScript 키 설정 후 지도와 동기화된 로드뷰가 표시됩니다.');
+/* ---- 8b. 지도 위 구역 직접 그리기 (공무원 실측 방식 — 꺾인 다각형 도면) ----
+   카카오 실시간 조회(APP.live.places)가 개별 상가의 위·경도를 갖고 있으므로,
+   공단 CSV의 [거리, 상호, 업종]만으로는 불가능한 꺾인 경계 판정이 가능하다.
+   · 점포 중심 로컬 미터 좌표(dx=(lng-lng0)·111320·cos, dy=(lat-lat0)·110540)
+     변환 뒤 신발끈(Shoelace) 공식으로 도면 면적(㎡)을 계산한다.
+   · Ray-casting Point-in-Polygon 으로 구역 내 상가를 가른다(내부=에메랄드 강조, 외부=회색).
+   · 유효 면적 = 도면 면적 × (1 - 도로·주차장 제외율) → ev()와 같은 필요 점포수 공식에 대입. */
+const PGL = { ON: '#0E7C66', OUT: '#B6C0CC' };
+function polyXY(o, q) { const cos = Math.cos(o.lat * RAD); return [(q.lng - o.lng) * 111320 * cos, (q.lat - o.lat) * 110540]; }
+function polyRing(pts) { return pts.map(q => [q.lat, q.lng]); }
+function polyAreaM2(pts, o) {
+  let a = 0;
+  for (let i = 0; i < pts.length; i++) {
+    const [x1, y1] = polyXY(o, pts[i]), [x2, y2] = polyXY(o, pts[(i + 1) % pts.length]);
+    a += x1 * y2 - x2 * y1;
   }
+  return Math.abs(a) / 2;
+}
+function polyCentroid(pts, o) {
+  let a = 0, cx = 0, cy = 0;
+  for (let i = 0; i < pts.length; i++) {
+    const [x1, y1] = polyXY(o, pts[i]), [x2, y2] = polyXY(o, pts[(i + 1) % pts.length]);
+    const f = x1 * y2 - x2 * y1; a += f; cx += (x1 + x2) * f; cy += (y1 + y2) * f;
+  }
+  a /= 2;
+  return a ? [cx / (6 * a), cy / (6 * a)] : [0, 0];
+}
+/* 다각형 최대 반지름(중심~꼭짓점) — 첫 점 근처 클릭 판정·지도 표시 범위에 쓴다 */
+function polySpan(pts, o) { const c = polyCentroid(pts, o); let r = 0; pts.forEach(q => { const [x, y] = polyXY(o, q); r = Math.max(r, Math.hypot(x - c[0], y - c[1])); }); return r; }
+
+/* 실측 시뮬레이션 — 도면 면적 → 공용면적 제외 유효 면적 → 조례 기준 필요 상가·충족률 */
+function polySim(e) {
+  const P = T1.poly, pts = P.pts;
+  if (!e || !pts || pts.length < 3) return null;
+  const o = e.p, ring = polyRing(pts);
+  const area = polyAreaM2(pts, o);
+  const live = APP.live.key === o.id && APP.live.state === 'ok' ? APP.live.places : null;
+  const inside = [];
+  (live || []).forEach(pl => {
+    if (!pl || pl.lat == null || !inPoly(pl, ring)) return;
+    const self = xcPairScore(o.name, pl.name) >= .9;            // 분석 대상 점포 자신(상가 후보 아님)
+    const small = !self && !XC_NOT_SMALL.includes(pl.cat);      // 소상공인 성격 업종만 집계
+    inside.push({ p: pl, self, small });
+  });
+  const nAll = inside.length, nSmall = inside.filter(x => x.small).length;
+  const excl = Math.max(0, Math.min(90, +P.excl || 0));
+  const eff = area * (1 - excl / 100);
+  const base = e.base || 2000, th = e.th, thCom = e.thCom, thNon = e.thNon;
+  const required = th ? Math.ceil(th * eff / base) : null;
+  const requiredNon = thNon ? Math.ceil(thNon * eff / base) : null;
+  const per = eff > 0 ? nSmall * base / eff : null;             // 2,000㎡ 환산 밀집도
+  const ratio = th && per != null ? per / th : null;
+  let v = 'na', label = '조례 기준 미등록';
+  if (th && per != null) {
+    if (per >= (thCom || th)) { v = 'pass'; label = '적합 — 상업지역 기준 충족'; }
+    else if (thNon != null && per >= thNon) { v = 'cond'; label = '조건부 — 비상업 기준 충족'; }
+    else if (ratio >= CONFIG.COND_RATIO) { v = 'cond'; label = '조건부 — 기준 근접'; }
+    else { v = 'fail'; label = '미달 — 기준 미충족'; }
+  }
+  return { area, eff, excl, nAll, nSmall, inside, required, requiredNon, per, ratio, base, th, thCom, thNon,
+    v, label, live: !!live, liveState: APP.live.key === o.id ? APP.live.state : 'idle', span: polySpan(pts, o), ring };
 }
 
+/* --- 지도 오버레이(카카오) --- */
+function polyClearOv() {
+  (APP.polyOv || []).forEach(o => { try { o.setMap(null); } catch (_) {} });
+  APP.polyOv = []; APP.polyPrev = null;
+}
+function polyDotList(e) {
+  const R = T1.poly.on ? 400 : e.r * 2.4;
+  return APP.live.key === e.p.id ? APP.live.places.filter(x => dist(e.p, x) < R) : [];
+}
+/* 구역 내/밖 상가 점 색만 다시 칠한다(지도 중심·줌은 건드리지 않는다) */
+function polyRecolor(e) {
+  if (!KMap.ready) return;
+  (APP.polyDotOv || []).forEach(o => { try { o.setMap(null); } catch (_) {} });
+  APP.polyDotOv = [];
+  const ring = T1.poly.pts.length >= 3 ? polyRing(T1.poly.pts) : null;
+  polyDotList(e).forEach(s => {
+    const inP = ring ? inPoly(s, ring) : null;
+    const color = inP === null ? '#315F95' : inP ? PGL.ON : PGL.OUT;
+    const size = inP === null ? 8 : inP ? 9 : 5;
+    let ov;
+    try { ov = KMap.dot('map1', s, color, size, `${s.name} · ${s.cat}${inP ? ' · 구역 내' : ''}`); } catch (_) { return; }
+    const el = ov && ov.getContent ? ov.getContent() : null;
+    if (el) el.style.pointerEvents = 'none';     // 그리는 중에는 점이 클릭을 가로채지 않는다
+    APP.polyDotOv.push(ov);
+  });
+}
+function polyDrawMap(e) {
+  if (!KMap.ready) return;
+  polyClearOv();
+  const P = T1.poly, pts = P.pts;
+  if (!pts.length) return;
+  const m = KMap.map('map1');
+  const path = pts.map(q => KMap.ll(q));
+  if (pts.length >= 3) {
+    const poly = new kakao.maps.Polygon({ path, strokeWeight: 3, strokeColor: PGL.ON, strokeOpacity: .95, fillColor: PGL.ON, fillOpacity: .16, zIndex: 2 });
+    poly.setMap(m); APP.polyOv.push(poly);
+    try { kakao.maps.event.addListener(poly, 'click', ev => polyMouse(ev)); } catch (_) {}
+  } else if (pts.length === 2) {
+    const ln = new kakao.maps.Polyline({ path, strokeWeight: 3, strokeColor: PGL.ON, strokeOpacity: .9, strokeStyle: 'dash' });
+    ln.setMap(m); APP.polyOv.push(ln);
+  }
+  pts.forEach((q, i) => {
+    const el = document.createElement('div'); el.className = 'vtx'; el.textContent = String(i + 1);
+    const ov = new kakao.maps.CustomOverlay({ position: KMap.ll(q), content: el, xAnchor: .5, yAnchor: .5, zIndex: 6 });
+    ov.setMap(m); APP.polyOv.push(ov);
+  });
+  if (!P.done) {   /* 마지막 꼭짓점 → 커서 미리보기 선 */
+    const prev = new kakao.maps.Polyline({ path: [KMap.ll(pts[pts.length - 1]), KMap.ll(pts[pts.length - 1])], strokeWeight: 2, strokeColor: PGL.ON, strokeOpacity: .6, strokeStyle: 'shortdash' });
+    prev.setMap(m); APP.polyPrev = prev; APP.polyOv.push(prev);
+  }
+  const sim = polySim(e);
+  if (sim) {
+    const c = polyCentroid(pts, e.p), cos = Math.cos(e.p.lat * RAD);
+    const lbl = document.createElement('div'); lbl.className = 'poly-lb'; lbl.textContent = `${fmt(Math.round(sim.area))}㎡`;
+    const ov = new kakao.maps.CustomOverlay({ position: new kakao.maps.LatLng(e.p.lat + c[1] / 110540, e.p.lng + c[0] / (111320 * cos)), content: lbl, xAnchor: .5, yAnchor: .5, zIndex: 5 });
+    ov.setMap(m); APP.polyOv.push(ov);
+  }
+}
+function polyMouse(ev) { polyClick(ev); }
+function polyLL(ev) { const ll = ev && ev.latLng; return ll ? { lat: ll.getLat(), lng: ll.getLng() } : null; }
+function polyAfterEdit() { const e = T1.ev; if (!e) return; polyDrawMap(e); polyRecolor(e); renderPolyCard(); syncDrawBar(); }
 
-/* #####################################################################
-   9. TAB 2 — 온누리 가맹점 & 상권 DB
-   ##################################################################### */
+/* --- 그리기 조작 --- */
+function polyToggle(force) {
+  const e = T1.ev;
+  if (!e) { toast('먼저 점포를 선택하세요'); return; }
+  const P = T1.poly;
+  const want = typeof force === 'boolean' ? force : !P.on;
+  if (!want) {
+    P.on = false;
+    if (P.pts.length >= 3) P.done = true;
+    polyDrawMap(e); polyRecolor(e); syncPolyUI(); renderPolyCard();
+    return;
+  }
+  if (P.store !== e.p.id) { P.pts = []; P.done = false; P.list = false; P.store = e.p.id; polyClearOv(); }
+  P.on = true; P.done = false;
+  const L = APP.live;
+  /* 실시간 카카오 상가 좌표가 없으면 자동 조회 — 조회가 끝나도 꼭짓점(T1.poly.pts)은 그대로 남는다 */
+  if (!(L.key === e.p.id && (L.state === 'ok' || L.state === 'empty'))) t1Live(e);
+  if (KMap.ready) {
+    const m = KMap.map('map1');
+    m.setCenter(KMap.ll(e.p)); m.setLevel(4);
+    if (!m.__drawWired) {
+      m.__drawWired = true;
+      kakao.maps.event.addListener(m, 'click', ev => { if (T1.poly.on) polyClick(ev); });
+      kakao.maps.event.addListener(m, 'mousemove', ev => {
+        const p = T1.poly; if (!p.on || p.done || !p.pts.length || !APP.polyPrev) return;
+        const ll = ev.latLng; if (ll) { try { APP.polyPrev.setPath([KMap.ll(p.pts[p.pts.length - 1]), ll]); } catch (_) {} }
+      });
+    }
+  }
+  syncPolyUI(); polyDrawMap(e); polyRecolor(e); renderPolyCard();
+  toast('지도를 클릭해 꼭짓점을 찍으세요 — 3점 이상이면 [그리기 완료]');
+}
+function polyClick(ev) {
+  const P = T1.poly;
+  if (!P.on || P.done) return;
+  const q = polyLL(ev); if (!q) return;
+  /* 같은 클릭이 지도·폴리곤 리스너에서 두 번 들어오는 경우를 막는다 */
+  const now = Date.now();
+  if (P._t && now - P._t < 90 && P.pts.length && dist(q, P.pts[P.pts.length - 1]) < 2) return;
+  P._t = now;
+  if (P.pts.length >= 3) {                       /* 첫 점 근처를 누르면 닫는다 */
+    const gap = Math.max(6, polySpan(P.pts, T1.ev.p) * .12);
+    if (dist(q, P.pts[0]) <= gap) { polyFinish(); return; }
+  }
+  P.pts.push(q); polyAfterEdit();
+}
+function polyUndo() {
+  const P = T1.poly;
+  if (!P.pts.length) { toast('되돌릴 꼭짓점이 없습니다'); return; }
+  P.pts.pop(); P.done = false; polyAfterEdit();
+}
+function polyFinish() {
+  const P = T1.poly, e = T1.ev; if (!e) return;
+  if (P.pts.length < 3) { toast('꼭짓점을 3개 이상 찍어야 면적·판정을 계산합니다'); return; }
+  P.done = true; polyAfterEdit();
+  if (KMap.ready) {
+    try {
+      const b = new kakao.maps.LatLngBounds(); P.pts.forEach(q => b.extend(KMap.ll(q)));
+      KMap.map('map1').setBounds(b, 70);
+    } catch (_) {}
+  }
+  const sim = polySim(e);
+  toast(sim ? `판정 확정 — 도면 ${fmt(Math.round(sim.area))}㎡ · 유효 ${fmt(Math.round(sim.eff))}㎡ · 구역 내 상가 ${sim.nSmall}개 · ${VMETA[sim.v].label}` : '그리기 완료');
+}
+function polyRedraw() {
+  const P = T1.poly; P.pts = []; P.done = false; polyAfterEdit();
+  toast('도면을 초기화했습니다 — 다시 그리세요');
+}
+function syncPolyUI() {
+  const P = T1.poly, on = !!P.on;
+  ['#btn-draw', '#btn-draw-a'].forEach(s => { const b = $(s); if (!b) return; b.setAttribute('aria-pressed', String(on)); b.classList.toggle('on', on); });
+  const bar = $('#draw-bar'); if (bar) bar.hidden = !on;
+  const mz = $('#mapzone'); if (mz) mz.classList.toggle('drawing', on);
+  const lg = $('#lg-poly'); if (lg) lg.hidden = !(on || P.pts.length);
+  const cap = $('#map-caption');
+  if (cap && T1.ev && on) cap.textContent = `${T1.ev.p.name} · 구역 직접 그리기 (꼭짓점 ${P.pts.length})`;
+  syncDrawBar();
+}
+function syncDrawBar() {
+  const P = T1.poly, sim = polySim(T1.ev), n = P.pts.length;
+  const set = (id, v) => { const el = $('#' + id); if (el) el.textContent = v; };
+  set('db-n', String(n));
+  set('db-a', sim ? `${fmt(Math.round(sim.area))}㎡` : '—');
+  set('db-s', sim && sim.live ? `${sim.nSmall}개` : '—');
+  const undo = $('#db-undo'), done = $('#db-done'), clr = $('#db-clear');
+  if (undo) undo.disabled = !n;
+  if (done) done.disabled = n < 3 || P.done;
+  if (clr) clr.disabled = !n && !P.done;
+}
+
+/* --- 결과 카드 --- */
+function renderPolyCard() {
+  const box = $('#t1-poly'); if (!box) return;
+  const e = T1.ev, P = T1.poly;
+  if (!e || (!P.on && P.pts.length < 3)) { box.hidden = true; box.innerHTML = ''; return; }
+  box.hidden = false;
+  const sim = polySim(e), r = e.rule;
+  if (!sim) {
+    box.innerHTML = `<div class="card-h"><h3>📐 직접 그린 구역 실측 시뮬레이션</h3><span class="sub">그리는 중</span></div>
+      <div class="card-b" style="padding:0">${stateBox('info', '지도에서 구역을 그리세요', `꼭짓점 ${P.pts.length}개 · 3개 이상 찍으면 도면 면적·유효 면적·구역 내 상가 수·판정이 실시간으로 계산됩니다.`)}</div>
+      <div class="poly-note">※ 카카오 실시간 위치 기준(업종당 최대 45건) 시뮬레이션이며, 실제 심사 시 소상공인 해당 여부·지번 도면 확인이 필요합니다.</div>`;
+    return;
+  }
+  const m = VMETA[sim.v];
+  const pct = sim.ratio != null ? Math.round(sim.ratio * 100) : null;
+  const w = sim.ratio != null ? Math.min(sim.ratio, 1.5) / 1.5 * 100 : 0;
+  const exclOk = r ? r.excludes_road_parking : null;
+  const exclChip = exclOk === true ? '<span class="chip s">조례상 도로·주차장 면적 제외 가능</span>'
+    : exclOk === false ? '<span class="chip o">도로 면적 포함</span>' : '<span class="chip o">면적 제외 규정 없음</span>';
+  const presets = [[0, '0% (전체 부지)'], [15, '15%'], [25, '25%'], [30, '30%']];
+  const isPreset = presets.some(o => o[0] === sim.excl);
+  const exclSel = `<select class="select" id="poly-excl" style="width:158px;height:30px" aria-label="도로·주차장 공용면적 제외율">`
+    + presets.map(([v, t]) => `<option value="${v}" ${isPreset && sim.excl === v ? 'selected' : ''}>${t}</option>`).join('')
+    + `<option value="custom" ${isPreset ? '' : 'selected'}>직접 입력…</option></select>`;
+  const loading = sim.liveState === 'loading';
+  const liveChip = loading ? '<span class="chip w">카카오 조회 중…</span>'
+    : sim.liveState === 'error' ? '<span class="chip d">카카오 조회 실패</span>'
+    : sim.liveState === 'empty' ? '<span class="chip o">카카오 결과 0건</span>'
+    : `<span class="chip a">카카오 ${sim.live ? '실시간 조회' : '미조회'}</span>`;
+  const listHTML = P.list ? `<div class="tbl-wrap" style="max-height:230px;margin:10px 16px 0;border:1px solid var(--border);border-radius:var(--r)">
+      <table class="tbl num"><thead><tr><th>상호</th><th>업종</th><th>거리</th><th>주소</th><th>집계</th></tr></thead><tbody>
+      ${sim.inside.length ? sim.inside.slice().sort((a, b) => a.p.d - b.p.d).map(x => `<tr><td><b>${esc(x.p.name)}</b></td><td>${esc(x.p.cat)}</td>
+        <td>${Math.round(x.p.d)}m</td><td class="faint">${esc(x.p.addr || '')}</td>
+        <td>${x.self ? '<span class="chip o">대상 점포</span>' : x.small ? '<span class="chip s">포함</span>' : '<span class="chip d">제외 업종</span>'}</td></tr>`).join('')
+      : '<tr><td colspan="5" class="faint">아직 구역 내에서 확인된 상가가 없습니다.</td></tr>'}
+      </tbody></table></div>` : '';
+  box.innerHTML = `
+    <div class="card-h"><h3>📐 직접 그린 구역 실측 시뮬레이션</h3><span class="sub">${P.done ? '판정 확정' : '그리는 중'}</span>
+      <div class="right">${badge(sim.v)}</div></div>
+    <div class="trio num">
+      <div><div class="k">도면 총 면적</div><div class="v">${fmt(Math.round(sim.area))}<small>㎡</small></div></div>
+      <div><div class="k">유효 면적 <span class="faint">(제외 ${sim.excl}%)</span></div><div class="v">${fmt(Math.round(sim.eff))}<small>㎡</small></div></div>
+      <div><div class="k">구역 내 상가 <span class="faint">(카카오)</span></div><div class="v" style="color:${m.color}">${sim.nSmall}<small>개 / 전체 ${sim.nAll}</small></div></div>
+    </div>
+    <div class="vrows" style="margin-top:12px;border-top:0">
+      <div class="vrow"><span class="k">도로·주차장 제외율</span><span class="v" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        ${exclSel}<input class="input num" id="poly-excl-c" type="number" min="0" max="90" step="1" value="${sim.excl}" style="width:74px;height:30px" aria-label="공용면적 제외율 직접 입력(%)"><span class="faint">%</span>
+        <span class="faint" style="font-size:11.5px">유효 면적 = 도면 × (1 − 제외율)</span></span></div>
+      <div class="vrow"><span class="k">조례 공용면적</span><span class="v">${exclChip} <span class="faint" style="font-size:11.5px">${exclOk === true ? '이 지자체는 심의를 거쳐 도로·주차장 부지를 뺄 수 있습니다' : exclOk === false ? '이 조례는 도로 면적을 포함해 산정합니다' : '조례에 면적 제외 규정이 확인되지 않습니다'}</span></span></div>
+      <div class="vrow"><span class="k">필요 상가 수</span><span class="v"><b class="num">${sim.required ?? '—'}</b>개 <span class="faint">유효 면적 기준${sim.requiredNon != null ? ` (비상업 ${sim.requiredNon}개)` : ''}</span>
+        ${sim.thNon != null ? `<span class="faint" style="font-size:11.5px">· ${fmt(sim.base)}㎡당 상업 ${sim.thCom}·비상업 ${sim.thNon}개</span>` : ''}</span></div>
+      <div class="vrow"><span class="k">2,000㎡ 환산 밀집도</span><span class="v"><b class="num" style="color:${m.color}">${sim.per != null ? sim.per.toFixed(1) : '—'}</b>개 <span class="faint">= 구역 내 상가 ${sim.nSmall}개 × ${fmt(sim.base)} ÷ ${fmt(Math.round(sim.eff))}㎡</span></span></div>
+      <div class="vrow" style="border-bottom:0"><span class="k">충족률 · 판정</span><span class="v" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <span class="prog" style="flex:1;min-width:120px"><i style="width:${w}%;background:${m.color}"></i><span class="tick" style="left:${100 / 1.5}%" title="기준 100%"></span></span>
+        <b class="num" style="min-width:44px;text-align:right;color:${m.color}">${pct != null ? pct + '%' : '—'}</b>
+        <b style="color:${m.color}">${esc(sim.label)}</b>${liveChip}</span></div>
+    </div>
+    <div class="poly-acts">
+      <button class="btn sm" id="poly-list">${P.list ? '구역 내 상가 접기' : `구역 내 상가 보기 (${sim.nAll})`}</button>
+      <button class="btn sm" id="poly-csv">${ic('down', 14)}구역 내 상가 CSV</button>
+      <button class="btn sm" id="poly-copy">${ic('copy', 14)}시뮬레이션 요약 복사</button>
+      ${!P.done ? '<button class="btn sm primary" id="poly-done">그리기 완료</button>' : ''}
+    </div>
+    ${listHTML}
+    <div class="poly-note">※ 카카오 실시간 위치 기준(업종당 최대 45건) 시뮬레이션이며, 실제 심사 시 소상공인 해당 여부·지번 도면 확인이 필요합니다.</div>`;
+}
+function polyCopy() {
+  const e = T1.ev, sim = polySim(e);
+  if (!sim) { toast('꼭짓점 3개 이상을 찍어 구역을 먼저 그리세요'); return; }
+  const r = e.rule;
+  copyText([
+    `[직접 그린 구역 실측 시뮬레이션] ${e.p.name}`,
+    `주소: ${e.p.address}`,
+    `도면: 꼭짓점 ${T1.poly.pts.length}개 · 총 면적 ${fmt(Math.round(sim.area))}㎡ (신발끈 공식 실측)`,
+    `도로·주차장 제외율: ${sim.excl}% → 유효 면적 ${fmt(Math.round(sim.eff))}㎡`,
+    `구역 내 확인 상가: ${sim.nSmall}개 (카카오 실시간 · 전체 ${sim.nAll}개)`,
+    `기준: ${r ? r.ordinance : NAT_RULE.ordinance} — ${sim.thNon != null ? `${fmt(sim.base)}㎡당 상업 ${sim.thCom}개·비상업 ${sim.thNon}개` : `${fmt(sim.base)}㎡당 ${sim.th}개`}`,
+    `필요 상가: ${sim.required ?? '-'}개${sim.requiredNon != null ? ` (비상업 ${sim.requiredNon}개)` : ''} · 2,000㎡ 환산 ${sim.per != null ? sim.per.toFixed(1) : '-'}개 · 충족률 ${sim.ratio != null ? Math.round(sim.ratio * 100) + '%' : '-'}`,
+    `시뮬레이션 판정: ${VMETA[sim.v].label} (${sim.label})`,
+    `공용면적: ${r ? (r.excludes_road_parking === true ? '조례상 도로·주차장 면적 제외 가능' : r.excludes_road_parking === false ? '도로 면적 포함' : '규정 없음') : '조례 미확인'}`,
+    '※ 카카오 실시간 위치 기준(업종당 최대 45건) 시뮬레이션이며, 실제 심사 시 소상공인 해당 여부·지번 도면 확인이 필요합니다.',
+  ].join('\n'), '시뮬레이션 요약을 복사했습니다');
+}
+function polyCSV() {
+  const e = T1.ev, sim = polySim(e);
+  if (!sim) { toast('꼭짓점 3개 이상을 찍어 구역을 먼저 그리세요'); return; }
+  const rows = sim.inside.slice().sort((a, b) => a.p.d - b.p.d);
+  downloadCSV(`직접그린구역_${e.p.name}_${Math.round(sim.area)}m2.csv`, toCSV([
+    ['상호', x => x.p.name], ['업종', x => x.p.cat], ['거리(m)', x => Math.round(x.p.d)], ['주소', x => x.p.addr || ''],
+    ['집계', x => x.self ? '대상 점포' : x.small ? '포함' : '제외 업종'], ['위도', x => x.p.lat], ['경도', x => x.p.lng],
+  ], rows));
+}
 
 function renderMap1(e) {
-  const p = e.p;
-  $('#map-caption').textContent = `${p.name} · 검토 반경 ${Math.round(e.r)}m`;
+  const p = e.p, P = T1.poly, drawing = !!P.on;
+  $('#map-caption').textContent = drawing
+    ? `${p.name} · 구역 직접 그리기 (꼭짓점 ${P.pts.length})`
+    : `${p.name} · 검토 반경 ${Math.round(e.r)}m`;
   $('#rv-caption').textContent = p.address;
   $('#rv-ext').href = kakaoRvLink(p);
   const nvLink = $('#rv-naver'); if (nvLink) { nvLink.href = naverStoreLink(p); nvLink.style.display = ''; }
   mapNote('map1');
   const nearZones = e.zc.filter(x => x.d < 1500).map(x => x.z);
-  const near = APP.live.key === p.id ? APP.live.places.filter(x => dist(p, x) < e.r * 2.4) : [];
+  const near = polyDotList(e);
+  const ring = P.pts.length >= 3 ? polyRing(P.pts) : null;
   if (KMap.ready) {
     const id = 'map1', m = KMap.map(id); KMap.clear(id); m.relayout();
     nearZones.forEach(z => KMap.zoneColored(id, z, '#7357C9', e.inside.some(x => x.z === z)));
     KMap.ring(id, p, e.r);
-    near.forEach(s => KMap.dot(id, s, '#315F95', 8, `${s.name} · ${s.cat}`));
     KMap.add(id, new kakao.maps.Marker({ position: KMap.ll(p), title: p.name }));
-    m.setCenter(KMap.ll(p)); m.setLevel(e.r > 60 ? 3 : 2);
+    polyRecolor(e); polyDrawMap(e);
+    if (!drawing) { m.setCenter(KMap.ll(p)); m.setLevel(e.r > 60 ? 3 : 2); }
     KMap.zoomCtl('map1');
     if (T1.rv) { if (KMap.rv) KMap.rv.relayout(); KMap.roadview('rv1', p, () => { $('#rv1').innerHTML = rvPlaceholder(p, '주변 60m 이내 로드뷰 파노라마가 없습니다.'); KMap.rv = null; }); }
   } else {
-    const ext = Math.max(e.r * 2.1, 90);
+    const ext = Math.max(e.r * 2.1, ring ? polySpan(P.pts, p) * 1.7 : 90);
     svgMap($('#map1'), { center: p, extent: ext, layers: [
       ...nearZones.map(z => ({ t: 'zone', z, color: '#7357C9', strong: e.inside.some(x => x.z === z) })),
       { t: 'ring', p, r: e.r },
-      ...near.map(s => ({ t: 'dot', p: s, color: '#315F95', size: 4, title: `${s.name} · ${s.cat}` })),
+      ...near.map(s => { const inP = ring ? inPoly(s, ring) : null; return { t: 'dot', p: s, color: inP === null ? '#315F95' : inP ? PGL.ON : PGL.OUT, size: inP === null ? 4 : inP ? 4.4 : 2.6, title: `${s.name} · ${s.cat}` }; }),
+      ...(P.pts.length >= 3 ? [{ t: 'poly', pts: P.pts, color: PGL.ON }] : P.pts.length === 2 ? [{ t: 'line', pts: P.pts, color: PGL.ON }] : []),
+      ...P.pts.map((q, i) => ({ t: 'vtx', p: q, n: i + 1 })),
       { t: 'pin', p, label: p.name },
     ] });
     if (T1.rv) $('#rv1').innerHTML = APP.mapState === 'error'
@@ -1873,6 +2233,7 @@ function renderMap1(e) {
 /* #####################################################################
    9. TAB 2 — 골목형상점가 구역 & 온누리 가맹점
    ##################################################################### */
+
 const T2 = { sub: 'zones', page: 0, sort: { k: null, dir: 1 }, focus: null, rows: null, merch: [], mstate: '' };
 
 function zoneMeta(z) {
