@@ -1237,7 +1237,15 @@ function t1Init() {
     const pg = e.target.closest('[data-pg]'); if (pg && !pg.disabled) { T1.page = +pg.dataset.pg; renderShops(T1.ev); return; }
     if (e.target.closest('#shops-retry')) { nearbyReset(T1.ev.p.sido); t1Run(); return; }
     if (e.target.closest('#live-go')) { t1Live(T1.ev); return; }
-    if (e.target.closest('#shops-csv')) { const rows = t1ShopRows(T1.ev), xcB = xcCompute(T1.ev); downloadCSV(`후보상가_${T1.ev.p.name}.csv`, toCSV([['상가명', r => r.s.name], ['업종', r => r.s.category], ['위치', r => `${r.dir} ${Math.round(r.d)}m`], ['포함여부', r => r.inc], ['교차검증', r => !xcB ? '' : ((xcB.byId[r.s.id] || {}).st === 'both' ? '영업 확인' : xcB.byId[r.s.id] ? '카카오 미확인' : '')], ['소상공인확인', r => r.chk], ['온누리', r => r.s.onnuri_member ? '가맹' : '미가맹'], ['결제방식', r => r.s.pay.join('|')], ['위도', r => r.s.lat], ['경도', r => r.s.lng]], rows)); return; }
+    if (e.target.closest('#shops-csv')) {
+      /* 상가정보 CSV 상세파일에는 방향·좌표·결제수단이 없으므로 거리(m)까지만 쓴다(빈 값·undefined 방지) */
+      const rows = t1ShopRows(T1.ev), xcB = xcCompute(T1.ev);
+      downloadCSV(`후보상가_${T1.ev.p.name}.csv`, toCSV([
+        ['상가명', r => r.s.name], ['업종', r => r.s.category], ['거리(m)', r => Math.round(r.d)], ['포함여부', r => r.inc],
+        ['교차검증', r => !xcB || !xcB.byId[r.s.id] ? '' : (xcB.byId[r.s.id].st === 'both' ? `영업 확인${xcB.byId[r.s.id].name && xcB.byId[r.s.id].name !== r.s.name ? ` (카카오: ${xcB.byId[r.s.id].name})` : ''}` : '카카오 미확인')],
+        ['소상공인확인', r => r.chk], ['온누리', r => r.s.onnuri_member ? '가맹' : '미가맹']], rows));
+      return;
+    }
     const tr = e.target.closest('tr[data-sid]'); if (tr) t1Highlight(tr.dataset.sid, false);
   });
   $('#t1-shops').addEventListener('change', e => { if (e.target.id === 'shops-filter') { T1.filter = e.target.value; T1.page = 0; renderShops(T1.ev); } });
