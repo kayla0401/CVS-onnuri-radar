@@ -196,6 +196,10 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:12.5px}
 .stype{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .stype .select{height:30px;width:132px}
 .stype .hint{font-size:11.5px;color:var(--text-tertiary);line-height:1.4}
+.stype .noteline{flex:1 1 100%;display:flex;align-items:flex-start;gap:6px;margin-top:2px;font-size:11.5px;line-height:1.5;color:var(--text-secondary)}
+.stype .noteline b{font-weight:800;flex:none}
+.stype .noteline.danger b{color:var(--danger)}
+.stype .noteline.warn b{color:var(--warning)}
 .vrows{margin:0 16px;border-top:1px solid var(--border)}
 .vrow{display:grid;grid-template-columns:120px 1fr;gap:12px;padding:8px 0;border-bottom:1px solid var(--surface-3);font-size:12.5px;align-items:center}
 .vrow .k{color:var(--text-secondary);font-weight:600}
@@ -1599,10 +1603,10 @@ function ruleBadges(r) {
 /* 점포 운영 형태 — 사용자가 사업자번호(가운데 2자리)로 확인해 직접 고르는 값. 점포코드별로 브라우저에 저장한다. */
 const STORE_TYPE = { '': '미확인', indiv: '개인 가맹점', corp: '법인 가맹점', direct: '본사 직영점' };
 const storeTypeOf = p => { const v = LS.get('storeType:' + p.id, ''); return STORE_TYPE[v] ? v : ''; };
+/* 사용자가 드롭다운에서 직접 고른 가정에 대한 짧은 안내 — 점포 자체의 판정이 아님을 [직접 선택 기준]으로 밝힌다. */
 function storeTypeNote(v) {
-  if (v === 'direct') return { kind: 'danger', text: '<b>본사 직영점</b>은 소상공인이 아니어서(사업자등록번호 가운데 2자리 85 등) <b>온누리상품권 가맹이 불가</b>합니다 — 아래 조례 판정과 무관하게 가맹 검토 대상에서 제외하세요.' };
-  if (v === 'corp') return { kind: 'warn', text: '<b>법인 가맹점</b>은 2026.06 시행령 개정 기준, 동일 사업자 합산 직전 연도 매출(환전액) <b>30억 원 이하</b>일 때만 온누리 가맹이 가능합니다.' };
-  if (v === 'indiv') return { kind: 'info', text: '<b>개인 가맹점</b>(사업자등록번호 가운데 2자리 01~79)은 소상공인 요건을 충족하면 가맹 대상입니다.' };
+  if (v === 'direct') return { kind: 'danger', text: '본사 직영점(사업자번호 가운데 85 등)은 소상공인이 아니어서 온누리 가맹 불가' };
+  if (v === 'corp') return { kind: 'warn', text: '법인 가맹점은 동일 사업자 합산 직전 연도 매출(환전액) 30억 원 이하일 때만 가맹 가능(2026.06 시행령)' };
   return null;
 }
 
@@ -1619,15 +1623,14 @@ function renderVerdict(e) {
   const st = storeTypeOf(e.p), stNote = storeTypeNote(st);
   const bizHref = `https://bizno.net/?query=${encodeURIComponent(e.p.name)}`;
   $('#t1-verdict').innerHTML = `
-    <div class="card-h"><span class="step">B</span><h3>종합 판정</h3><span class="sub">${isM ? '(이미 온누리 가맹점 — 아래 조례 판정은 참고용)' : '(조례 기준 대비 실측 점포수)'}</span>
+    <div class="card-h"><span class="step">B</span><h3>종합 판정</h3><span class="sub">${isM ? '(온누리 가맹점 · 아래 조례는 참고용)' : '(조례 기준 대비 실측 점포수)'}</span>
       <div class="right"><button class="btn sm" id="v-copy">${ic('copy', 14)}요약 복사</button></div></div>
     ${isM ? `<div class="mhead">
         <span class="mi">${ic('check', 22)}</span>
-        <div style="flex:1;min-width:0"><div class="h">이미 온누리 가맹 등록 완료</div>
+        <div style="flex:1;min-width:0"><div class="h">온누리 가맹점</div>
           <div class="s">${esc(e.p.name)} · ${esc(mm.zone || '상권명 미기재')}${mm.year ? ` · ${esc(mm.year)}년 등록` : ''} · ${esc(mPay)}</div></div>
         <span class="tagline">신규 지정 대상 아님</span></div>`
       : `<div class="vhead">${badge(e.v, true)}<div><div class="h" style="color:${m.color}">${m.head}</div><div class="s">${esc(e.p.name)} · ${esc(e.label)}</div></div></div>`}
-    ${stNote ? `<div class="snote ${stNote.kind}" style="margin:10px 16px 0">${ic('warn', 14)}<span>${stNote.text}</span></div>` : ''}
     <div class="vrows">
       ${isM ? `<div class="vrow"><span class="k">참고용 조례 입지 판정</span><span class="v">${badge(e.v)} <b style="color:${m.color}">${esc(e.label)}</b> <span class="faint">— 조례상 점포 밀집도만 본 값입니다. 이 점포는 이미 가맹 등록되어 신규 지정 판정 대상이 아닙니다.</span></span></div>` : ''}
       <div class="vrow"><span class="k">적용 기준</span><span class="v"><b>${ruleName}</b> ${r && r.updated ? `<span class="faint">(기준일 ${esc(r.updated)})</span>` : ''} ${r && r.source_url ? `<a class="faint" href="${esc(r.source_url)}" target="_blank" rel="noopener" style="margin-left:6px;text-decoration:underline">조례 원문</a>` : ''}${r && r.dept ? `<span class="faint" style="margin-left:6px">담당 ${esc(r.dept)}${r.phone ? ' ' + esc(r.phone) : ''}</span>` : ''}</span></div>
@@ -1640,7 +1643,8 @@ function renderVerdict(e) {
       <div class="vrow"><span class="k">점포 운영 형태</span><span class="v"><span class="stype">
         <select class="select" id="v-stype" aria-label="점포 운영 형태">${Object.keys(STORE_TYPE).map(k => `<option value="${esc(k)}" ${st === k ? 'selected' : ''}>${esc(STORE_TYPE[k])}</option>`).join('')}</select>
         <a class="btn sm" id="v-bizno" href="${esc(bizHref)}" target="_blank" rel="noopener" title="bizno.net에서 이 점포의 사업자등록번호를 확인합니다 — 가운데 2자리 85 직영 · 01~79 개인 · 81·86·87·88 법인">사업자·직영 확인 ↗</a>
-        <span class="hint">사업자번호 가운데 2자리 — 85 직영 · 01~79 개인 · 81·86·87·88 법인</span>
+        ${stNote ? `<span class="noteline ${stNote.kind}"><b>[직접 선택 기준]</b> <span>${stNote.text}</span></span>`
+          : st === '' ? '<span class="hint">사업자번호 가운데 2자리 — 85 직영 · 01~79 개인 · 81·86·87·88 법인</span>' : ''}
       </span></span></div>
       <div class="vrow" style="border-bottom:0"><span class="k">중복 여부</span><span class="v">${dup}</span></div>
     </div>
