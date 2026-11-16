@@ -248,13 +248,33 @@ select.select{padding-right:34px;appearance:none;background-image:url("data:imag
 
 .t1{display:grid;grid-template-columns:minmax(0,42fr) minmax(0,58fr);gap:16px;align-items:start}
 .t1-left{display:flex;flex-direction:column;gap:16px;min-width:0}
-.mapzone{display:grid;grid-template-rows:minmax(0,62fr) minmax(0,38fr);gap:12px;height:clamp(540px,calc(100vh - 372px),880px);position:sticky;top:8px;min-width:0}
-.mapzone.mode-map{grid-template-rows:minmax(0,1fr)}
-.mapzone.mode-map .pane.rv{display:none}
-.mapzone.mode-rv{grid-template-rows:minmax(0,1fr)}
-.mapzone.mode-rv .pane.map{display:none}
-.mapzone.max{position:fixed;inset:0;z-index:80;padding:16px;background:var(--bg-main);height:auto;grid-template-rows:minmax(0,62fr) minmax(0,38fr)}
-.mapzone.max.mode-map,.mapzone.max.mode-rv{grid-template-rows:minmax(0,1fr)}
+/* 지도·로드뷰 존 — 공용 바(항상 보임) + [지도 pane] + 드래그 리사이저 + [로드뷰 pane]
+   기본 분할 55:45, 리사이저로 25~75% 조절(--s1/--s2). 높이는 PC에서 크게(clamp 720~920px). */
+.mapzone{--s1:55fr;--s2:45fr;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:auto minmax(0,var(--s1)) 12px minmax(0,var(--s2));gap:0;height:clamp(720px,calc(100vh - 190px),920px);position:sticky;top:8px;min-width:0}
+.mapzone.mode-map{grid-template-rows:auto minmax(0,1fr)}
+.mapzone.mode-map .pane.rv,.mapzone.mode-map .map-split{display:none}
+.mapzone.mode-rv{grid-template-rows:auto minmax(0,1fr)}
+.mapzone.mode-rv .pane.map,.mapzone.mode-rv .map-split{display:none}
+.mapzone.max{position:fixed;inset:0;z-index:80;padding:16px;background:var(--bg-main);height:auto;grid-template-rows:auto minmax(0,var(--s1)) 12px minmax(0,var(--s2))}
+.mapzone.max.mode-map,.mapzone.max.mode-rv{grid-template-rows:auto minmax(0,1fr)}
+.mapzone-bar{grid-column:1/-1;display:flex;align-items:center;gap:7px;flex-wrap:wrap;min-height:46px;padding:6px 8px;margin-bottom:10px;background:#fff;border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow-card);min-width:0}
+.mapzone-bar .cap{color:var(--text-secondary);font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1 1 140px;min-width:0}
+.mapzone-bar .right{margin-left:auto;display:flex;align-items:center;gap:6px;flex-wrap:wrap;flex:none}
+.mapzone-bar .btn.sm{height:30px;font-size:12px;padding:0 10px;border-radius:9px}
+.mapzone-bar .btn.sm.icon{width:30px;padding:0}
+.mapzone-bar .btn.on{background:var(--primary-light);border-color:#BBD4F7;color:var(--primary)}
+.mapzone-bar .btn.pin-on{background:#FFF3DC;border-color:#F0D08A;color:#8A5A0B}
+.pin-chip{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 4px 0 9px;border-radius:999px;background:#FFF3DC;border:1px solid #F0D08A;color:#8A5A0B;font-size:11.5px;font-weight:800;white-space:nowrap}
+.pin-chip button{height:20px;padding:0 8px;border:0;border-radius:999px;background:#fff;color:#8A5A0B;font-size:11px;font-weight:800;cursor:pointer}
+.pin-chip.hint{background:var(--primary-light);border-color:#BBD4F7;color:var(--primary)}
+.map-split{grid-column:1/-1;position:relative;display:flex;align-items:center;justify-content:center;cursor:row-resize;touch-action:none}
+.map-split::before{content:'';position:absolute;left:6px;right:6px;top:50%;height:4px;margin-top:-2px;border-radius:999px;background:#DFE5EE}
+.map-split:hover::before,.map-split.on::before{background:var(--primary)}
+.map-split .hnd{position:relative;z-index:1;width:44px;height:12px;border-radius:999px;background:#fff;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;gap:2px;box-shadow:0 1px 4px rgba(30,55,90,.12)}
+.map-split .hnd i{width:2px;height:6px;border-radius:2px;background:#C3CDDA;display:block}
+.map-split:hover .hnd i,.map-split.on .hnd i{background:var(--primary)}
+body.splitting{cursor:row-resize;user-select:none}
+body.splitting .pane-canvas{pointer-events:none}
 .pane{position:relative;min-height:0;border-radius:var(--radius-card);overflow:hidden;background:#fff;box-shadow:var(--shadow-card)}
 .pane-bar{position:absolute;top:0;left:0;right:0;z-index:6;display:flex;align-items:center;gap:8px;height:56px;padding:0 12px 0 14px;background:rgba(255,255,255,.97);backdrop-filter:blur(8px);border-bottom:1px solid var(--border)}
 .pane-bar .tag{display:none}
@@ -265,11 +285,11 @@ select.select{padding-right:34px;appearance:none;background-image:url("data:imag
 .vseg button[aria-pressed="true"]{background:#fff;color:var(--primary);box-shadow:0 1px 4px rgba(30,55,90,.12)}
 .laychk{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;color:var(--text-secondary);cursor:pointer;white-space:nowrap;padding:0 2px}
 .laychk input{width:14px;height:14px;accent-color:var(--primary);cursor:pointer}
-.layer-bar{position:absolute;top:56px;left:0;right:0;height:40px;z-index:6;display:flex;align-items:center;gap:15px;padding:0 14px;background:rgba(255,255,255,.97);border-bottom:1px solid var(--border);overflow-x:auto;scrollbar-width:none}
-.layer-bar::-webkit-scrollbar{display:none}
+.map-tools{display:flex;align-items:center;gap:12px;overflow-x:auto;scrollbar-width:none;min-width:0;flex:1}
+.map-tools::-webkit-scrollbar{display:none}
+.vseg.sky{flex:none}
 .pane-canvas{position:absolute;left:0;right:0;bottom:0;top:56px;background:#F7F9FC}
-.pane.map .pane-canvas{top:96px}
-.pane.map .map-note{top:106px}
+.pane.map .map-note{top:68px}
 .stack-note{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--text-tertiary)}
 .pane.rv .pane-bar{height:44px;gap:6px}
 .pane.rv .pane-canvas{top:44px}
@@ -422,7 +442,11 @@ svg.fmap [data-sid],svg.fmap [data-zone],svg.fmap [data-gs]{cursor:pointer}
 .poly-acts{display:flex;gap:8px;flex-wrap:wrap;margin:14px 20px 0}
 .poly-note{font-size:11px;color:var(--text-tertiary);line-height:1.6;padding:10px 20px 16px}
 .poly-mode{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:999px;font-size:11.5px;font-weight:700;background:var(--success-bg);color:var(--success-fg)}
-.vtx{width:20px;height:20px;border-radius:50%;background:#0E7C66;color:#fff;border:2px solid #fff;font:800 10px/16px var(--font-family);display:grid;place-items:center;box-shadow:0 0 0 1px rgba(14,124,102,.55);pointer-events:none;box-sizing:border-box}
+.vtx{width:20px;height:20px;border-radius:50%;background:#0E7C66;color:#fff;border:2px solid #fff;font:800 10px/16px var(--font-family);display:grid;place-items:center;box-shadow:0 0 0 1px rgba(14,124,102,.55);box-sizing:border-box;position:relative;cursor:grab;touch-action:none;pointer-events:auto}
+.vtx::after{content:'';position:absolute;inset:-9px;border-radius:50%}
+.vtx:hover{background:#0B6A57;transform:scale(1.12)}
+.vtx.drag{background:#0B6A57;transform:scale(1.18);cursor:grabbing;box-shadow:0 0 0 3px rgba(14,124,102,.22)}
+.mapzone.pinning .pane-canvas{cursor:crosshair}
 .poly-lb{padding:3px 9px;background:#fff;border:1.5px solid #0E7C66;border-radius:999px;font:800 11.5px var(--font-family);color:#0E7C66;white-space:nowrap;box-shadow:0 2px 8px rgba(30,55,90,.16);pointer-events:none}
 
 /* ============================ TABLES ============================ */
@@ -569,7 +593,7 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
 }
 @media (max-width:1100px){
   .t1{grid-template-columns:minmax(0,1fr)}
-  .mapzone{position:relative;top:0;height:620px}
+  .mapzone{position:relative;top:0;height:660px}
   .t2-body{grid-template-columns:minmax(0,1fr)}
   .mapcard{position:relative;height:460px}
   .home-grid{grid-template-columns:minmax(0,1fr)}
@@ -617,14 +641,24 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
   .hero-search .btn{width:100%}
   .toolbar{padding:14px}
   .searchbox .input{font-size:14px}
-  .mapzone{grid-template-rows:minmax(0,1fr) minmax(0,1fr);height:720px}
+  .mapzone{grid-template-rows:auto minmax(0,var(--s1)) 10px minmax(0,var(--s2));height:740px}
+  .mapzone-bar{gap:5px;padding:6px;margin-bottom:8px;border-radius:12px}
+  .mapzone-bar .cap{order:3;flex:1 1 100%;font-size:11px}
+  .mapzone-bar .right{order:2;gap:4px}
+  .mapzone-bar .right .btn.sm{font-size:11px;padding:0 8px}
+  .map-split{height:10px}
   .log-form{grid-template-columns:minmax(0,1fr)}
   .pane-bar{flex-wrap:wrap;height:auto;padding:8px 10px;gap:6px}
   .pane-bar{position:relative}
   .pane-canvas{top:88px}
-  .pane.map .pane-canvas{top:140px}
-  .layer-bar{top:auto;position:relative;height:auto;padding:8px 10px;gap:10px}
-  .pane.rv .pane-canvas{top:88px}
+  .pane.map .pane-bar{flex-wrap:nowrap;height:46px;padding:0 8px;gap:10px;overflow-x:auto;scrollbar-width:none}
+  .pane.map .pane-bar::-webkit-scrollbar{display:none}
+  .pane.map .pane-canvas{top:46px}
+  .pane.map .map-note{top:56px}
+  .pane.map .pane-bar .right{margin-left:0;flex:none}
+  .pane.rv .pane-bar{flex-wrap:nowrap;height:44px;padding:0 8px}
+  .pane.rv .pane-bar .cap{flex:1;min-width:0}
+  .pane.rv .pane-canvas{top:44px}
   .legend{display:none}
   .drawer{width:100%}
   .vrow{grid-template-columns:minmax(0,1fr);gap:3px}
@@ -884,24 +918,35 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
             </div>
 
             <div class="mapzone" id="mapzone">
+              <!-- 공용 바 — 어떤 모드(지도·로드뷰·동시 보기·전체화면)에서도 항상 보인다 -->
+              <div class="mapzone-bar" id="mapzone-bar">
+                <div class="vseg" role="group" aria-label="지도 보기 방식">
+                  <button data-mode="map" aria-pressed="false"><span data-i="map"></span>지도</button>
+                  <button data-mode="rv" aria-pressed="false"><span data-i="camera"></span>로드뷰</button>
+                  <button data-mode="both" aria-pressed="true"><span data-i="layers"></span>동시 보기</button>
+                </div>
+                <span class="cap" id="map-caption">점포를 선택하세요</span>
+                <span class="pin-chip hint" id="pin-hint" hidden>지도를 클릭하면 점포 핀을 그 자리로 옮깁니다</span>
+                <span class="pin-chip" id="pin-chip" hidden>📍 보정 좌표 적용 중 <span id="pin-offset"></span><button id="pin-restore" type="button">원래 위치 복원</button></span>
+                <div class="right">
+                  <button class="btn sm" id="btn-pin" aria-pressed="false" title="지도를 클릭해 점포 핀 위치를 실제 자리로 옮깁니다 — 판정·반경·로드뷰·리포트가 모두 재계산됩니다">📍 핀 위치 보정</button>
+                  <button class="btn sm" id="btn-pin-kakao" title="카카오 Places에 등록된 점포 좌표를 찾아 한 번에 맞춥니다">카카오 핀 맞춤</button>
+                  <button class="btn sm" id="btn-draw" aria-pressed="false" title="카카오맵 위를 클릭해 꺾인 도면(다각형)을 직접 그립니다">✏️ 직접 그리기</button>
+                  <button class="btn sm icon" id="btn-max" title="전체화면 확대" aria-label="전체화면 확대"><span data-i="expand"></span></button>
+                </div>
+              </div>
               <div class="pane map">
                 <div class="pane-bar">
-                  <div class="vseg" role="group" aria-label="지도 보기 방식">
-                    <button data-mode="map" aria-pressed="false"><span data-i="map"></span>지도</button>
-                    <button data-mode="rv" aria-pressed="false"><span data-i="camera"></span>로드뷰</button>
-                    <button data-mode="both" aria-pressed="true"><span data-i="layers"></span>동시 보기</button>
+                  <div class="map-tools">
+                    <label class="laychk"><input type="checkbox" data-layer="cand" checked>후보 구역</label>
+                    <label class="laychk"><input type="checkbox" data-layer="shops" checked>주변 상가</label>
+                    <label class="laychk"><input type="checkbox" data-layer="zones" checked>기존 구역</label>
+                    <label class="laychk"><input type="checkbox" data-layer="members" checked>가맹점</label>
                   </div>
-                  <span class="cap" id="map-caption">점포를 선택하세요</span>
-                  <div class="right">
-                    <button class="btn sm" id="btn-draw" aria-pressed="false" title="카카오맵 위를 클릭해 꺾인 도면(다각형)을 직접 그립니다">✏️ 직접 그리기</button>
-                    <button class="btn sm icon" id="btn-max" title="전체화면 확대" aria-label="전체화면 확대"><span data-i="expand"></span></button>
-                  </div>
-                </div>
-                <div class="layer-bar">
-                  <label class="laychk"><input type="checkbox" data-layer="cand" checked>후보 구역</label>
-                  <label class="laychk"><input type="checkbox" data-layer="shops" checked>주변 상가</label>
-                  <label class="laychk"><input type="checkbox" data-layer="zones" checked>기존 구역</label>
-                  <label class="laychk"><input type="checkbox" data-layer="members" checked>가맹점</label>
+                  <div class="right"><div class="vseg sky" id="sky-seg" role="group" aria-label="지도 종류">
+                    <button data-sky="roadmap" aria-pressed="true">일반 지도</button>
+                    <button data-sky="hybrid" aria-pressed="false">스카이뷰</button>
+                  </div></div>
                 </div>
                 <div class="pane-canvas" id="map1"></div>
                 <div class="map-note" id="map1-note" hidden></div>
@@ -925,6 +970,7 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
                   <span><i class="lg sq" style="background:rgba(115,87,201,.18);border:1.5px solid var(--zone)"></i>기존 온누리 구역</span>
                 </div>
               </div>
+              <div class="map-split" id="map-split" role="separator" aria-orientation="horizontal" aria-label="지도·로드뷰 높이 조절" title="드래그해 지도·로드뷰 비율을 조절합니다 (25~75%)"><span class="hnd"><i></i><i></i></span></div>
               <div class="pane rv">
                 <div class="pane-bar"><span class="cap" id="rv-caption">로드뷰</span>
                   <div class="right"><a class="btn xs" id="rv-naver" href="https://map.naver.com" target="_blank" rel="noopener" style="display:none" title="현재 점포 주소로 네이버 지도 검색">네이버 지도 ↗</a><a class="btn xs" id="rv-ext" href="#" target="_blank" rel="noopener">카카오맵 로드뷰 ↗</a></div></div>
@@ -1423,8 +1469,10 @@ function evaluate(p, areaM2) {
   const local = findRule(p.sido, p.sigungu);
   const rule = local || NAT_RULE;
   const c = countsFor(p, areaM2);
+  /* 핀 보정 좌표가 있으면 거리·구역 중첩·반경 포함 여부를 모두 보정 좌표로 계산한다 */
+  const pos = posOf(p);
 
-  const zc = DB.zones.map(z => { const d = dist(p, z); return { z, d, edge: Math.max(0, d - z.radius), inside: inZone(p, z), overlap: d < z.radius + r }; }).sort((a, b) => a.edge - b.edge);
+  const zc = DB.zones.map(z => { const d = dist(pos, z); return { z, d, edge: Math.max(0, d - z.radius), inside: inZone(pos, z), overlap: d < z.radius + r }; }).sort((a, b) => a.edge - b.edge);
   const inside = zc.filter(x => x.inside), overlapping = zc.filter(x => !x.inside && x.overlap), nearest = zc[0] || null;
 
   const base = rule.base_area || 2000;
@@ -1497,7 +1545,7 @@ function evaluate(p, areaM2) {
     score += 10;
   }
   return {
-    p, rule: local, natRule: !local, area: areaM2, r, base, th, thCom, thNon, reqCom, reqNon, passCom, passNon, required, per, ratio,
+    p, pos, rule: local, natRule: !local, area: areaM2, r, base, th, thCom, thNon, reqCom, reqNon, passCom, passNon, required, per, ratio,
     nAll, nSmall, nOther, counts: c, zc, inside, overlapping, nearest, v, label, reasons,
     score: Math.round(score),
   };
@@ -1505,7 +1553,7 @@ function evaluate(p, areaM2) {
 
 /* ---- 평가 캐시 · 우선순위 점수(내부 참고용, 법적 판정과 분리) ---- */
 const EVC = new Map();
-function ev(p, area) { const k = `${p.id}|${area}|${p.lat},${p.lng}`; if (!EVC.has(k)) EVC.set(k, evaluate(p, area)); return EVC.get(k); }
+function ev(p, area) { const k = `${p.id}|${area}|${p.lat},${p.lng}|${posOf(p).lat},${posOf(p).lng}`; if (!EVC.has(k)) EVC.set(k, evaluate(p, area)); return EVC.get(k); }
 /* 항목별 상한 — 상단 기준표(지자체 35 + 밀집도 25 + 기존 구역·가맹 15 + 후보 형성 15 + 신뢰도 10 = 100)와 1:1로 맞춘다.
    계산식이 상한을 넘겨도 여기서 잘라 100점 만점을 넘지 않게 한다(이전에는 구역·가맹이 18점까지 들어가 103/100으로 표기됨). */
 const PRIORITY_MAX = { rule: 35, density: 25, zone: 15, form: 15, trust: 10 };
@@ -1814,8 +1862,36 @@ function bearing(a, b) { const y = (b.lat - a.lat) * 110540, x = (b.lng - a.lng)
    ##################################################################### */
 const MAPL = { cand: true, shops: true, zones: true, members: true };
 const T1 = { sel: null, area: CONFIG.DEFAULT_AREA, results: [], ev: null, hl: null, rv: true, viewMode: 'both', max: false, sort: { k: 'd', dir: 1 }, page: 0, filter: '', ac: -1, open: false,
+  pinMode: false, sky: 'roadmap', split: 55,
   /* 구역 직접 그리기 — 꺾인 다각형 도면(꼭짓점은 위도·경도 객체 배열) */
   poly: { on: false, done: false, pts: [], excl: 0, list: false, store: null, bizExcl: true } };
+
+/* ---- 점포 핀 위치 보정 ----
+   공단 상가정보의 점포 좌표는 대표지번(도로명 중심) 기준이라 A문·B문처럼 같은 건물의 다른 출입구에
+   핀이 떨어지는 일이 잦다. 사용자가 지도를 눌러 핀을 실제 자리로 옮기면 그 좌표를 이 브라우저에
+   저장하고(pin:점포코드), 판정·반경·로드뷰·카카오 재조회·리포트가 모두 보정 좌표를 기준으로 다시 계산된다. */
+function basePos(p) { return { lat: +p.lat, lng: +p.lng }; }
+const PIN_MEM = new Map();               /* t2Build처럼 전 점포를 훑을 때 localStorage 반복 읽기를 줄인다 */
+function pinOf(p) {
+  if (!p || !p.id) return null;
+  if (PIN_MEM.has(p.id)) return PIN_MEM.get(p.id);
+  const v = LS.get('pin:' + p.id);
+  const out = v && isFinite(v.lat) && isFinite(v.lng) ? { lat: +v.lat, lng: +v.lng } : null;
+  PIN_MEM.set(p.id, out);
+  return out;
+}
+function posOf(p) { return pinOf(p) || basePos(p); }
+function setPinAt(p, lat, lng) {
+  if (!p || !p.id) return;
+  const v = { lat: +(+lat).toFixed(7), lng: +(+lng).toFixed(7) };
+  LS.set('pin:' + p.id, { ...v, at: Date.now() });
+  PIN_MEM.set(p.id, v);
+}
+function clearPinOf(p) {
+  try { localStorage.removeItem('onnuri:pin:' + (p && p.id)); } catch (_) { /* storage unavailable */ }
+  if (p && p.id) PIN_MEM.set(p.id, null);
+}
+function pinShift(p) { const v = pinOf(p); return v ? Math.round(dist(basePos(p), v)) : 0; }
 
 function t1Init() {
   $('#area-seg').innerHTML = CONFIG.AREA_PRESETS.map(a => `<button data-a="${a}">${fmt(a)}㎡</button>`).join('');
@@ -1837,9 +1913,9 @@ function t1Init() {
   $('#btn-analyze').onclick = t1Analyze;
   $('#btn-draw').onclick = () => polyToggle();
   $('#btn-draw-a').onclick = () => polyToggle();
-  /* 스키매틱 SVG 폴백(카카오 키 미설정·오류)에서도 그리기 — 화면 픽셀을 위·경도로 역변환 */
+  /* 스키매틱 SVG 폴백(카카오 키 미설정·오류)에서도 그리기·핀 보정 — 화면 픽셀을 위·경도로 역변환 */
   $('#map1').addEventListener('click', ev => {
-    if (KMap.ready || !T1.poly.on || T1.poly.done || !APP.svg) return;
+    if (KMap.ready || !APP.svg) return;
     const v = APP.svg, rect = $('#map1').getBoundingClientRect();
     if (!rect.width || !rect.height) return;
     const sc = Math.min(rect.width / v.w, rect.height / v.h);
@@ -1847,7 +1923,10 @@ function t1Init() {
     const sx = (ev.clientX - rect.left - ox) / sc, sy = (ev.clientY - rect.top - oy) / sc;
     const met = Math.min(v.w, v.h) / (2 * v.extent), cos = Math.cos(v.center.lat * RAD);
     const dx = (sx - v.w / 2) / met, dy = (v.h / 2 - sy) / met;
-    T1.poly.pts.push({ lat: v.center.lat + dy / 110540, lng: v.center.lng + dx / (111320 * cos) });
+    const q = { lat: v.center.lat + dy / 110540, lng: v.center.lng + dx / (111320 * cos) };
+    if (T1.pinMode) { pinApplyAt(q); return; }
+    if (!T1.poly.on || T1.poly.done) return;
+    T1.poly.pts.push(q);
     polyAfterEdit();
   });
   $('#draw-bar').addEventListener('click', e => {
@@ -1862,6 +1941,7 @@ function t1Init() {
     if (e.target.closest('#poly-copy')) { polyCopy(); return; }
     if (e.target.closest('#poly-done')) { polyFinish(); return; }
     if (e.target.closest('#poly-go')) { polyToggle(true); return; }
+    if (e.target.closest('#poly-live')) { if (T1.ev) t1Live(T1.ev); return; }
   });
   $('#t1-poly').addEventListener('change', e => {
     if (e.target.id === 'poly-excl') {
@@ -1880,7 +1960,11 @@ function t1Init() {
     const z = $('#mapzone'); z.classList.remove('mode-map', 'mode-rv');
     if (T1.viewMode !== 'both') z.classList.add('mode-' + T1.viewMode);
     $$('#mapzone [data-mode]').forEach(x => x.setAttribute('aria-pressed', x.dataset.mode === T1.viewMode));
-    requestAnimationFrame(() => { if (KMap.rv) { try { KMap.rv.relayout(); } catch (_) { } } if (T1.ev) renderMap1(T1.ev); });
+    requestAnimationFrame(() => {
+      try { if (KMap.inst.map1) KMap.inst.map1.relayout(); } catch (_) { }
+      if (KMap.rv) { try { KMap.rv.relayout(); } catch (_) { } }
+      if (T1.ev) renderMap1(T1.ev);
+    });
   });
   $('#mapzone').addEventListener('change', e => {
     const c = e.target.closest('[data-layer]'); if (!c) return;
@@ -1888,6 +1972,12 @@ function t1Init() {
     if (T1.ev) renderMap1(T1.ev);
   });
   $('#btn-max').onclick = () => t1Max(!T1.max);
+  /* 공용 바 — 핀 위치 보정·카카오 핀 맞춤·스카이뷰 */
+  $('#btn-pin').onclick = () => pinModeToggle();
+  $('#pin-restore').onclick = () => { const e = T1.ev; if (!e) return; clearPinOf(e.p); pinRefresh(e, '원래 등록 위치로 되돌렸습니다'); };
+  $('#btn-pin-kakao').onclick = () => pinFixKakao();
+  $('#sky-seg').addEventListener('click', e => { const b = e.target.closest('[data-sky]'); if (!b) return; setSky(b.dataset.sky); });
+  initSplit();
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && T1.max) t1Max(false); });
 
   // C. 후보 상가 — 이벤트 위임
@@ -1915,6 +2005,8 @@ function t1Init() {
     if (e.target.closest('#v-detail')) { T1.open = !T1.open; renderVerdict(T1.ev); return; }
     if (e.target.closest('#v-copy')) { t1CopySummary(); return; }
     if (e.target.closest('#v-report') || e.target.closest('#a-report')) { openReport(); return; }
+    if (e.target.closest('#v-pin-restore')) { const ev0 = T1.ev; if (ev0) { clearPinOf(ev0.p); pinRefresh(ev0, '원래 등록 위치로 되돌렸습니다'); } return; }
+    if (e.target.closest('#v-pin')) { const ev0 = T1.ev; if (ev0) { const mz = $('#mapzone'); if (mz && mz.scrollIntoView) mz.scrollIntoView({ block: 'center', behavior: 'smooth' }); pinModeToggle(true); } return; }
     /* 원형 반경 오차 안내 → 구역 직접 그리기로 바로 이동 */
     if (e.target.closest('#v-draw-go')) {
       polyToggle(true);
@@ -1953,7 +2045,153 @@ function t1Init() {
 function t1Max(on) {
   T1.max = on; $('#mapzone').classList.toggle('max', on);
   $('#btn-max').innerHTML = ic(on ? 'shrink' : 'expand'); $('#btn-max').title = on ? '전체화면 닫기 (Esc)' : '전체화면 확대';
-  requestAnimationFrame(() => T1.ev && renderMap1(T1.ev));
+  requestAnimationFrame(() => {
+    try { if (KMap.inst.map1) KMap.inst.map1.relayout(); } catch (_) { }
+    try { if (KMap.rv) KMap.rv.relayout(); } catch (_) { }
+    if (T1.ev) renderMap1(T1.ev);
+  });
+}
+
+/* ---- 핀 위치 보정 모드 ---- */
+function pinSyncUI() {
+  const e = T1.ev;
+  const btn = $('#btn-pin');
+  if (btn) { btn.setAttribute('aria-pressed', String(!!T1.pinMode)); btn.classList.toggle('pin-on', !!T1.pinMode); }
+  const hint = $('#pin-hint'); if (hint) hint.hidden = !T1.pinMode;
+  const chip = $('#pin-chip'), off = $('#pin-offset');
+  const corr = !!(e && pinOf(e.p));
+  if (chip) chip.hidden = !corr;
+  if (off) off.textContent = corr && pinShift(e.p) ? `· 원래 위치에서 ${fmt(pinShift(e.p))}m` : '';
+  const mz = $('#mapzone'); if (mz) mz.classList.toggle('pinning', !!T1.pinMode);
+}
+function pinModeToggle(force) {
+  const e = T1.ev;
+  const want = typeof force === 'boolean' ? force : !T1.pinMode;
+  if (want && !e) { toast('먼저 점포를 선택하세요'); return; }
+  if (want && T1.poly.on) polyToggle(false);            /* 그리기 모드와 상호 배타 */
+  T1.pinMode = want;
+  pinSyncUI();
+  if (want) toast('지도를 클릭하면 점포 핀이 그 자리로 옮겨집니다 — 판정·반경·로드뷰·리포트가 다시 계산됩니다');
+}
+function pinApplyAt(q) {
+  const e = T1.ev;
+  if (!e || !q) return;
+  setPinAt(e.p, q.lat, q.lng);
+  T1.pinMode = false;
+  pinRefresh(e, `핀 위치를 보정했습니다 — 원래 위치에서 ${fmt(pinShift(e.p))}m 이동 · 판정을 다시 계산했습니다`);
+}
+/* 좌표가 바뀌면 판정(ev)·반경·핀·로드뷰·카카오 재조회·리포트를 모두 다시 그린다 */
+function pinRefresh(e, msg) {
+  const wasLive = !!APP.live && APP.live.key === e.p.id;
+  t1Run();
+  const ne = T1.ev;
+  if (ne) {
+    try { if (KMap.inst.map1 && pinOf(ne.p)) KMap.inst.map1.setCenter(KMap.ll(ne.pos)); } catch (_) { }
+    if (wasLive) t1Live(ne);
+    if (T1.poly.pts.length) renderPolyCard();
+  }
+  pinSyncUI();
+  if (msg) toast(msg);
+}
+/* 카카오 Places 키워드 검색으로 실제 등록 좌표를 찾아 원클릭 보정 */
+function pinFixKakao() {
+  const e = T1.ev;
+  if (!e) { toast('먼저 점포를 선택하세요'); return; }
+  if (!KMap.ready || !kakao.maps.services) { toast('카카오 지도가 아직 준비되지 않았습니다 — 잠시 후 다시 시도하세요'); return; }
+  const p = e.p, pos = e.pos || posOf(p);
+  const ps = new kakao.maps.services.Places();
+  const short = String(p.name || '').replace(/^GS25\s*/, '').trim();
+  const queries = p.kind === 'store'
+    ? [`GS25 ${short}`, p.name, p.address || '']
+    : [p.name, p.address || ''];
+  const near = { location: new kakao.maps.LatLng(pos.lat, pos.lng), radius: 3000, sort: kakao.maps.services.SortBy.DISTANCE };
+  const search = (q, opt) => new Promise(res => {
+    try { ps.keywordSearch(q, (data, st) => res(st === kakao.maps.services.Status.OK ? (data || []) : []), opt || {}); } catch (_) { res([]); }
+  });
+  (async () => {
+    toast('카카오에서 점포 위치를 찾는 중…');
+    for (const q of queries.filter(Boolean)) {
+      const r = await search(q, q === p.address ? {} : near);
+      if (!r.length) continue;
+      const cand = r.map(d => ({ name: d.place_name, lat: +d.y, lng: +d.x, addr: d.road_address_name || d.address_name, off: dist(pos, { lat: +d.y, lng: +d.x }) }))
+        .sort((a, b) => a.off - b.off);
+      const best = cand[0];
+      if (!best || !isFinite(best.lat)) continue;
+      if (best.off < 5) { toast(`카카오 등록 좌표와 ${Math.round(best.off)}m 차이 — 이미 일치합니다`); return; }
+      setPinAt(p, best.lat, best.lng);
+      T1.pinMode = false;
+      pinRefresh(e, `카카오 등록 좌표로 맞췄습니다 — ${Math.round(best.off)}m 이동 · ${best.name}`);
+      return;
+    }
+    toast(`카카오에서 '${p.name}'을(를) 찾지 못했습니다 — 지도를 직접 클릭해 핀을 옮겨 주세요`);
+  })();
+}
+/* 스카이뷰(위성+도로명) — 건물 경계를 따기에 적합 */
+function setSky(mode) {
+  T1.sky = mode === 'hybrid' ? 'hybrid' : 'roadmap';
+  $$('#sky-seg [data-sky]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.sky === T1.sky)));
+  if (!KMap.ready) { toast(T1.sky === 'hybrid' ? '스카이뷰는 카카오 지도가 준비된 뒤에 쓸 수 있습니다(SVG 대체 지도)' : '일반 지도로 표시합니다'); return; }
+  try {
+    KMap.map('map1').setMapTypeId(T1.sky === 'hybrid' ? kakao.maps.MapTypeId.HYBRID : kakao.maps.MapTypeId.ROADMAP);
+    if (T1.sky === 'hybrid') toast('스카이뷰(위성+도로명 라벨) — 건물 경계를 그리기 좋습니다');
+  } catch (_) { toast('스카이뷰 전환에 실패했습니다 — 잠시 후 다시 시도하세요'); }
+}
+function skyApply() { if (T1.sky !== 'hybrid' || !KMap.ready) return; try { KMap.map('map1').setMapTypeId(kakao.maps.MapTypeId.HYBRID); } catch (_) { } }
+/* 지도·로드뷰 경계 드래그 리사이저(마우스 + 터치) */
+function initSplit() {
+  const sp = $('#map-split'), mz = $('#mapzone');
+  if (!sp || !mz) return;
+  sp.tabIndex = 0;
+  let drag = false, raf = 0;
+  const apply = r => {
+    r = Math.max(25, Math.min(75, r));
+    T1.split = r;
+    mz.style.setProperty('--s1', `${r}fr`);
+    mz.style.setProperty('--s2', `${100 - r}fr`);
+    try { if (KMap.inst.map1) KMap.inst.map1.relayout(); } catch (_) { }
+    try { if (KMap.rv) KMap.rv.relayout(); } catch (_) { }
+  };
+  const ratioAt = y => {
+    const rect = mz.getBoundingClientRect();
+    const bar = $('#mapzone-bar');
+    const barH = (bar ? bar.offsetHeight : 0) + 10;
+    const avail = Math.max(80, rect.height - barH - 12);
+    return (y - rect.top - barH) / avail * 100;
+  };
+  sp.addEventListener('pointerdown', ev => {
+    drag = true; sp.classList.add('on'); document.body.classList.add('splitting');
+    try { sp.setPointerCapture(ev.pointerId); } catch (_) { }
+    ev.preventDefault();
+  });
+  sp.addEventListener('pointermove', ev => {
+    if (!drag) return;
+    ev.preventDefault();
+    const r = ratioAt(ev.clientY);
+    if (raf) return;
+    raf = requestAnimationFrame(() => { raf = 0; apply(r); });
+  });
+  const end = () => { if (!drag) return; drag = false; sp.classList.remove('on'); document.body.classList.remove('splitting'); };
+  sp.addEventListener('pointerup', end);
+  sp.addEventListener('pointercancel', end);
+  sp.addEventListener('lostpointercapture', end);
+  sp.addEventListener('keydown', ev => {
+    if (ev.key !== 'ArrowUp' && ev.key !== 'ArrowDown') return;
+    ev.preventDefault();
+    apply(T1.split + (ev.key === 'ArrowUp' ? -5 : 5));
+  });
+}
+/* 지도 클릭·마우스 이동 배선 — 핀 보정과 그리기를 모드에 따라 나눠 처리한다 */
+function wireMapEv(m) {
+  if (!m || m.__evWired) return;
+  m.__evWired = true;
+  kakao.maps.event.addListener(m, 'click', ev => {
+    if (T1.pinMode) { pinApplyAt(polyLL(ev)); return; }
+    if (T1.poly.on) polyClick(ev);
+  });
+  kakao.maps.event.addListener(m, 'mousemove', ev => {
+    const p = T1.poly; if (!p.on || p.done || !p.pts.length || !APP.polyPrev) return;
+    const ll = ev.latLng; if (ll) { try { APP.polyPrev.setPath([KMap.ll(p.pts[p.pts.length - 1]), ll]); } catch (_) { } }
+  });
 }
 
 function t1Match(q) {
@@ -2000,7 +2238,7 @@ async function t1Analyze() {
 }
 
 function t1Select(p, noHist) {
-  T1.sel = p; T1.hl = null; T1.page = 0; T1.filter = ''; T1.open = false;
+  T1.sel = p; T1.hl = null; T1.page = 0; T1.filter = ''; T1.open = false; T1.pinMode = false;
   $('#q').value = p.name; $('#q-clear').hidden = false; t1HideAC(); t1Run();
   if (!noHist) pushHistory(p);
 }
@@ -2331,7 +2569,7 @@ async function t1Live(e) {
   renderShops(e);
   if (!KMap.ready || !kakao.maps.services) { APP.live.state = 'error'; renderShops(e); return; }
   const ps = new kakao.maps.services.Places();
-  const center = new kakao.maps.LatLng(e.p.lat, e.p.lng);
+  const center = new kakao.maps.LatLng((e.pos || posOf(e.p)).lat, (e.pos || posOf(e.p)).lng);
   /* 조회 반경 — 원형 교차검증은 e.r 기준으로 거르므로 결과가 그대로고(C구역 수치 불변),
      직접 그린 다각형 시뮬레이션용 주변 상가 좌표를 max(150m, e.r×2.5)까지 넓게 모은다 */
   const radius = Math.max(150, Math.round(e.r * 2.5));
@@ -2519,6 +2757,11 @@ function renderVerdict(e) {
         <div style="flex:1;min-width:0"><div class="h">이미 온누리 가맹 등록 완료</div>
           <div class="s">${esc(e.p.name)} · ${esc(mm.zone || '상권명 미기재')}${mm.year ? ` · ${esc(mm.year)}년 등록` : ''} · ${esc(mPay)}</div></div>
         <span class="tagline">신규 지정 대상 아님</span></div>` : ''}
+    ${pinOf(e.p) ? `<div class="member-banner" style="background:#FFF3DC">
+        <span class="mi" style="background:#fff;color:#8A5A0B">${ic('pin', 18)}</span>
+        <div style="flex:1;min-width:0"><div class="h" style="color:#8A5A0B">📍 보정 좌표 적용 중</div>
+          <div class="s">원래 등록 위치(${e.p.lat.toFixed(6)}, ${e.p.lng.toFixed(6)})에서 <b>${fmt(pinShift(e.p))}m</b> 옮긴 좌표로 판정·반경·로드뷰·리포트를 계산합니다</div></div>
+        <button class="btn sm" id="v-pin-restore" style="flex:none">원래 위치 복원</button></div>` : ''}
     <div class="vbanner ${e.v}">
       <span class="vb-ic">${ic(m.icon, 20)}</span>
       <div class="vb-t"><b>${esc(m.label)}</b><span>${esc(sub)}</span></div>
@@ -2637,7 +2880,7 @@ function buildReportHTML(e) {
     : ss.stage === 2 ? `<b style="color:#1B4F9C">2단계 구내·로드샵 확인 필요</b> — ${esc(ss.type)}`
     : '해당 없음 — 일반 도로변 상가';
   const drawTxt = sim
-    ? `총 ${fmt(Math.round(sim.area))}㎡ · 유효 ${fmt(Math.round(sim.eff))}㎡(제외 ${sim.excl}%) · 구역 내 상가 ${sim.nSmall}개 · 환산 ${sim.per != null ? sim.per.toFixed(1) : '—'}개${sim.ratio != null ? ` (${Math.round(sim.ratio * 100)}%)` : ''} · ${esc(sim.label)}`
+    ? `총 ${fmt(Math.round(sim.area))}㎡ · 유효 ${fmt(Math.round(sim.eff))}㎡(제외 ${sim.excl}%) · 구역 내 상가 ${sim.nSmall}개 · 환산 ${sim.per != null ? sim.per.toFixed(1) : '—'}개${sim.ratio != null ? ` (${Math.round(sim.ratio * 100)}%)` : ''} · ${esc(sim.label)} · 공단 환산 ${sim.gongdan ? sim.gongdan.small : '—'}개${sim.over ? ` · 2,000㎡ 초과 → 필요 점포수 상향 (${sim.overInfo.thBase ?? '—'} → ${sim.required ?? '—'}개)` : ''}`
     : '미작성 — [구역 직접 그리기]에서 도면을 그리면 공무원 실측과 가장 가까운 수치가 나옴';
   const xcTxt = xc
     ? `영업 확실 ${xc.both.length + xc.dups.length}건 · 폐업 의심 ${xc.suspect.length}건 · 신규 후보 ${xc.fresh.length}건 (공단 ${xc.rowTotal}건 ↔ 카카오 ${xc.inR}건)`
@@ -2683,6 +2926,7 @@ function buildReportHTML(e) {
   <div class="tblwrap"><table class="kv">
     <tr><th>점포명</th><td colspan="3"><b>${esc(p.name)}</b>${p.kind === 'store' ? ` (점포코드 ${esc(p.id)})` : ''} · ${esc(p.sido)} ${esc(p.sigungu)}</td></tr>
     <tr><th>주소</th><td colspan="3">${esc(p.address || '—')}</td></tr>
+    <tr><th>분석 좌표</th><td colspan="3">${pinOf(p) ? `<b>핀 보정 좌표</b> ${e.pos.lat.toFixed(6)}, ${e.pos.lng.toFixed(6)} — 공단 등록 위치(${(+p.lat).toFixed(6)}, ${(+p.lng).toFixed(6)})에서 ${fmt(pinShift(p))}m 옮긴 값` : `공단 등록 좌표 ${(+p.lat).toFixed(6)}, ${(+p.lng).toFixed(6)}`}</td></tr>
     <tr><th>검토 구역</th><td>${fmt(e.area)}㎡ · 원형 환산 반경 ${Math.round(e.r)}m (${e.counts ? (e.counts.est ? '보간 추정' : '실측 프리셋') : '상가데이터 미수집'})</td><th>기존 상권</th><td>${zoneLine}</td></tr>
     <tr><th>조례 판정</th><td>${esc(e.label)} (${pct != null ? '충족률 ' + pct + '%' : '충족률 미상'})</td><th>온누리 가맹</th><td>${memberTxt}</td></tr>
     <tr><th>점포 운영 형태</th><td colspan="3">${esc(STORE_TYPE[g.st] || '미확인')} — ${esc(stc.txt)}</td></tr>
@@ -2701,6 +2945,13 @@ function buildReportHTML(e) {
     <tr><td>직접 그린 도면 실측</td><td colspan="3">${drawTxt}</td></tr>
     <tr><td>카카오 교차검증</td><td colspan="3">${xcTxt}</td></tr>
   </table></div>
+  ${sim ? `<h2>2-1. 직접 그린 도면 실측 · 재판정</h2>
+  <div class="tblwrap"><table class="kv">
+    <tr><th>도면 총 면적</th><td>${fmt(Math.round(sim.area))}㎡ (꼭짓점 ${T1.poly.pts.length}개 · 신발끈 공식)</td><th>유효 면적</th><td>${fmt(Math.round(sim.eff))}㎡ (도로·주차장 제외 ${sim.excl}%)</td></tr>
+    <tr><th>도면 내 상가(카카오)</th><td>${sim.nSmall}개 / 전체 ${sim.nAll}개 (제한업종 ${sim.nEx}건 ${sim.bizOn ? '제외' : '제외 안 함'})</td><th>공단 실측 환산</th><td>${sim.gongdan ? `${sim.gongdan.small}개 (상가 전체 ${sim.gongdan.all})` : '—'} — 공단 자료는 좌표가 없어 면적 비례 환산</td></tr>
+    <tr><th>조례 필요 점포 수</th><td>${sim.required ?? '—'}개${sim.over ? ` (2,000㎡ 기준 ${sim.overInfo.thBase ?? '—'}개에서 상향)` : ''}</td><th>2,000㎡ 환산 밀도</th><td>${sim.per != null ? sim.per.toFixed(1) : '—'}개${sim.ratio != null ? ` (${Math.round(sim.ratio * 100)}%)` : ''}</td></tr>
+    <tr><th>도면 기준 재판정</th><td colspan="3"><b>${esc(sim.label)}</b>${sim.over ? ' — 도면 유효 면적이 2,000㎡를 넘어 2,000㎡ 이상 기준으로 상향해 비교했습니다.' : ''}</td></tr>
+  </table></div>` : ''}
   <h2>3. 제외·주의 업종 및 주변 상가 요약</h2>
   <div class="tblwrap"><table class="kv">
     <tr><th>제한업종</th><td>${bs.ok ? `반경 내 ${bs.n}건 중 ${bs.nEx}건(${Math.round(bs.nEx / bs.n * 100)}%) 제외 — ${exLine}` : '상가 상세목록 없음 — 카카오 조회 또는 현장 확인 필요'}</td></tr>
@@ -2724,6 +2975,9 @@ function reportText(e) {
     `주소: ${p.address}`,
     `분석 기준일: ${fmtDate(new Date())}`,
     `검토 구역: ${fmt(e.area)}㎡ (원형 반경 ${Math.round(e.r)}m)`,
+    `분석 좌표: ${pinOf(p) ? `핀 보정 ${e.pos.lat.toFixed(6)}, ${e.pos.lng.toFixed(6)} (공단 등록 위치에서 ${pinShift(p)}m 이동)` : `공단 등록 ${(+p.lat).toFixed(6)}, ${(+p.lng).toFixed(6)}`}`,
+    g.sim ? `직접 그린 도면: 총 ${Math.round(g.sim.area)}㎡ · 유효 ${Math.round(g.sim.eff)}㎡(제외 ${g.sim.excl}%) · 도면 내 상가 ${g.sim.nSmall}개(카카오) · 공단 환산 ${g.sim.gongdan ? g.sim.gongdan.small : '—'}개 · 필요 ${g.sim.required ?? '—'}개${g.sim.over ? ` (2,000㎡ 초과 → ${g.sim.overInfo.thBase ?? '—'}개에서 상향)` : ''}` : '',
+    g.sim ? `도면 기준 재판정: ${g.sim.label}${g.sim.ratio != null ? ` (${Math.round(g.sim.ratio * 100)}%)` : ''}` : '',
     `판정: ${VMETA[e.v].label} — ${e.label}${pct != null ? ` (충족률 ${pct}%)` : ''}`,
     `조례: ${r ? r.ordinance + ' / 기준일 ' + (r.updated || '-') : NAT_RULE.ordinance + ' (조례 미확인)'}`,
     `요건: ${e.thNon != null ? `${fmt(e.base)}㎡당 상업 ${e.thCom}개·비상업 ${e.thNon}개` : e.th ? `${fmt(e.base)}㎡당 ${e.th}개` : '별표 위임'}`,
@@ -2743,7 +2997,7 @@ function reportText(e) {
     '4) 관할 지자체 사전 협의 후 신청서·구역도·점포명부 제출',
     '5) 지정 고시 후 온누리 가맹 신청',
   ];
-  return L.join('\n');
+  return L.filter(x => x !== undefined).join('\n');
 }
 function openReport() {
   const e = T1.ev;
@@ -2910,8 +3164,8 @@ function polySpan(pts, o) { const c = polyCentroid(pts, o); let r = 0; pts.forEa
 function polySim(e) {
   const P = T1.poly, pts = P.pts;
   if (!e || !pts || pts.length < 3) return null;
-  const o = e.p, ring = polyRing(pts);
-  const area = polyAreaM2(pts, o);
+  const o = e.p, pos = e.pos || posOf(o), ring = polyRing(pts);
+  const area = polyAreaM2(pts, pos);
   const live = APP.live.key === o.id && APP.live.state === 'ok' ? APP.live.places : null;
   const inside = [];
   (live || []).forEach(pl => {
@@ -2929,11 +3183,17 @@ function polySim(e) {
   const nSmall = bizOn ? smallAll.length - bizEx.length : smallAll.length;
   const excl = Math.max(0, Math.min(90, +P.excl || 0));
   const eff = area * (1 - excl / 100);
-  const base = e.base || 2000, th = e.th, thCom = e.thCom, thNon = e.thNon;
+  const base = e.base || 2000, thCom = e.thCom, thNon = e.thNon, thFlat = e.th;
+  /* 2,000㎡ 초과 도면 — 기본 단위(2,000㎡)를 넘으면 2,000㎡ 이상 기준(조례 별도 기준이 있으면 그것,
+     없으면 면적에 비례해 상향)으로 필요 점포수를 올려 대조한다. */
+  const over = eff > base + 1;
+  const overInfo = over ? over2000For(e, eff) : null;
+  const th = overInfo ? overInfo.th : thFlat;
   const required = th ? Math.ceil(th * eff / base) : null;
   const requiredNon = thNon ? Math.ceil(thNon * eff / base) : null;
   const per = eff > 0 ? nSmall * base / eff : null;             // 2,000㎡ 환산 밀집도
   const ratio = th && per != null ? per / th : null;
+  const gongdan = countsFor(o, eff);                            // 공단 실측 점포수를 도면 면적에 맞춰 환산
   let v = 'na', label = '조례 기준 미등록';
   if (th && per != null) {
     if (per >= (thCom || th)) { v = 'pass'; label = '적합 — 상업지역 기준 충족'; }
@@ -2941,9 +3201,17 @@ function polySim(e) {
     else if (ratio >= CONFIG.COND_RATIO) { v = 'cond'; label = '조건부 — 기준 근접'; }
     else { v = 'fail'; label = '미달 — 기준 미충족'; }
   }
-  return { area, eff, excl, nAll, nSmall, inside, required, requiredNon, per, ratio, base, th, thCom, thNon,
-    nSmallAll: smallAll.length, nEx: bizEx.length, nChk: bizChk.length, bizOn,
-    v, label, live: !!live, liveState: APP.live.key === o.id ? APP.live.state : 'idle', span: polySpan(pts, o), ring };
+  return { area, eff, excl, nAll, nSmall, inside, required, requiredNon, per, ratio, base, th, thFlat, thCom, thNon,
+    nSmallAll: smallAll.length, nEx: bizEx.length, nChk: bizChk.length, bizOn, over, overInfo, gongdan,
+    v, label, live: !!live, liveState: APP.live.key === o.id ? APP.live.state : 'idle', span: polySpan(pts, pos), ring };
+}
+/* 2,000㎡ 이상 기준 — 조례 DB에 별도 기준이 있으면 그것, 없으면 2,000㎡당 기준을 면적 비례로 상향 */
+function over2000For(e, eff) {
+  const r = e.rule || NAT_RULE, base = e.base || 2000;
+  const alt = [r.min_shops_ge2000, r.min_shops_2000_over, r.min_shops_over2000, r.th_ge2000]
+    .find(v => typeof v === 'number' && v > 0);
+  const th = alt || e.th || e.thNon || null;
+  return { alt: !!alt, th, thBase: e.th, base, required: th ? Math.ceil(th * eff / base) : null, eff };
 }
 
 /* --- 지도 오버레이(카카오) --- */
@@ -2953,7 +3221,7 @@ function polyClearOv() {
 }
 function polyDotList(e) {
   const R = T1.poly.on ? 400 : e.r * 2.4;
-  return APP.live.key === e.p.id ? APP.live.places.filter(x => dist(e.p, x) < R) : [];
+  return APP.live.key === e.p.id ? APP.live.places.filter(x => dist(e.pos || posOf(e.p), x) < R) : [];
 }
 /* 구역 내/밖 상가 점 색만 다시 칠한다(지도 중심·줌은 건드리지 않는다) */
 function polyRecolor(e) {
@@ -2976,33 +3244,98 @@ function polyDrawMap(e) {
   if (!KMap.ready) return;
   polyClearOv();
   const P = T1.poly, pts = P.pts;
+  P.shape = null; P.line = null; P.lblEl = null; P.lblOv = null;
   if (!pts.length) return;
   const m = KMap.map('map1');
   const path = pts.map(q => KMap.ll(q));
   if (pts.length >= 3) {
     const poly = new kakao.maps.Polygon({ path, strokeWeight: 3, strokeColor: PGL.ON, strokeOpacity: .95, fillColor: PGL.ON, fillOpacity: .16, zIndex: 2 });
-    poly.setMap(m); APP.polyOv.push(poly);
-    try { kakao.maps.event.addListener(poly, 'click', ev => polyMouse(ev)); } catch (_) {}
+    poly.setMap(m); APP.polyOv.push(poly); P.shape = poly;
+    try { kakao.maps.event.addListener(poly, 'click', ev => { if (T1.pinMode) pinApplyAt(polyLL(ev)); else polyClick(ev); }); } catch (_) { }
   } else if (pts.length === 2) {
     const ln = new kakao.maps.Polyline({ path, strokeWeight: 3, strokeColor: PGL.ON, strokeOpacity: .9, strokeStyle: 'dash' });
-    ln.setMap(m); APP.polyOv.push(ln);
+    ln.setMap(m); APP.polyOv.push(ln); P.line = ln;
   }
-  pts.forEach((q, i) => {
-    const el = document.createElement('div'); el.className = 'vtx'; el.textContent = String(i + 1);
-    const ov = new kakao.maps.CustomOverlay({ position: KMap.ll(q), content: el, xAnchor: .5, yAnchor: .5, zIndex: 6 });
-    ov.setMap(m); APP.polyOv.push(ov);
-  });
+  /* 꼭짓점 핸들 — 마우스·터치로 드래그해 경계를 미세 수정할 수 있다 */
+  pts.forEach((q, i) => { APP.polyOv.push(vtxHandle(m, i)); });
   if (!P.done) {   /* 마지막 꼭짓점 → 커서 미리보기 선 */
     const prev = new kakao.maps.Polyline({ path: [KMap.ll(pts[pts.length - 1]), KMap.ll(pts[pts.length - 1])], strokeWeight: 2, strokeColor: PGL.ON, strokeOpacity: .6, strokeStyle: 'shortdash' });
     prev.setMap(m); APP.polyPrev = prev; APP.polyOv.push(prev);
   }
   const sim = polySim(e);
   if (sim) {
-    const c = polyCentroid(pts, e.p), cos = Math.cos(e.p.lat * RAD);
     const lbl = document.createElement('div'); lbl.className = 'poly-lb'; lbl.textContent = `${fmt(Math.round(sim.area))}㎡`;
-    const ov = new kakao.maps.CustomOverlay({ position: new kakao.maps.LatLng(e.p.lat + c[1] / 110540, e.p.lng + c[0] / (111320 * cos)), content: lbl, xAnchor: .5, yAnchor: .5, zIndex: 5 });
-    ov.setMap(m); APP.polyOv.push(ov);
+    const ov = new kakao.maps.CustomOverlay({ position: polyCentroidPos(pts, e), content: lbl, xAnchor: .5, yAnchor: .5, zIndex: 5 });
+    ov.setMap(m); APP.polyOv.push(ov); P.lblEl = lbl; P.lblOv = ov;
   }
+}
+/* 도면 중심(면적 무게중심) → 카카오 좌표 */
+function polyCentroidPos(pts, e) {
+  const pos = (e && e.pos) || posOf(e.p);
+  const c = polyCentroid(pts, pos), cos = Math.cos(pos.lat * RAD);
+  return new kakao.maps.LatLng(pos.lat + c[1] / 110540, pos.lng + c[0] / (111320 * cos));
+}
+/* 꼭짓점 하나 — "드래그하면 그 자리로" 오버레이(CustomOverlay + 포인터 이벤트) */
+function vtxHandle(m, i) {
+  const P = T1.poly;
+  const el = document.createElement('div');
+  el.className = 'vtx'; el.textContent = String(i + 1); el.title = '드래그해 꼭짓점을 옮길 수 있습니다';
+  const ov = new kakao.maps.CustomOverlay({ position: KMap.ll(P.pts[i]), content: el, xAnchor: .5, yAnchor: .5, zIndex: 8 });
+  ov.setMap(m);
+  const stop = ev => { ev.preventDefault(); ev.stopPropagation(); };
+  el.addEventListener('pointerdown', ev => {
+    stop(ev);
+    P._drag = { i, moved: false, x0: ev.clientX, y0: ev.clientY };
+    el.classList.add('drag');
+    try { el.setPointerCapture(ev.pointerId); } catch (_) { }
+    try { m.setDraggable(false); } catch (_) { }        /* 드래그 중 지도가 따라 움직이지 않게 */
+  });
+  el.addEventListener('pointermove', ev => {
+    if (!P._drag || P._drag.i !== i) return;
+    stop(ev);
+    const box = document.getElementById('map1');
+    const proj = m.getProjection && m.getProjection();
+    if (!box || !proj || !proj.coordsFromContainerPoint) return;
+    const rect = box.getBoundingClientRect();
+    const ll = proj.coordsFromContainerPoint(new kakao.maps.Point(ev.clientX - rect.left, ev.clientY - rect.top));
+    if (!ll) return;
+    P.pts[i] = { lat: ll.getLat(), lng: ll.getLng() };
+    if (Math.abs(ev.clientX - P._drag.x0) + Math.abs(ev.clientY - P._drag.y0) > 3) P._drag.moved = true;
+    try { ov.setPosition(KMap.ll(P.pts[i])); } catch (_) { }
+    polyLiveGeometry();
+  });
+  const end = () => {
+    if (!P._drag || P._drag.i !== i) return;
+    const moved = P._drag.moved;
+    P._drag = null; P._justDragged = Date.now();
+    el.classList.remove('drag');
+    try { m.setDraggable(true); } catch (_) { }
+    polyAfterEdit();
+    /* 움직이지 않고 첫 점을 톡 누른 경우 = 도면 닫기 */
+    if (!moved && !P.done && P.pts.length >= 3 && i === 0) polyFinish();
+  };
+  el.addEventListener('pointerup', end);
+  el.addEventListener('pointercancel', end);
+  return ov;
+}
+/* 드래그 중 — 폴리곤 형상·면적·구역 내 상가·재판정을 실시간으로 따라간다(카드 렌더는 160ms 디바운스) */
+function polyLiveGeometry() {
+  const P = T1.poly, e = T1.ev;
+  if (!e || !KMap.ready) return;
+  const path = P.pts.map(q => KMap.ll(q));
+  try { if (P.shape) P.shape.setPath(path); } catch (_) { }
+  try { if (P.line) P.line.setPath(path); } catch (_) { }
+  const sim = polySim(e);
+  if (sim) {
+    if (P.lblEl) P.lblEl.textContent = `${fmt(Math.round(sim.area))}㎡`;
+    if (P.lblOv) { try { P.lblOv.setPosition(polyCentroidPos(P.pts, e)); } catch (_) { } }
+  }
+  syncDrawBar();
+  clearTimeout(P._h);
+  P._h = setTimeout(() => {
+    const ev0 = T1.ev; if (!ev0) return;
+    polyRecolor(ev0); renderPolyCard(); syncDrawBar();
+  }, 160);
 }
 function polyMouse(ev) { polyClick(ev); }
 function polyLL(ev) { const ll = ev && ev.latLng; return ll ? { lat: ll.getLat(), lng: ll.getLng() } : null; }
@@ -3021,29 +3354,25 @@ function polyToggle(force) {
     return;
   }
   if (P.store !== e.p.id) { P.pts = []; P.done = false; P.list = false; P.store = e.p.id; polyClearOv(); }
+  if (T1.pinMode) T1.pinMode = false;                 /* 핀 보정 모드와 상호 배타 */
   P.on = true; P.done = false;
   const L = APP.live;
   /* 실시간 카카오 상가 좌표가 없으면 자동 조회 — 조회가 끝나도 꼭짓점(T1.poly.pts)은 그대로 남는다 */
   if (!(L.key === e.p.id && (L.state === 'ok' || L.state === 'empty'))) t1Live(e);
   if (KMap.ready) {
     const m = KMap.map('map1');
+    const pos = e.pos || posOf(e.p);
     /* 그리기 시작 시 지도를 살짝 넓혀 주변 상가까지 보이게 한다(작은 점포는 100m급, 큰 구역은 더 넓게) */
-    m.setCenter(KMap.ll(e.p)); m.setLevel(e.r <= 60 ? 3 : 4);
-    if (!m.__drawWired) {
-      m.__drawWired = true;
-      kakao.maps.event.addListener(m, 'click', ev => { if (T1.poly.on) polyClick(ev); });
-      kakao.maps.event.addListener(m, 'mousemove', ev => {
-        const p = T1.poly; if (!p.on || p.done || !p.pts.length || !APP.polyPrev) return;
-        const ll = ev.latLng; if (ll) { try { APP.polyPrev.setPath([KMap.ll(p.pts[p.pts.length - 1]), ll]); } catch (_) {} }
-      });
-    }
+    m.setCenter(KMap.ll(pos)); m.setLevel(e.r <= 60 ? 3 : 4);
+    wireMapEv(m);
   }
   syncPolyUI(); polyDrawMap(e); polyRecolor(e); renderPolyCard();
-  toast('지도를 클릭해 꼭짓점을 찍으세요 — 3점 이상이면 [그리기 완료]');
+  toast('지도를 클릭해 꼭짓점을 찍으세요 — 3점 이상이면 [그리기 완료] · 꼭짓점은 드래그로 옮길 수 있습니다');
 }
 function polyClick(ev) {
   const P = T1.poly;
   if (!P.on || P.done) return;
+  if (P._drag || (P._justDragged && Date.now() - P._justDragged < 260)) return;
   const q = polyLL(ev); if (!q) return;
   /* 같은 클릭이 지도·폴리곤 리스너에서 두 번 들어오는 경우를 막는다 */
   const now = Date.now();
@@ -3085,12 +3414,14 @@ function syncPolyUI() {
   const lg = $('#lg-poly'); if (lg) lg.hidden = !(on || P.pts.length);
   syncCaption();
   syncDrawBar();
+  pinSyncUI();
 }
 /* 지도 캡션은 꼭짓점 개수와 함께 계속 갱신한다(그리는 중 → 검토 반경 복귀) */
 function syncCaption() {
   const cap = $('#map-caption'), e = T1.ev, P = T1.poly;
   if (!cap || !e) return;
-  cap.textContent = P.on ? `${e.p.name} · 구역 직접 그리기 (꼭짓점 ${P.pts.length})` : `${e.p.name} · 검토 반경 ${Math.round(e.r)}m`;
+  const pin = pinOf(e.p) ? ' · 핀 보정' : '';
+  cap.textContent = P.on ? `${e.p.name} · 구역 직접 그리기 (꼭짓점 ${P.pts.length})` : `${e.p.name} · 검토 반경 ${Math.round(e.r)}m${pin}`;
 }
 function syncDrawBar() {
   const P = T1.poly, sim = polySim(T1.ev), n = P.pts.length;
@@ -3144,6 +3475,7 @@ function renderPolyCard() {
   box.innerHTML = `
     <div class="card-h"><h3>📐 직접 그린 구역 실측 시뮬레이션</h3><span class="sub">${P.done ? '판정 확정' : '그리는 중'}</span>
       <div class="right">${badge(sim.v)}</div></div>
+    ${sim.over ? `<div class="ssite s1" style="margin:10px 20px 0"><span class="si">${ic('warn', 16)}</span><div class="sb"><b>2,000㎡ 초과 → 필요 점포수 상향 (${sim.overInfo.thBase ?? '—'}개 → ${sim.required ?? '—'}개)</b><span class="sx">도면 유효 면적 ${fmt(Math.round(sim.eff))}㎡는 기본 단위(2,000㎡)를 넘습니다. ${sim.overInfo.alt ? '조례의 2,000㎡ 이상 별도 기준을 적용했습니다.' : '2,000㎡ 이상 구역은 점포수 기준이 면적에 비례해 올라갑니다 — 담당 부서에 별도 기준이 있는지 확인하세요.'}</span></div></div>` : ''}
     <div class="trio num">
       <div><div class="k">도면 총 면적</div><div class="v">${fmt(Math.round(sim.area))}<small>㎡</small></div></div>
       <div><div class="k">유효 면적 <span class="faint">(제외 ${sim.excl}%)</span></div><div class="v">${fmt(Math.round(sim.eff))}<small>㎡</small></div></div>
@@ -3157,13 +3489,18 @@ function renderPolyCard() {
         <label class="laychk" style="border:1px solid var(--border);border-radius:10px;padding:3px 9px;background:#fff"><input type="checkbox" id="poly-biz" ${sim.bizOn ? 'checked' : ''}>공무원 심사 기준 적용</label>
         <span class="faint" style="font-size:11.5px">병·의원·일반학원·부동산·유원지·법무·회계·금융·동물병원 제외(약국은 포함) · 주점은 유흥 확인 ${sim.nChk}건${sim.bizOn ? ` → ${sim.nSmallAll}개 중 ${sim.nEx}건 제외` : ' · 지금은 전체 상가로 계산 중'}</span></span></div>
       <div class="vrow"><span class="k">조례 공용면적</span><span class="v">${exclChip} <span class="faint" style="font-size:11.5px">${exclOk === true ? '이 지자체는 심의를 거쳐 도로·주차장 부지를 뺄 수 있습니다' : exclOk === false ? '이 조례는 도로 면적을 포함해 산정합니다' : '조례에 면적 제외 규정이 확인되지 않습니다'}</span></span></div>
-      <div class="vrow"><span class="k">필요 상가 수</span><span class="v"><b class="num">${sim.required ?? '—'}</b>개 <span class="faint">유효 면적 기준${sim.requiredNon != null ? ` (비상업 ${sim.requiredNon}개)` : ''}</span>
+      <div class="vrow"><span class="k">필요 상가 수</span><span class="v"><b class="num">${sim.required ?? '—'}</b>개 <span class="faint">유효 면적 기준${sim.requiredNon != null ? ` (비상업 ${sim.requiredNon}개)` : ''}${sim.over ? ` · 2,000㎡ 기준 ${sim.overInfo.thBase ?? '—'}개에서 상향` : ''}</span>
         ${sim.thNon != null ? `<span class="faint" style="font-size:11.5px">· ${fmt(sim.base)}㎡당 상업 ${sim.thCom}·비상업 ${sim.thNon}개</span>` : ''}</span></div>
+      <div class="vrow"><span class="k">공단 vs 카카오</span><span class="v" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <span>공단 실측 환산 <b class="num">${sim.gongdan ? sim.gongdan.small : '—'}</b>개 <span class="faint">(상가 전체 ${sim.gongdan ? sim.gongdan.all : '—'})</span></span>
+        <span class="faint">↔</span>
+        <span>카카오 도면 내 <b class="num" style="color:${m.color}">${sim.live ? sim.nSmall : '—'}</b>개</span>
+        ${!sim.live ? `<button class="btn xs" id="poly-live">${ic('refresh', 12)}도면 기준 카카오 조회</button>` : `<span class="faint" style="font-size:11.5px">점 좌표를 도면 안/밖으로 갈라 센 값</span>`}</span></div>
       <div class="vrow"><span class="k">2,000㎡ 환산 밀집도</span><span class="v"><b class="num" style="color:${m.color}">${sim.per != null ? sim.per.toFixed(1) : '—'}</b>개 <span class="faint">= 구역 내 상가 ${sim.nSmall}개 × ${fmt(sim.base)} ÷ ${fmt(Math.round(sim.eff))}㎡</span></span></div>
       <div class="vrow" style="border-bottom:0"><span class="k">충족률 · 판정</span><span class="v" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
         <span class="prog" style="flex:1;min-width:120px"><i style="width:${w}%;background:${m.color}"></i><span class="tick" style="left:${100 / 1.5}%" title="기준 100%"></span></span>
         <b class="num" style="min-width:44px;text-align:right;color:${m.color}">${pct != null ? pct + '%' : '—'}</b>
-        <b style="color:${m.color}">${esc(sim.label)}</b>${liveChip}</span></div>
+        <b style="color:${m.color}">${esc(sim.label)}</b>${sim.over ? `<span class="chip cf">2,000㎡ 이상 기준</span>` : ''}${liveChip}</span></div>
     </div>
     <div class="poly-acts">
       <button class="btn sm" id="poly-list">${P.list ? '구역 내 상가 접기' : `구역 내 상가 보기 (${sim.nAll})`}</button>
@@ -3203,10 +3540,8 @@ function polyCSV() {
 }
 
 function renderMap1(e) {
-  const p = e.p, P = T1.poly, drawing = !!P.on;
-  $('#map-caption').textContent = drawing
-    ? `${p.name} · 구역 직접 그리기 (꼭짓점 ${P.pts.length})`
-    : `${p.name} · 검토 반경 ${Math.round(e.r)}m`;
+  const p = e.p, pos = e.pos || posOf(p), P = T1.poly, drawing = !!P.on;
+  syncCaption();
   $('#rv-caption').textContent = p.address;
   $('#rv-ext').href = kakaoRvLink(p);
   const nvLink = $('#rv-naver'); if (nvLink) { nvLink.href = naverStoreLink(p); nvLink.style.display = ''; }
@@ -3215,27 +3550,29 @@ function renderMap1(e) {
   const near = MAPL.shops ? polyDotList(e) : [];
   const ring = P.pts.length >= 3 ? polyRing(P.pts) : null;
   /* 온누리 가맹 GS25 점포(반경 2km) — '가맹점' 레이어 */
-  const memberNear = MAPL.members ? DB.stores.filter(x => x.onnuri_member && x.id !== p.id && dist(x, p) < 2000).slice(0, 80) : [];
+  const memberNear = MAPL.members ? DB.stores.filter(x => x.onnuri_member && x.id !== p.id && dist(x, pos) < 2000).slice(0, 80) : [];
   if (KMap.ready) {
     const id = 'map1', m = KMap.map(id); KMap.clear(id); m.relayout();
     nearZones.forEach(z => KMap.zoneColored(id, z, '#7357C9', e.inside.some(x => x.z === z)));
-    if (MAPL.cand) KMap.ring(id, p, e.r);
+    if (MAPL.cand) KMap.ring(id, pos, e.r);
     memberNear.forEach(x => KMap.dot(id, x, '#16A36B', 7, x.name + ' · 온누리 가맹'));
-    KMap.add(id, new kakao.maps.Marker({ position: KMap.ll(p), title: p.name }));
+    KMap.add(id, new kakao.maps.Marker({ position: KMap.ll(pos), title: p.name + (pinOf(p) ? ' (핀 보정)' : '') }));
+    wireMapEv(m);
+    skyApply();
     polyRecolor(e); polyDrawMap(e);
-    if (!drawing) { m.setCenter(KMap.ll(p)); m.setLevel(e.r > 60 ? 3 : 2); }
+    if (!drawing) { m.setCenter(KMap.ll(pos)); m.setLevel(e.r > 60 ? 3 : 2); }
     KMap.zoomCtl('map1');
-    if (T1.viewMode !== 'map') { if (KMap.rv) KMap.rv.relayout(); KMap.roadview('rv1', p, () => { $('#rv1').innerHTML = rvPlaceholder(p, '주변 60m 이내 로드뷰 파노라마가 없습니다.'); KMap.rv = null; }); }
+    if (T1.viewMode !== 'map') { if (KMap.rv) KMap.rv.relayout(); KMap.roadview('rv1', pos, () => { $('#rv1').innerHTML = rvPlaceholder(p, '주변 60m 이내 로드뷰 파노라마가 없습니다.'); KMap.rv = null; }); }
   } else {
-    const ext = Math.max(e.r * 2.1, ring ? polySpan(P.pts, p) * 1.7 : 90);
-    svgMap($('#map1'), { center: p, extent: ext, layers: [
+    const ext = Math.max(e.r * 2.1, ring ? polySpan(P.pts, pos) * 1.7 : 90);
+    svgMap($('#map1'), { center: pos, extent: ext, layers: [
       ...nearZones.map(z => ({ t: 'zone', z, color: '#7357C9', strong: e.inside.some(x => x.z === z) })),
-      ...(MAPL.cand ? [{ t: 'ring', p, r: e.r }] : []),
+      ...(MAPL.cand ? [{ t: 'ring', p: pos, r: e.r }] : []),
       ...near.map(s => { const inP = ring ? inPoly(s, ring) : null; return { t: 'dot', p: s, color: inP === null ? '#315F95' : inP ? PGL.ON : PGL.OUT, size: inP === null ? 4 : inP ? 4.4 : 2.6, title: `${s.name} · ${s.cat}` }; }),
       ...(P.pts.length >= 3 ? [{ t: 'poly', pts: P.pts, color: PGL.ON }] : P.pts.length === 2 ? [{ t: 'line', pts: P.pts, color: PGL.ON }] : []),
       ...P.pts.map((q, i) => ({ t: 'vtx', p: q, n: i + 1 })),
       ...memberNear.map(x => ({ t: 'dot', p: x, color: '#16A36B', size: 4.2, title: `${x.name} · 온누리 가맹` })),
-      { t: 'pin', p, label: p.name },
+      { t: 'pin', p: pos, label: p.name },
     ] });
     if (T1.rv) $('#rv1').innerHTML = APP.mapState === 'error'
       ? rvPlaceholder(p, '카카오 SDK를 불러오지 못했습니다. JavaScript 키와 [플랫폼 > Web] 도메인 등록을 확인하세요.', true)
