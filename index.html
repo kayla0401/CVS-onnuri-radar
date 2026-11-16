@@ -983,7 +983,8 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
             <div class="field"><label for="d-score">우선순위 점수(이상)</label><input class="input num" id="d-score" type="number" min="0" max="100" value="0"></div>
             <div class="field"><label for="d-field">현장 확인 상태</label><select class="select" id="d-field"><option value="">전체</option><option>필요</option><option>진행 중</option><option>완료</option></select></div>
             <div class="field"><label for="d-special">특수입지</label><select class="select" id="d-special"><option value="ex1" selected>특수입지(1단계) 제외</option><option value="only1">1단계만 보기</option><option value="all">전부 포함</option></select></div>
-            <div class="acts"><select class="select" id="d-area" style="width:124px" aria-label="검토 면적"></select><button class="btn ghost" id="d-reset">초기화</button><button class="btn" id="d-csv"><span data-i="down"></span>CSV 다운로드</button></div>
+            <div class="field"><label for="d-area">검토 면적</label><select class="select" id="d-area"></select></div>
+            <div class="acts"><button class="btn ghost" id="d-reset">초기화</button><button class="btn" id="d-csv"><span data-i="down"></span>CSV 다운로드</button></div>
           </div>
           <div class="kpis" style="grid-template-columns:repeat(4,1fr)" id="t3-kpis"></div>
           <div class="t3-body">
