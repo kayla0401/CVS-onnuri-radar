@@ -75,7 +75,8 @@ async function vworld(params, env) {
     domain: env.VWORLD_DOMAIN, key: env.VWORLD_API_KEY, ...params,
   });
   const response = await fetch(`${UPSTREAM}?${qs}`, {
-    signal: AbortSignal.timeout(TIMEOUT_MS), redirect: 'error',
+    /* Workers는 redirect:'error'를 받지 않는다(manual/follow만 허용) — 3xx는 아래 ok 검사에서 실패로 처리된다 */
+    signal: AbortSignal.timeout(TIMEOUT_MS), redirect: 'manual',
   });
   if (!response.ok) throw new Error('VWorld HTTP error');
   const body = await response.json();
