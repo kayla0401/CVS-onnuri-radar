@@ -2164,6 +2164,11 @@ const ZONE_GIS = {
       if (pnu) url.searchParams.set('pnu', pnu);
       const response = await fetch(url, { credentials: 'omit', signal: AbortSignal.timeout(15000) });
       const data = await response.json().catch(() => null);
+      if (response.status === 503) {
+        /* 서버에 브이월드 키가 없고(또는 지번이 없어) 조회할 경로가 없는 경우 */
+        this.cache.set(id, { status: 'nokey', pnu, expires: Date.now() + 300000 });
+        refresh(); return;
+      }
       if (response.status === 404 && data && data.status === 'not_found') {
         this.cache.set(id, { status: 'parcel', expires: Date.now() + 600000 });
         refresh(); return;
@@ -2458,6 +2463,7 @@ function zonePointLine(p, plain) {
   const gis = ZONE_GIS.get(p);
   if (!gis || gis.status === 'loading') return `${manualTxt || '미확인'} · 자동조회 대기`;
   if (gis.status === 'parcel') return `${manualTxt || '미확인'} · 지번(PNU) 확인 실패`;
+  if (gis.status === 'nokey') return `${manualTxt || '미확인'} · 자동조회 불가(서버 키 미설정)`;
   if (gis.status !== 'ok' && gis.status !== 'empty') return `${manualTxt || '미확인'} · 자동조회 실패`;
   if (!gis.names || !gis.names.length) return `${manualTxt || '미확인'} · 점포 좌표에서 용도지역 없음`;
   const src = gis.source === 'eum' ? '토지이음' : '브이월드';
@@ -3153,7 +3159,7 @@ function renderVerdict(e) {
   const zoneName = zoneKind === 'commercial' ? '상업지역 (수동 확인)' : zoneKind === 'noncommercial' ? '비상업지역 (수동 확인)' : '용도지역 미확인';
   const gis = ZONE_GIS.get(e.p);
   const gisStatus = !window.ONNURI_ZONING_ENDPOINT ? '조회 서버 연결 대기' : !gis ? '자동조회 준비' :
-    ({loading:'공간정보 조회 중',ok:'공식 API 조회 성공',ambiguous:'용도지역 추가 확인 필요',empty:'결과 없음',parcel:'지번(PNU) 확인 실패',error:'조회 오류'}[gis.status]||'미확인');
+    ({loading:'공간정보 조회 중',ok:'공식 API 조회 성공',ambiguous:'용도지역 추가 확인 필요',empty:'결과 없음',parcel:'지번(PNU) 확인 실패',nokey:'지번 조회 불가(키 미설정)',error:'조회 오류'}[gis.status]||'미확인');
   const gisSource = gis?.source === 'eum' ? '토지이음' : '브이월드';
   const gisType = gis?.status==='ok' ? (gis.kind==='commercial'?'상업지역':'비상업지역') : '미확인';
   const gisRule = gis?.status==='ok' && e.rule && e.thCom != null && e.thNon != null
