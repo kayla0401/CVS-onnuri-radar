@@ -227,9 +227,10 @@ async function allowLookup(env, key) {
   if (limiter && typeof limiter.limit === 'function') {
     try {
       const { success } = await limiter.limit({ key });
-      return !!success;
+      if (!success) return false;
     } catch { /* 바인딩이 응답하지 않으면 폴백으로 계속한다 */ }
   }
+  /* 바인딩은 데이터센터 단위 근사치라 한 곳에서 몰아 부르면 새는 경우가 있다 — 초과는 여기서도 막는다 */
   return memoAllow(key);
 }
 
