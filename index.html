@@ -690,6 +690,18 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
 .sheet .foot{margin-top:7px;font-size:9px;color:#7A838F;line-height:1.5}
 .sheet .stamp{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:9.5px;color:#7A838F;border-top:1px solid #D7DEE8;margin-top:8px;padding-top:5px}
 .sheet .cols{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+.sheet .tblwrap{overflow:visible}
+@media (max-width:760px){
+  .sheet{width:100%;max-width:100%;padding:12px 10px;font-size:10.5px}
+  .sheet h1{font-size:15px}
+  .sheet .tblwrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:4px}
+  .sheet table{font-size:9.8px}
+  .sheet table.kv{min-width:400px}
+  .sheet table.cmp{min-width:540px}
+  .sheet th,.sheet td{padding:3px 5px}
+  .sheet table.kv th{width:70px}
+  .sheet li{margin:1px 0}
+}
 @page{size:A4 portrait;margin:9mm}
 @media print{
   html,body{background:#fff!important;height:auto!important;overflow:visible!important}
@@ -712,6 +724,7 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
   body.report-open .sheet h2,body.report-open .sheet .road li,body.report-open .sheet .stamp{break-inside:avoid;page-break-inside:avoid}
   body.report-open .sheet table,body.report-open .sheet .box{break-inside:avoid;page-break-inside:avoid}
   body.report-open .sheet a{color:inherit;text-decoration:none}
+  body.report-open .sheet .tblwrap{overflow:visible!important}
 }
 @media print{ .sidebar,.topbar,.toolbar{display:none} }
 
@@ -2667,18 +2680,18 @@ function buildReportHTML(e) {
   <h1>골목형상점가 지정 사전검토 리포트</h1>
   <div class="sub">${esc(p.name)} · ${esc(p.address)} · 분석 기준일 ${today} · 온누리 레이더</div>
   <h2>1. 기본 현황</h2>
-  <table class="kv">
+  <div class="tblwrap"><table class="kv">
     <tr><th>점포명</th><td colspan="3"><b>${esc(p.name)}</b>${p.kind === 'store' ? ` (점포코드 ${esc(p.id)})` : ''} · ${esc(p.sido)} ${esc(p.sigungu)}</td></tr>
     <tr><th>주소</th><td colspan="3">${esc(p.address || '—')}</td></tr>
     <tr><th>검토 구역</th><td>${fmt(e.area)}㎡ · 원형 환산 반경 ${Math.round(e.r)}m (${e.counts ? (e.counts.est ? '보간 추정' : '실측 프리셋') : '상가데이터 미수집'})</td><th>기존 상권</th><td>${zoneLine}</td></tr>
     <tr><th>조례 판정</th><td>${esc(e.label)} (${pct != null ? '충족률 ' + pct + '%' : '충족률 미상'})</td><th>온누리 가맹</th><td>${memberTxt}</td></tr>
     <tr><th>점포 운영 형태</th><td colspan="3">${esc(STORE_TYPE[g.st] || '미확인')} — ${esc(stc.txt)}</td></tr>
     <tr><th>특수입지 판정</th><td colspan="3">${ssTxt}</td></tr>
-  </table>
+  </table></div>
   ${ss.stage === 1 ? `<div class="box"><b>주의(특수입지 1단계)</b> — ${esc(ss.why)} ${esc(ss.ex)}.</div>` : ''}
   ${stc.bad ? '<div class="box red"><b>가맹 결격</b> — 본사 직영점은 소상공인이 아니어서 상권 지정 후에도 온누리 가맹이 불가합니다.</div>' : ''}
   <h2>2. 공무원 심사 기준 정량 비교</h2>
-  <table>
+  <div class="tblwrap"><table class="cmp">
     <tr><th>항목</th><th>조례·법정 기준</th><th>공단 실측(원형)</th><th>제한업종 제외(보수적)</th></tr>
     <tr><td>적용 조례</td><td colspan="3">${r ? esc(r.ordinance) + ` (기준일 ${esc(r.updated || '—')})` : esc(NAT_RULE.ordinance) + ' — 조례 미확인, 법정 기본 기준 적용'}</td></tr>
     <tr><td>필요 점포 수</td><td>${thTxt}</td><td>필요 ${need} / 확인 ${e.counts ? fmt(e.nSmall) : '미수집'}개${pct != null ? ` (${pct}%)` : ''}</td><td>${bs.ok ? `유효 ${fmt(bs.eff)}개${bsPct != null ? ` (${bsPct}%)` : ''}` : '집계 불가'}</td></tr>
@@ -2687,15 +2700,15 @@ function buildReportHTML(e) {
     <tr><td>기존 상권 중복</td><td colspan="3">${zoneLine}</td></tr>
     <tr><td>직접 그린 도면 실측</td><td colspan="3">${drawTxt}</td></tr>
     <tr><td>카카오 교차검증</td><td colspan="3">${xcTxt}</td></tr>
-  </table>
+  </table></div>
   <h2>3. 제외·주의 업종 및 주변 상가 요약</h2>
-  <table class="kv">
+  <div class="tblwrap"><table class="kv">
     <tr><th>제한업종</th><td>${bs.ok ? `반경 내 ${bs.n}건 중 ${bs.nEx}건(${Math.round(bs.nEx / bs.n * 100)}%) 제외 — ${exLine}` : '상가 상세목록 없음 — 카카오 조회 또는 현장 확인 필요'}</td></tr>
     <tr><th>주점</th><td>${bs.ok ? `${bs.nChk}건 — 유흥주점 여부 확인 필요(유흥주점이면 제외, 최저 유효 ${fmt(bs.effMin)}개)` : '미집계'}</td></tr>
     <tr><th>약국</th><td>약국·의약품 소매는 2026.10 허용 업종이라 제외하지 않음</td></tr>
     <tr><th>대로 단절</th><td>원형 반경은 대로 건너편·블록 밖 상가까지 포함될 수 있음 — 도면으로 확인</td></tr>
     <tr><th>호실 중복</th><td>상가(상권)정보는 호실 단위 등록 — 한 건물에 여러 점포가 중복 집계될 수 있음</td></tr>
-  </table>
+  </table></div>
   <h2>4. 현장 실행 로드맵</h2>
   <ol class="road">${steps.map(([t, items]) => `<li><b>${t}</b><br>${items.map(x => '· ' + x).join('<br>')}</li>`).join('')}</ol>
   <div class="box blue"><b>필요서류 체크리스트</b> — □ 지정 신청서 □ 구역 위치도·경계도(도면) □ 점포 현황(상호·업종·면적) □ 상인회 구성 현황 □ 점포주 동의서${g.r && g.r.owner_consent_waived === false ? '(토지·건축물 소유자 동의서 포함)' : ''} □ 사업 계획서 □ 사업자등록증 사본 □ 매출 확인서류</div>
@@ -2799,7 +2812,7 @@ function renderShops(e) {
       <div class="right">
         <button class="btn sm" id="shops-csv" title="반경 내 상가 리스트를 CSV로 저장합니다(교차 검증·소상공인·온누리 열 포함)">${ic('down', 14)}CSV 다운로드</button>
         <select class="select" id="shops-filter" style="width:150px;height:28px" aria-label="상가 필터">
-          <option value="">전체</option><option value="inc" ${f === 'inc' ? 'selected' : ''}>검토 구역 포함</option><option value="edge" ${f === 'edge' ? 'selected' : ''}>경계(+15%)</option><option value="ex" ${f === 'ex' ? 'selected' : ''}>제외 가능 업종 ${nEx}</option><option value="chk" ${f === 'chk' ? 'selected' : ''}>주점(유흥 확인) ${nChk}</option>${xc ? `<option value="sus" ${f === 'sus' ? 'selected' : ''}>카카오 미확인 ${xc.suspect.length}</option>` : ''}</select>
+          <option value="">전체</option><option value="inc" ${f === 'inc' ? 'selected' : ''}>검토 구역 포함</option><option value="edge" ${f === 'edge' ? 'selected' : ''}>경계(+15%)</option>${nEx ? `<option value="ex" ${f === 'ex' ? 'selected' : ''}>제외 가능 업종 ${nEx}</option>` : ''}${nChk ? `<option value="chk" ${f === 'chk' ? 'selected' : ''}>주점(유흥 확인) ${nChk}</option>` : ''}${xc ? `<option value="sus" ${f === 'sus' ? 'selected' : ''}>카카오 미확인 ${xc.suspect.length}</option>` : ''}</select>
         </div></div>
     <div class="tbl-wrap">${rows.length ? `<table class="tbl num"><thead><tr>
         <th>No.</th>${thSort('상가명', 'name', st)}${thSort('업종', 'cat', st)}${thSort('거리', 'd', st)}${thSort('포함 여부', 'inc', st)}<th>심사 집계</th>${xc ? '<th>교차 검증</th>' : ''}</tr></thead><tbody>
