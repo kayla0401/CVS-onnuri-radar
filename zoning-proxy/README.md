@@ -17,8 +17,9 @@
    - 응답은 EUC-KR이라 `TextDecoder('euc-kr')`로 디코드하고, 이름은 표준코드 표(UQA111~UQD001)를 우선 쓴다.
    - 지구·구역·도로 코드(UQP·UQQ·UQS…)와 도시지역 경계(UQA01X·UQA001)는 판정에서 뺀다.
    - 없는 번지(PNU)는 `404 {"status":"not_found"}`로 구분해 오탐을 막는다.
-   - 브라우저는 카카오 `Geocoder().coord2Address`의 `b_code`·`mountain_yn`·`main/sub_address_no`로
-     19자리 PNU(법정동 10 + 대지구분 1 + 본번 4 + 부번 4)를 만든다.
+   - 브라우저는 카카오 `Geocoder().coord2Address`의 지번·`mountain_yn`과 `coord2regioncode`의
+     법정동(B) 코드로 19자리 PNU(법정동 10 + 대지구분 1 + 본번 4 + 부번 4)를 만든다.
+     (`coord2address` 응답에는 `b_code`가 없어 지역코드를 따로 받아야 한다)
 
 ## 직접 그린 구역 — 상업·비상업 혼합 면적
 
