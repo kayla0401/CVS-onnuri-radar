@@ -981,7 +981,7 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
 
           <!-- C. 후보 상가 + 교차 검증 -->
           <div class="card" id="t1-shops"></div>
-          <div class="foot">※ 판정은 소상공인시장진흥공단 상가(상권)정보(2026-09-30) 실측 점포수와 지자체 조례 기준으로 계산한 내부 사전 검토 결과입니다. 상가정보 미수집 시도는 판정을 보류합니다. 지정 신청 전 조례 원문과 담당 부서 확인이 필요합니다.</div>
+          <div class="foot">※ 밀집도 판정은 소상공인시장진흥공단 상가(상권)정보(2026-09-30) 추정 점포수와 지자체 조례 기준으로 계산한 예비 검토 결과입니다. 상가정보 미수집 시도는 판정을 보류합니다. 지정 신청 전 조례 원문과 담당 부서 확인이 필요합니다.</div>
         </div>
       </section>
 
@@ -1051,7 +1051,7 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
               <div class="card-h"><h3>우선순위 후보 리스트</h3><span class="sub" id="t3-count"></span>
                 <div class="right"><span class="sub">상세 분석 → 탭 1로 이동</span></div></div>
               <div class="split-note">
-                <b style="color:var(--text-primary)">법적 적격 판정</b><span>= 조례 기준 대비 판정(적합/조건부/부적합/검증 불가)</span>
+                <b style="color:var(--text-primary)">사전 검토 상태</b><span>= 추정 밀집도와 조례 기준의 예비 비교(최종 지정 심사 아님)</span>
                 <span class="faint">|</span>
                 <b style="color:var(--text-primary)">내부 우선순위 점수(참고용)</b>
                 <span><i class="lg" style="background:#315F95"></i> 지자체 기준 35</span>
@@ -1439,6 +1439,19 @@ function findRule(sido, sigungu) {
   return c.sort((a, b) => b.sigungu.length - a.sigungu.length)[0] || null;
 }
 
+/* 검증된 조례 계산만 자동 판정: 기준 면적 이하에서는 최소 점포 수를 고정한다.
+   초과 면적은 조례 DB에 검증된 증가식이 없는 한 보류한다. */
+function requiredShopsFor(rule, area, baseCount) {
+  if (!Number.isFinite(+area) || area <= 0 || !Number.isFinite(+baseCount) || +baseCount <= 0) return null;
+  const baseArea = +(rule.base_area || 2000);
+  if (area <= baseArea) return +baseCount;
+  const step = +rule.over_area_step_m2, extra = +rule.over_area_shops;
+  if (rule.over_area_verified === true && step > 0 && extra > 0) {
+    return +baseCount + Math.ceil((area - baseArea) / step) * extra;
+  }
+  return null; /* 조례별 초과면적 규칙 미검증 — 비례환산으로 적합 판정 금지 */
+}
+
 /* 반경별 실측 점포수(from 상가(상권)정보) — 프리셋 외 면적은 보간·추정 */
 function countsFor(p, areaM2) {
   if (!p.cov) return null;
@@ -1489,43 +1502,46 @@ function evaluate(p, areaM2) {
     reasons.push('이 점포는 주변 상가 수를 계산할 수 없어 판정을 보류합니다. 아래 "실시간 카카오 조회"로 반경 내 업소를 확인할 수 있습니다.');
   } else {
     nAll = c.all; nSmall = c.small ?? c.all; nOther = p.other10000 ?? 0;
-    per = nSmall * base / areaM2;
-    required = th ? Math.ceil(th * areaM2 / base) : null;
-    ratio = th ? per / th : null;
-    reqCom = thCom ? Math.ceil(thCom * areaM2 / base) : null;
-    reqNon = thNon ? Math.ceil(thNon * areaM2 / base) : null;
-    passCom = thCom ? per >= thCom : null;
-    passNon = thNon ? per >= thNon : null;
-    const nearTh = thNon || th;
+    per = nSmall * base / areaM2; // 비교용 밀집도 지표: 판정에는 사용하지 않음
+    reqCom = requiredShopsFor(rule, areaM2, thCom);
+    reqNon = requiredShopsFor(rule, areaM2, thNon);
+    required = reqCom ?? reqNon;
+    ratio = required ? nSmall / required : null;
+    passCom = reqCom != null ? nSmall >= reqCom : null;
+    passNon = reqNon != null ? nSmall >= reqNon : null;
+    const nearTh = reqNon ?? required;
     if (!th) {
       v = 'na'; label = '조례 별표 기준 확인 필요';
       reasons.push(`${rule.ordinance}은(는) 면적당 점포수 기준을 조례 별표에 위임하고 있어 DB에 수치가 없습니다.`);
       reasons.push(`환산 점포수는 ${per.toFixed(1)}개입니다. 법정 기본(2,000㎡당 30개)과 비교하면 ${per >= 30 ? '충족' : '미달'}이지만, 실제 기준은 담당 부서(${rule.dept || '미확인'})에 별표 원문으로 확인해야 합니다.`);
+    } else if ((thCom && reqCom == null) || (thNon && reqNon == null)) {
+      v = 'na'; label = '면적 초과 규정 확인 필요';
+      reasons.push(`검토 면적 ${fmt(areaM2)}㎡는 조례 기준면적 ${fmt(base)}㎡를 초과합니다. 해당 지자체의 초과면적 계산식이 검증되지 않아 자동 적합 판정을 보류합니다.`);
     } else if (inside.length) {
       v = 'cond'; label = '조건부 — 기존 구역 내';
       reasons.push(`이미 '${inside[0].z.name}'(${inside[0].z.type}) 구역 안에 있습니다. 신규 지정보다 기존 구역 온누리 가맹 등록을 우선 검토하세요.`);
     } else if (passCom === true && !overlapping.length) {
-      v = 'pass'; label = thNon != null ? '적합 — 상업·비상업 기준 모두 충족' : '적합';
+      v = 'pass'; label = thNon != null ? '예비 충족 — 양쪽 밀집 기준 만족' : '예비 충족 — 점포 수 기준 만족';
       reasons.push(thNon != null
-        ? `${fmt(base)}㎡ 환산 소상공인 점포 ${per.toFixed(1)}개로 상업지역 기준 ${thCom}개와 비상업 기준 ${thNon}개를 모두 넘습니다. 용도지역과 무관하게 기준 충족입니다.`
-        : `${fmt(base)}㎡ 환산 소상공인 점포 ${per.toFixed(1)}개로 ${local ? '조례' : '법정 기본'} 기준 ${th}개를 충족합니다.`);
+        ? `구역 내 추정 점포 ${nSmall}개로 상업지역 ${reqCom}개·비상업지역 ${reqNon}개 최소 점포 수의 예비 기준을 만족합니다. 실제 구역/소상공인 여부 확인이 필요합니다.`
+        : `구역 내 추정 점포 ${nSmall}개로 최소 ${required}개 예비 기준을 만족합니다. 실제 구역/소상공인 여부 확인이 필요합니다.`);
     } else if (passCom === true) {
       v = 'cond'; label = '조건부 — 구역 경계 중첩';
       reasons.push(`기준은 충족하나 '${overlapping[0].z.name}' 구역과 검토 반경이 겹칩니다. 구역 경계 조정이 필요합니다.`);
     } else if (passNon === true) {
       v = 'cond'; label = '조건부 — 비상업 기준 충족';
-      reasons.push(`환산 ${per.toFixed(1)}개로 비상업지역 기준(${thNon}개)은 충족하지만, 상업지역 기준(${thCom}개)에는 ${(thCom - per).toFixed(1)}개 부족합니다.`);
+      reasons.push(`추정 점포 ${nSmall}개로 비상업 최소 ${reqNon}개는 충족하나 상업 최소 ${reqCom}개에는 ${Math.max(0, reqCom - nSmall)}개 부족합니다.`);
       reasons.push('이 구역의 용도지역이 상업지역이면 부적합, 그 외 지역이면 적합입니다. 용도지역은 토지이음(eum.go.kr) 또는 지자체 담당 부서에서 확인하세요.');
-    } else if (per >= nearTh * CONFIG.COND_RATIO) {
+    } else if (nearTh != null && nSmall >= nearTh * CONFIG.COND_RATIO) {
       v = 'cond'; label = '조건부 — 기준 근접';
       reasons.push(thNon != null
-        ? `비상업 기준(${thNon}개) 대비 충족률 ${(per / thNon * 100).toFixed(0)}%, 상업 기준(${thCom}개) 대비 ${(per / thCom * 100).toFixed(0)}%입니다. 소상공인 점포 ${Math.max(0, reqNon - nSmall)}개 이상 추가 확보 또는 구역 경계 조정 시 비상업 기준 충족이 가능합니다.`
-        : `충족률 ${(ratio*100).toFixed(0)}%. 소상공인 점포 ${Math.max(0, required - nSmall)}개 추가 확보 또는 구역 경계 조정 시 충족 가능합니다.`);
+        ? `비상업 기준 ${reqNon}개 대비 ${(nSmall / reqNon * 100).toFixed(0)}%, 상업 기준 ${reqCom}개 대비 ${(nSmall / reqCom * 100).toFixed(0)}%입니다. 실측과 지자체 협의가 필요합니다.`
+        : `최소 점포 수 대비 ${(ratio * 100).toFixed(0)}% 수준입니다. 실측과 구역 조정이 필요합니다.`);
     } else {
       v = 'fail'; label = '부적합';
       reasons.push(thNon != null
-        ? `환산 ${per.toFixed(1)}개로 비상업 기준(${thNon}개)에도 미달합니다(충족률 ${(per / thNon * 100).toFixed(0)}%).`
-        : `충족률 ${(ratio*100).toFixed(0)}%로 ${local ? '조례' : '법정 기본'} 기준(${th}개/${fmt(base)}㎡)에 미달합니다.`);
+        ? `추정 점포 ${nSmall}개로 비상업 최소 ${reqNon}개에도 미달합니다. 실측 점포 누락이 있을 수 있습니다.`
+        : `추정 점포 ${nSmall}개는 최소 ${required}개보다 적습니다. 실제 점포 수와 구역을 다시 확인하세요.`);
     }
     if (th && local && rule.excludes_road_parking === true) reasons.push(`이 조례는 면적 산정 시 도로·주차장 등 공용면적을 제외할 수 있습니다(제외 시 밀집도가 더 높게 계산됩니다). ${rule.area_note || ''}`);
     if (th && local && rule.owner_consent_waived === true) reasons.push('지정 신청에 토지·건축물 소유자 동의는 필요하지 않고, 상인 동의만으로 신청할 수 있습니다(조례 확인).');
@@ -1816,10 +1832,10 @@ const ICONS = {
 };
 const ic = (k, sz = 16) => `<svg width="${sz}" height="${sz}" viewBox="0 0 16 16" aria-hidden="true">${ICONS[k] || ''}</svg>`;
 const VMETA = {
-  pass: { label:'적합',     icon:'check', head:'지정 가능성 높음',            color:'var(--success)' },
-  cond: { label:'조건부',   icon:'warn',  head:'보완 시 지정 가능 · 검토 필요', color:'var(--warning)' },
-  fail: { label:'부적합',   icon:'x',     head:'현 조례 기준 미충족',          color:'var(--danger)'  },
-  na:   { label:'검증 불가', icon:'info', head:'조례 기준 데이터 없음',         color:'var(--unknown)' },
+  pass: { label:'예비 충족', icon:'check', head:'점포수 기준 예비 충족 · 현장 검증 필요', color:'var(--success)' },
+  cond: { label:'추가 확인', icon:'warn', head:'현장·지자체 확인 필요', color:'var(--warning)' },
+  fail: { label:'추정 미달', icon:'x', head:'추정 점포수 부족 · 현장 재검증 필요', color:'var(--danger)' },
+  na:   { label:'판정 보류', icon:'info', head:'조례·실측 자료 추가 확인 필요', color:'var(--unknown)' },
 };
 const badge = (v, lg) => `<span class="badge ${v}${lg ? ' big' : ''}">${ic(VMETA[v].icon, lg ? 16 : 13)}${VMETA[v].label}</span>`;
 const stateBox = (kind, title, desc, actHtml = '') => `<div class="state ${kind === 'err' ? 'err' : ''}"><div class="ic">${kind === 'loading' ? '<div class="spin" style="width:18px;height:18px;border-width:2px"></div>' : ic(kind === 'err' || kind === 'warn' ? 'warn' : kind === 'empty' ? 'search' : 'info', 20)}</div><b>${esc(title)}</b>${desc ? `<span>${esc(desc)}</span>` : ''}${actHtml}</div>`;
@@ -1864,7 +1880,7 @@ const MAPL = { cand: true, shops: true, zones: true, members: true };
 const T1 = { sel: null, area: CONFIG.DEFAULT_AREA, results: [], ev: null, hl: null, rv: true, viewMode: 'both', max: false, sort: { k: 'd', dir: 1 }, page: 0, filter: '', ac: -1, open: false,
   pinMode: false, sky: 'roadmap', split: 55,
   /* 구역 직접 그리기 — 꺾인 다각형 도면(꼭짓점은 위도·경도 객체 배열) */
-  poly: { on: false, done: false, pts: [], excl: 0, list: false, store: null, bizExcl: true } };
+  poly: { on: false, done: false, pts: [], excl: 0, list: false, store: null, bizExcl: false, includeSelf: false } };
 
 /* ---- 점포 핀 위치 보정 ----
    공단 상가정보의 점포 좌표는 대표지번(도로명 중심) 기준이라 A문·B문처럼 같은 건물의 다른 출입구에
@@ -1956,7 +1972,8 @@ function t1Init() {
       renderPolyCard(); return;
     }
     if (e.target.id === 'poly-excl-c') { T1.poly.excl = Math.max(0, Math.min(90, Math.round(+e.target.value || 0))); renderPolyCard(); return; }
-    if (e.target.id === 'poly-biz') { T1.poly.bizExcl = e.target.checked; renderPolyCard(); }
+    if (e.target.id === 'poly-biz') { T1.poly.bizExcl = e.target.checked; renderPolyCard(); return; }
+    if (e.target.id === 'poly-self') { T1.poly.includeSelf = e.target.checked; renderPolyCard(); }
   });
   /* 지도 / 로드뷰 / 동시 보기 + 레이어 체크박스 */
   $('#mapzone').addEventListener('click', e => {
@@ -2021,6 +2038,13 @@ function t1Init() {
     }
   });
   $('#t1-verdict').addEventListener('change', e => {
+    if (e.target.id === 'v-zone' && T1.ev) {
+      const type = ['commercial','noncommercial'].includes(e.target.value) ? e.target.value : '';
+      LS.set('zoning:' + T1.ev.p.id, { type, at: new Date().toLocaleDateString('ko-KR') });
+      renderVerdict(T1.ev);
+      toast('필지 용도지역 수동 기록을 저장했습니다. 신청 구역 전체의 용도지역 판정과는 다릅니다.');
+      return;
+    }
     if (e.target.id !== 'v-stype' || !T1.ev) return;
     const p = T1.ev.p;
     LS.set('storeType:' + p.id, e.target.value);
@@ -2622,7 +2646,7 @@ function ruleStdHTML(e) {
   if (e.rule && !e.th) return `<b class="num">${base}㎡</b> 기준 점포수는 <b>조례 별표</b>에 위임 — 별표 원문 확인 필요 <span class="faint">(법정 기본 30개와 임시 비교)</span>`;
   if (e.thNon != null) {
     return `<b class="num">${base}㎡</b>당 상업지역 <b>${e.thCom}개</b> · 비상업 <b>${e.thNon}개</b> 이상`
-      + `<div class="faint" style="margin-top:4px">환산 ${e.per != null ? e.per.toFixed(1) : '—'}개 → `
+      + `<div class="faint" style="margin-top:4px">구역 내 추정 ${e.nSmall ?? '—'}개 → `
       + `<b style="color:${e.passCom ? 'var(--success)' : 'var(--danger)'}">상업 ${e.passCom ? '충족' : '미달'}</b> · `
       + `<b style="color:${e.passNon ? 'var(--success)' : 'var(--danger)'}">비상업 ${e.passNon ? '충족' : '미달'}</b>`
       + ` <span class="faint">(용도지역 미확인 → 두 기준 동시 비교)</span></div>`;
@@ -2749,6 +2773,9 @@ function renderVerdict(e) {
   const bizHref = `https://bizno.net/?query=${encodeURIComponent(e.p.name)}`;
   const fav = isFav(e.p.id);
   const sub = verdictSub(e);
+  const legalZone = LS.get('zoning:' + e.p.id, { type: '', at: '' });
+  const zoneKind = ['commercial', 'noncommercial'].includes(legalZone.type) ? legalZone.type : '';
+  const zoneName = zoneKind === 'commercial' ? '상업지역 (수동 확인)' : zoneKind === 'noncommercial' ? '비상업지역 (수동 확인)' : '용도지역 미확인';
   const pctCol = e.ratio == null ? 'var(--text-tertiary)' : e.ratio >= 1 ? 'var(--success)' : e.ratio >= CONFIG.COND_RATIO ? 'var(--warning)' : 'var(--danger)';
   $('#t1-verdict').innerHTML = `
     <div class="store-head">
@@ -2775,7 +2802,7 @@ function renderVerdict(e) {
         <button class="btn sm" id="v-pin-restore" style="flex:none">원래 위치 복원</button></div>` : ''}
     <div class="vbanner ${e.v}">
       <span class="vb-ic">${ic(m.icon, 20)}</span>
-      <div class="vb-t"><b>${esc(m.label)}</b><span>${esc(sub)}</span></div>
+      <div class="vb-t"><b>${e.v === 'pass' ? '밀집도 예비 기준 충족' : esc(m.label)}</b><span>${esc(sub)}</span></div>
     </div>
     ${specialSiteHTML(ss, e)}
     <div class="m3">
@@ -2784,6 +2811,19 @@ function renderVerdict(e) {
       <div><div class="k">기준 점포 수</div><div class="v num">${e.th ? `${e.th}<span class="faint" style="font-size:11px;font-weight:600">개</span>` : (e.thNon ? `${e.thNon}<span class="faint" style="font-size:11px;font-weight:600">개</span>` : '별표 위임')}${e.th ? `<span class="faint" style="font-size:11px;font-weight:600"> / ${fmt(e.base)}㎡</span>` : ''}</div></div>
     </div>
     <div class="stdline">${ruleStdHTML(e)}${r && r.source_url ? `<a href="${esc(r.source_url)}" target="_blank" rel="noopener">조례 원문 ↗</a>` : ''}</div>
+    <div class="kvline" style="background:var(--bg-soft);border-radius:12px;margin:10px 16px;padding:12px">
+      <span class="k">법적 용도지역(점포 필지)</span>
+      <span class="v" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <select class="select" id="v-zone" style="max-width:190px;height:32px" aria-label="필지 용도지역 수동 기록">
+          <option value="" ${zoneKind === '' ? 'selected' : ''}>확인 전</option>
+          <option value="commercial" ${zoneKind === 'commercial' ? 'selected' : ''}>상업지역</option>
+          <option value="noncommercial" ${zoneKind === 'noncommercial' ? 'selected' : ''}>비상업지역</option>
+        </select>
+        <a href="https://www.eum.go.kr/" target="_blank" rel="noopener noreferrer">토지이음 공식 조회 ↗</a>
+        <span class="faint" style="font-size:11px">기록: ${esc(zoneName)}${legalZone.at ? ' · ' + esc(legalZone.at) : ''}</span>
+        <span class="faint" style="font-size:11px">점포 필지의 수동 기록으로 신청 구역 전체의 용도지역·혼합 면적 판정은 별도 확인이 필요합니다. 자동 GIS 검증 아님.</span>
+      </span>
+    </div>
     <div class="pblock">
       <div class="top"><span class="lbl">현재 확인 상가 수</span><span class="pct" style="color:${pctCol}">${pct != null ? pct + '%' : '—'}</span></div>
       <div class="val"><b class="num">${e.counts ? e.nSmall : '—'}</b><span>/ ${e.required ?? '—'}개${e.counts && e.counts.est ? ' · 보간 추정' : ' · 실측'}</span></div>
@@ -2891,7 +2931,7 @@ function buildReportHTML(e) {
     : ss.stage === 2 ? `<b style="color:#1B4F9C">2단계 구내·로드샵 확인 필요</b> — ${esc(ss.type)}`
     : '해당 없음 — 일반 도로변 상가';
   const drawTxt = sim
-    ? `총 ${fmt(Math.round(sim.area))}㎡ · 유효 ${fmt(Math.round(sim.eff))}㎡(제외 ${sim.excl}%) · 구역 내 상가 ${sim.nSmall}개 · 환산 ${sim.per != null ? sim.per.toFixed(1) : '—'}개${sim.ratio != null ? ` (${Math.round(sim.ratio * 100)}%)` : ''} · ${esc(sim.label)} · 공단 환산 ${sim.gongdan ? sim.gongdan.small : '—'}개${sim.over ? ` · 2,000㎡ 초과 → 필요 점포수 상향 (${sim.overInfo.thBase ?? '—'} → ${sim.required ?? '—'}개)` : ''}`
+    ? `총 ${fmt(Math.round(sim.area))}㎡ · 유효 ${fmt(Math.round(sim.eff))}㎡(제외율 가정 ${sim.excl}%) · 카카오 발견 ${sim.nSmall}개 · 참고 환산 ${sim.per != null ? sim.per.toFixed(1) : '—'}개${sim.ratio != null ? ` (최소 점포수 대비 ${Math.round(sim.ratio * 100)}%)` : ''} · ${esc(sim.label)} · 공단 원형 추정 ${sim.gongdan ? sim.gongdan.small : '—'}개${sim.over ? ' · 기준면적 초과 규칙 별도 검증 필요' : ''}`
     : '미작성 — [구역 직접 그리기]에서 도면을 그리면 공무원 실측과 가장 가까운 수치가 나옴';
   const xcTxt = xc
     ? `영업 확실 ${xc.both.length + xc.dups.length}건 · 폐업 의심 ${xc.suspect.length}건 · 신규 후보 ${xc.fresh.length}건 (공단 ${xc.rowTotal}건 ↔ 카카오 ${xc.inR}건)`
@@ -2987,7 +3027,7 @@ function reportText(e) {
     `분석 기준일: ${fmtDate(new Date())}`,
     `검토 구역: ${fmt(e.area)}㎡ (원형 반경 ${Math.round(e.r)}m)`,
     `분석 좌표: ${pinOf(p) ? `핀 보정 ${e.pos.lat.toFixed(6)}, ${e.pos.lng.toFixed(6)} (공단 등록 위치에서 ${pinShift(p)}m 이동)` : `공단 등록 ${(+p.lat).toFixed(6)}, ${(+p.lng).toFixed(6)}`}`,
-    g.sim ? `직접 그린 도면: 총 ${Math.round(g.sim.area)}㎡ · 유효 ${Math.round(g.sim.eff)}㎡(제외 ${g.sim.excl}%) · 도면 내 상가 ${g.sim.nSmall}개(카카오) · 공단 환산 ${g.sim.gongdan ? g.sim.gongdan.small : '—'}개 · 필요 ${g.sim.required ?? '—'}개${g.sim.over ? ` (2,000㎡ 초과 → ${g.sim.overInfo.thBase ?? '—'}개에서 상향)` : ''}` : '',
+    g.sim ? `직접 그린 도면(예비): 총 ${Math.round(g.sim.area)}㎡ · 유효 ${Math.round(g.sim.eff)}㎡(제외율 가정 ${g.sim.excl}%) · 카카오 발견 ${g.sim.nSmall}개 · 공단 원형 추정 ${g.sim.gongdan ? g.sim.gongdan.small : '—'}개 · 최소 기준 ${g.sim.required ?? '미검증'}개${g.sim.over ? ' (초과면적 별도 조례 검증 필요)' : ''}` : '',
     g.sim ? `도면 기준 재판정: ${g.sim.label}${g.sim.ratio != null ? ` (${Math.round(g.sim.ratio * 100)}%)` : ''}` : '',
     `판정: ${VMETA[e.v].label} — ${e.label}${pct != null ? ` (충족률 ${pct}%)` : ''}`,
     `조례: ${r ? r.ordinance + ' / 기준일 ' + (r.updated || '-') : NAT_RULE.ordinance + ' (조례 미확인)'}`,
@@ -3185,44 +3225,52 @@ function polySim(e) {
     const small = !self && !XC_NOT_SMALL.includes(pl.cat);      // 소상공인 성격 업종만 집계
     inside.push({ p: pl, self, small });
   });
-  const nAll = inside.length;
+  let nAll = inside.length;
   /* 제한업종(공무원 심사 기준) 분리 — 기본값은 적용(보수적). 체크를 풀면 예전처럼 전체 상가로 계산한다. */
   const smallAll = inside.filter(x => x.small);
   const bizEx = smallAll.filter(x => classifyShopBiz(x.p.cat, x.p.name).k === 'ex');
   const bizChk = smallAll.filter(x => classifyShopBiz(x.p.cat, x.p.name).k === 'check');
   const bizOn = P.bizExcl !== false;
-  const nSmall = bizOn ? smallAll.length - bizEx.length : smallAll.length;
+  const ownConfirmed = !!P.includeSelf && o.kind === 'store' && inPoly(pos, ring);
+  if (ownConfirmed && !inside.some(x => x.self)) {
+    inside.push({ p: {name:o.name,cat:'편의점',d:0,addr:o.address,lat:pos.lat,lng:pos.lng}, self:true, small:true, manual:true });
+    nAll++;
+  }
+  const nSmall = (bizOn ? smallAll.length - bizEx.length : smallAll.length) + (ownConfirmed ? 1 : 0);
   const excl = Math.max(0, Math.min(90, +P.excl || 0));
   const eff = area * (1 - excl / 100);
   const base = e.base || 2000, thCom = e.thCom, thNon = e.thNon, thFlat = e.th;
-  /* 2,000㎡ 초과 도면 — 기본 단위(2,000㎡)를 넘으면 2,000㎡ 이상 기준(조례 별도 기준이 있으면 그것,
-     없으면 면적에 비례해 상향)으로 필요 점포수를 올려 대조한다. */
-  const over = eff > base + 1;
+  /* 도면은 카카오 Places 표본이므로 충족/미달 모두 검증 결과가 아닌 예비 추정만 표시한다.
+     면적 2,000㎡ 이하 최소 점포수는 비례 환산하지 않으며, 초과 면적은 검증된 조례 증가식만 처리한다. */
+  const over = eff > base;
   const overInfo = over ? over2000For(e, eff) : null;
-  const th = overInfo ? overInfo.th : thFlat;
-  const required = th ? Math.ceil(th * eff / base) : null;
-  const requiredNon = thNon ? Math.ceil(thNon * eff / base) : null;
-  const per = eff > 0 ? nSmall * base / eff : null;             // 2,000㎡ 환산 밀집도
-  const ratio = th && per != null ? per / th : null;
-  const gongdan = countsFor(o, eff);                            // 공단 실측 점포수를 도면 면적에 맞춰 환산
-  let v = 'na', label = '조례 기준 미등록';
-  if (th && per != null) {
-    if (per >= (thCom || th)) { v = 'pass'; label = '적합 — 상업지역 기준 충족'; }
-    else if (thNon != null && per >= thNon) { v = 'cond'; label = '조건부 — 비상업 기준 충족'; }
-    else if (ratio >= CONFIG.COND_RATIO) { v = 'cond'; label = '조건부 — 기준 근접'; }
-    else { v = 'fail'; label = '미달 — 기준 미충족'; }
+  const th = thFlat;
+  const required = requiredShopsFor(e.rule || NAT_RULE, eff, thCom || th);
+  const requiredNon = thNon != null ? requiredShopsFor(e.rule || NAT_RULE, eff, thNon) : null;
+  const per = eff > 0 ? nSmall * base / eff : null; // 참고 지표, 판정에 사용하지 않음
+  const ratio = required ? nSmall / required : null;
+  const gongdan = countsFor(o, eff); // 원형 반경 데이터(도면 상가 수가 아님)
+  let v = 'na', label = '확인 자료 부족';
+  if (!live) {
+    label = '구역 내 상가 미조회 — 카카오 조회 필요';
+  } else if (required == null) {
+    label = over ? '초과면적 조례 증가식 검증 필요' : '조례 최소 점포 수 확인 필요';
+  } else if (nSmall >= required) {
+    v = 'cond'; label = '예비 충족 — 상가·소상공인 실측 필요';
+  } else if (requiredNon != null && nSmall >= requiredNon) {
+    v = 'cond'; label = '비상업 예비 기준 충족 — 용도지역 확인 필요';
+  } else {
+    v = 'cond'; label = '발견 상가 수 부족 — 누락 상가 현장 조사 필요';
   }
   return { area, eff, excl, nAll, nSmall, inside, required, requiredNon, per, ratio, base, th, thFlat, thCom, thNon,
-    nSmallAll: smallAll.length, nEx: bizEx.length, nChk: bizChk.length, bizOn, over, overInfo, gongdan,
+    nSmallAll: smallAll.length, nEx: bizEx.length, nChk: bizChk.length, bizOn, ownConfirmed, over, overInfo, gongdan,
     v, label, live: !!live, liveState: APP.live.key === o.id ? APP.live.state : 'idle', span: polySpan(pts, pos), ring };
 }
-/* 2,000㎡ 이상 기준 — 조례 DB에 별도 기준이 있으면 그것, 없으면 2,000㎡당 기준을 면적 비례로 상향 */
+/* 초과 면적은 검증된 조례 증가식 이외에 임의 환산하지 않는다 */
 function over2000For(e, eff) {
   const r = e.rule || NAT_RULE, base = e.base || 2000;
-  const alt = [r.min_shops_ge2000, r.min_shops_2000_over, r.min_shops_over2000, r.th_ge2000]
-    .find(v => typeof v === 'number' && v > 0);
-  const th = alt || e.th || e.thNon || null;
-  return { alt: !!alt, th, thBase: e.th, base, required: th ? Math.ceil(th * eff / base) : null, eff };
+  const required = requiredShopsFor(r, eff, e.th);
+  return { alt: required != null, th: e.th, thBase: e.th, base, required, eff };
 }
 
 /* --- 지도 오버레이(카카오) --- */
@@ -3411,7 +3459,7 @@ function polyFinish() {
     } catch (_) {}
   }
   const sim = polySim(e);
-  toast(sim ? `판정 확정 — 도면 ${fmt(Math.round(sim.area))}㎡ · 유효 ${fmt(Math.round(sim.eff))}㎡ · 구역 내 상가 ${sim.nSmall}개 · ${VMETA[sim.v].label}` : '그리기 완료');
+  toast(sim ? `도면 작성 완료(예비 분석) — 도면 ${fmt(Math.round(sim.area))}㎡ · 유효 ${fmt(Math.round(sim.eff))}㎡ · 구역 내 상가 ${sim.nSmall}개 · ${VMETA[sim.v].label}` : '그리기 완료');
 }
 function polyRedraw() {
   const P = T1.poly; P.pts = []; P.done = false; polyAfterEdit();
@@ -3457,14 +3505,14 @@ function renderPolyCard() {
   if (!sim) {
     box.innerHTML = `<div class="card-h"><h3>📐 직접 그린 구역 실측 시뮬레이션</h3><span class="sub">그리는 중</span></div>
       <div class="card-b" style="padding:0">${stateBox('info', '지도에서 구역을 그리세요', `꼭짓점 ${P.pts.length}개 · 3개 이상 찍으면 도면 면적·유효 면적·구역 내 상가 수·판정이 실시간으로 계산됩니다.`)}</div>
-      <div class="poly-note">※ 카카오 실시간 위치 기준(업종당 최대 45건) 시뮬레이션이며, 실제 심사 시 소상공인 해당 여부·지번 도면 확인이 필요합니다.</div>`;
+      <div class="poly-note">※ 카카오 업종별 최대 45건 표본이므로 누락·중복이 있을 수 있습니다. 실제 점포 영업·소상공인 자격, 용도지역 혼합 비율, 유효 공용면적, 조례의 초과 면적 규칙을 지자체와 확인하기 전에는 법적 적합 판정이 아닙니다.</div>`;
     return;
   }
   const m = VMETA[sim.v];
   const pct = sim.ratio != null ? Math.round(sim.ratio * 100) : null;
   const w = sim.ratio != null ? Math.min(sim.ratio, 1.5) / 1.5 * 100 : 0;
   const exclOk = r ? r.excludes_road_parking : null;
-  const exclChip = exclOk === true ? '<span class="chip s">조례상 도로·주차장 면적 제외 가능</span>'
+  const exclChip = exclOk === true ? '<span class="chip w">조례상 공용면적 제외 가능(확인 필요)</span>'
     : exclOk === false ? '<span class="chip o">도로 면적 포함</span>' : '<span class="chip o">면적 제외 규정 없음</span>';
   const presets = [[0, '0% (전체 부지)'], [15, '15%'], [25, '25%'], [30, '30%']];
   const isPreset = presets.some(o => o[0] === sim.excl);
@@ -3480,13 +3528,13 @@ function renderPolyCard() {
       <table class="tbl num"><thead><tr><th>상호</th><th>업종</th><th>거리</th><th>주소</th><th>집계</th></tr></thead><tbody>
       ${sim.inside.length ? sim.inside.slice().sort((a, b) => a.p.d - b.p.d).map(x => `<tr><td><b>${esc(x.p.name)}</b></td><td>${esc(x.p.cat)}</td>
         <td>${Math.round(x.p.d)}m</td><td class="faint">${esc(x.p.addr || '')}</td>
-        <td>${x.self ? '<span class="chip o">대상 점포</span>' : !x.small ? '<span class="chip d">제외 업종</span>' : (b => b.k === 'ex' ? `<span class="chip xx">제외 가능 · ${esc(b.label)}</span>` : b.k === 'check' ? '<span class="chip cf">유흥 확인(주점)</span>' : '<span class="chip s">포함</span>')(classifyShopBiz(x.p.cat, x.p.name))}</td></tr>`).join('')
+        <td>${x.self ? (sim.ownConfirmed ? '<span class="chip a">대상 GS25 수동 확인 · 포함(+1)</span>' : '<span class="chip o">대상 점포 · 미포함</span>') : !x.small ? '<span class="chip d">제외 업종</span>' : (b => b.k === 'ex' ? `<span class="chip xx">제외 가능 · ${esc(b.label)}</span>` : b.k === 'check' ? '<span class="chip cf">유흥 확인(주점)</span>' : '<span class="chip s">포함</span>')(classifyShopBiz(x.p.cat, x.p.name))}</td></tr>`).join('')
       : '<tr><td colspan="5" class="faint">아직 구역 내에서 확인된 상가가 없습니다.</td></tr>'}
       </tbody></table></div>` : '';
   box.innerHTML = `
-    <div class="card-h"><h3>📐 직접 그린 구역 실측 시뮬레이션</h3><span class="sub">${P.done ? '판정 확정' : '그리는 중'}</span>
+    <div class="card-h"><h3>📐 직접 그린 구역 실측 시뮬레이션</h3><span class="sub">${P.done ? '도면 작성 완료 · 예비 분석' : '그리는 중'}</span>
       <div class="right">${badge(sim.v)}</div></div>
-    ${sim.over ? `<div class="ssite s1" style="margin:10px 20px 0"><span class="si">${ic('warn', 16)}</span><div class="sb"><b>2,000㎡ 초과 → 필요 점포수 상향 (${sim.overInfo.thBase ?? '—'}개 → ${sim.required ?? '—'}개)</b><span class="sx">도면 유효 면적 ${fmt(Math.round(sim.eff))}㎡는 기본 단위(2,000㎡)를 넘습니다. ${sim.overInfo.alt ? '조례의 2,000㎡ 이상 별도 기준을 적용했습니다.' : '2,000㎡ 이상 구역은 점포수 기준이 면적에 비례해 올라갑니다 — 담당 부서에 별도 기준이 있는지 확인하세요.'}</span></div></div>` : ''}
+    ${sim.over ? `<div class="ssite s1" style="margin:10px 20px 0"><span class="si">${ic('warn', 16)}</span><div class="sb"><b>기준 면적 초과 — ${sim.overInfo.alt ? '검증된 초과면적 규칙 반영' : '적용 계산식 확인 필요'}</b><span class="sx">도면 유효 면적 ${fmt(Math.round(sim.eff))}㎡는 기본 단위 ${fmt(sim.base)}㎡를 넘습니다. 별도 규정이 검증되지 않으면 자동 적합 판정을 하지 않습니다.</span></div></div>` : ''}
     <div class="trio num">
       <div><div class="k">도면 총 면적</div><div class="v">${fmt(Math.round(sim.area))}<small>㎡</small></div></div>
       <div><div class="k">유효 면적 <span class="faint">(제외 ${sim.excl}%)</span></div><div class="v">${fmt(Math.round(sim.eff))}<small>㎡</small></div></div>
@@ -3495,19 +3543,24 @@ function renderPolyCard() {
     <div class="vrows" style="margin-top:12px;border-top:0">
       <div class="vrow"><span class="k">도로·주차장 제외율</span><span class="v" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
         ${exclSel}<input class="input num" id="poly-excl-c" type="number" min="0" max="90" step="1" value="${sim.excl}" style="width:74px;height:30px" aria-label="공용면적 제외율 직접 입력(%)"><span class="faint">%</span>
-        <span class="faint" style="font-size:11.5px">유효 면적 = 도면 × (1 − 제외율)</span></span></div>
-      <div class="vrow"><span class="k">제한업종 제외</span><span class="v" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <label class="laychk" style="border:1px solid var(--border);border-radius:10px;padding:3px 9px;background:#fff"><input type="checkbox" id="poly-biz" ${sim.bizOn ? 'checked' : ''}>공무원 심사 기준 적용</label>
+        <span class="faint" style="font-size:11.5px">제외율은 수동 가정값(실제 측량·담당 부서 확인 전 인정 불가)</span></span></div>
+      <div class="vrow"><span class="k">대상 GS25 직접 확인</span><span class="v">
+        <label class="laychk" style="border:1px solid var(--border);border-radius:10px;padding:3px 9px;background:#fff">
+          <input type="checkbox" id="poly-self" ${P.includeSelf ? 'checked' : ''}>소상공인 요건 확인 후 대상 GS25 +1
+        </label>
+        <span class="faint" style="font-size:11.5px">구역 안에 점포가 있을 때에만 포함 · 수동 체크는 법적 소상공인 확인을 대체하지 않습니다</span></span></div>
+      <div class="vrow"><span class="k">가맹 제한업종 (참고)</span><span class="v" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <label class="laychk" style="border:1px solid var(--border);border-radius:10px;padding:3px 9px;background:#fff"><input type="checkbox" id="poly-biz" ${sim.bizOn ? 'checked' : ''}>온누리 가맹 제한업종을 가정해 제외(참고)</label>
         <span class="faint" style="font-size:11.5px">병·의원·일반학원·부동산·유원지·법무·회계·금융·동물병원 제외(약국은 포함) · 주점은 유흥 확인 ${sim.nChk}건${sim.bizOn ? ` → ${sim.nSmallAll}개 중 ${sim.nEx}건 제외` : ' · 지금은 전체 상가로 계산 중'}</span></span></div>
       <div class="vrow"><span class="k">조례 공용면적</span><span class="v">${exclChip} <span class="faint" style="font-size:11.5px">${exclOk === true ? '이 지자체는 심의를 거쳐 도로·주차장 부지를 뺄 수 있습니다' : exclOk === false ? '이 조례는 도로 면적을 포함해 산정합니다' : '조례에 면적 제외 규정이 확인되지 않습니다'}</span></span></div>
       <div class="vrow"><span class="k">필요 상가 수</span><span class="v"><b class="num">${sim.required ?? '—'}</b>개 <span class="faint">유효 면적 기준${sim.requiredNon != null ? ` (비상업 ${sim.requiredNon}개)` : ''}${sim.over ? ` · 2,000㎡ 기준 ${sim.overInfo.thBase ?? '—'}개에서 상향` : ''}</span>
         ${sim.thNon != null ? `<span class="faint" style="font-size:11.5px">· ${fmt(sim.base)}㎡당 상업 ${sim.thCom}·비상업 ${sim.thNon}개</span>` : ''}</span></div>
       <div class="vrow"><span class="k">공단 vs 카카오</span><span class="v" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-        <span>공단 실측 환산 <b class="num">${sim.gongdan ? sim.gongdan.small : '—'}</b>개 <span class="faint">(상가 전체 ${sim.gongdan ? sim.gongdan.all : '—'})</span></span>
+        <span>공단 원형 반경 추정(다각형 실측 아님) <b class="num">${sim.gongdan ? sim.gongdan.small : '—'}</b>개 <span class="faint">(상가 전체 ${sim.gongdan ? sim.gongdan.all : '—'})</span></span>
         <span class="faint">↔</span>
         <span>카카오 도면 내 <b class="num" style="color:${m.color}">${sim.live ? sim.nSmall : '—'}</b>개</span>
         ${!sim.live ? `<button class="btn xs" id="poly-live">${ic('refresh', 12)}도면 기준 카카오 조회</button>` : `<span class="faint" style="font-size:11.5px">점 좌표를 도면 안/밖으로 갈라 센 값</span>`}</span></div>
-      <div class="vrow"><span class="k">2,000㎡ 환산 밀집도</span><span class="v"><b class="num" style="color:${m.color}">${sim.per != null ? sim.per.toFixed(1) : '—'}</b>개 <span class="faint">= 구역 내 상가 ${sim.nSmall}개 × ${fmt(sim.base)} ÷ ${fmt(Math.round(sim.eff))}㎡</span></span></div>
+      <div class="vrow"><span class="k">참고: 기준면적 환산 지표(판정 미사용)</span><span class="v"><b class="num" style="color:${m.color}">${sim.per != null ? sim.per.toFixed(1) : '—'}</b>개 <span class="faint">= 구역 내 상가 ${sim.nSmall}개 × ${fmt(sim.base)} ÷ ${fmt(Math.round(sim.eff))}㎡</span></span></div>
       <div class="vrow" style="border-bottom:0"><span class="k">충족률 · 판정</span><span class="v" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
         <span class="prog" style="flex:1;min-width:120px"><i style="width:${w}%;background:${m.color}"></i><span class="tick" style="left:${100 / 1.5}%" title="기준 100%"></span></span>
         <b class="num" style="min-width:44px;text-align:right;color:${m.color}">${pct != null ? pct + '%' : '—'}</b>
