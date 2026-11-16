@@ -102,6 +102,7 @@ svg{flex:none}
 .profile{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 10px 0 6px;border-radius:999px;border:1px solid var(--border);background:#fff;cursor:pointer}
 .profile:hover{background:var(--bg-soft)}
 .profile .avatar{width:28px;height:28px;border-radius:50%;background:var(--primary-light);color:var(--primary);display:grid;place-items:center;font-size:10.5px;font-weight:800;letter-spacing:-.02em}
+.profile .avatar svg{color:var(--primary)}
 .profile .pn{font-size:13px;font-weight:700;white-space:nowrap}
 .profile svg{color:var(--text-tertiary)}
 
@@ -595,7 +596,12 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
   .kpi span{font-size:11.5px}
   .store-head{padding:16px 16px 12px}
   .card-h{padding:14px 16px}
-  .m3,.pblock,.s3,.kvline,.vrows,.trio,.reasons,.member-banner,.vbanner{margin-left:16px;margin-right:16px}
+  .m3,.pblock,.s3,.kvline,.vrows,.trio,.reasons,.member-banner,.vbanner,.ssite,.conservative,.hintline{margin-left:16px;margin-right:16px}
+  .conservative .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .ssite{font-size:12px}
+  .sheet{padding:14px 12px;font-size:11px}
+  .sheet .cols{grid-template-columns:1fr}
+  .report-scroll{padding:12px 10px 16px;max-height:74vh}
   .detail-btn{margin-left:16px;margin-right:16px;width:calc(100% - 32px)}
   .card-b{padding-left:16px;padding-right:16px}
   .tbl-wrap{overflow-x:auto}
@@ -630,6 +636,79 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
   .store-head .acts .btn{font-size:0;padding:0 10px}
   .store-head{flex-wrap:wrap}
   .pblock .val b{font-size:22px}
+}
+/* --- 특수입지 · 제한업종(공무원 기준) · 한 장 리포트 --- */
+.ssite{display:flex;gap:10px;align-items:flex-start;margin:12px 20px 0;padding:12px 14px;border-radius:14px;font-size:12.5px;line-height:1.5}
+.ssite.s1{background:var(--warning-bg);border:1px solid #F2DCA6;color:#8A5A0B}
+.ssite.s2{background:var(--primary-light);border:1px solid #CFE2FF;color:#1B4F9C}
+.ssite .si{flex:none;margin-top:1px}
+.ssite .sb{min-width:0;flex:1}
+.ssite b{font-size:13px;font-weight:800;display:block}
+.ssite .sx{display:block;margin-top:3px;color:var(--text-secondary);font-size:11.5px;line-height:1.6}
+.ssite .sx b{display:inline;font-size:11.5px;font-weight:800}
+.ssite .tag{display:inline-flex;align-items:center;gap:4px;height:20px;padding:0 7px;border-radius:6px;background:#fff;font-size:10.5px;font-weight:800;margin-left:6px;vertical-align:1px}
+.chip.cf{background:#FFF0E0;color:#B2550B}
+.chip.xx{background:#FDECEE;color:#B23A43}
+.conservative{margin:12px 20px 0;padding:12px 14px;border:1px solid var(--border);border-radius:14px;background:#fff}
+.conservative .ch{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:9px}
+.conservative .ch b{font-size:12.5px;font-weight:800}
+.conservative .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.conservative .cell{background:var(--bg-soft);border-radius:12px;padding:9px 11px;min-width:0}
+.conservative .cell.on{background:var(--primary-light);box-shadow:inset 0 0 0 1px #CFE2FF}
+.conservative .k{font-size:10.5px;font-weight:700;color:var(--text-tertiary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.conservative .v{font-size:16px;font-weight:800;font-variant-numeric:tabular-nums;margin-top:2px;letter-spacing:-.02em}
+.conservative .v small{font-size:10.5px;font-weight:600;color:var(--text-tertiary);margin-left:2px}
+.conservative .r{font-size:10.5px;font-weight:700;color:var(--text-secondary);margin-top:1px}
+.conservative .note{font-size:11px;color:var(--text-tertiary);line-height:1.6;margin-top:9px}
+.conservative .note b{color:var(--text-secondary)}
+.hintline{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:10px 20px 0;padding:10px 12px;background:var(--bg-soft);border-radius:12px;font-size:11.5px;color:var(--text-secondary);line-height:1.6}
+.hintline b{color:var(--text-primary)}
+.hintline .btn{flex:none}
+.report-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:11px 12px;background:var(--accent-50);border-radius:12px;font-size:12px;color:var(--text-secondary);line-height:1.5}
+.report-bar b{color:var(--text-primary)}
+/* 한 장 리포트(A4) */
+.report-modal{width:min(920px,97vw)}
+.report-scroll{padding:16px 18px 22px;background:var(--bg-soft);max-height:78vh;overflow:auto}
+.report-acts{display:flex;gap:8px;flex-wrap:wrap;padding:2px 0 12px}
+.sheet{background:#fff;width:210mm;max-width:100%;margin:0 auto;padding:13mm 12mm;box-shadow:0 6px 24px rgba(30,55,90,.10);border-radius:6px;color:#191F28;font-size:11.5px;line-height:1.45}
+.sheet h1{font-size:17px;font-weight:800;margin:0 0 2px;letter-spacing:-.02em}
+.sheet .sub{font-size:11px;color:#6B7480;margin-bottom:9px}
+.sheet h2{font-size:12px;font-weight:800;margin:11px 0 5px;padding-bottom:3px;border-bottom:1.3px solid #191F28;display:flex;align-items:center;gap:6px}
+.sheet table{width:100%;border-collapse:collapse;font-size:10.5px}
+.sheet th,.sheet td{border:1px solid #D7DEE8;padding:4px 6px;vertical-align:top;text-align:left}
+.sheet th{background:#F1F5FA;font-weight:800;color:#333B46;white-space:nowrap;width:96px}
+.sheet td.num,.sheet th.num{text-align:right;font-variant-numeric:tabular-nums}
+.sheet ul,.sheet ol{margin:0;padding-left:15px}
+.sheet li{margin:1.5px 0}
+.sheet .box{background:#FFF8EC;border:1px solid #F2DCA6;border-radius:6px;padding:6px 8px;font-size:10px;color:#7A4E06;margin:5px 0;line-height:1.5}
+.sheet .box.red{background:#FDECEE;border-color:#F6C9CD;color:#8E2A31}
+.sheet .box.blue{background:#EEF5FF;border-color:#CFE2FF;color:#1B4F9C}
+.sheet .box b{font-weight:800}
+.sheet .road{counter-reset:step}
+.sheet .road li{margin:2px 0}
+.sheet .road b{font-weight:800}
+.sheet .foot{margin-top:7px;font-size:9px;color:#7A838F;line-height:1.5}
+.sheet .stamp{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:9.5px;color:#7A838F;border-top:1px solid #D7DEE8;margin-top:8px;padding-top:5px}
+.sheet .cols{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
+@page{size:A4 portrait;margin:11mm}
+@media print{
+  html,body{background:#fff!important;height:auto!important;overflow:visible!important}
+  body.report-open .app,body.report-open .drawer-bg,body.report-open #modal,body.report-open #detail,body.report-open #toast{display:none!important}
+  body.report-open #report{display:block!important;position:static!important;inset:auto!important;padding:0!important;background:none!important}
+  body.report-open #report .modal{width:auto!important;max-width:none!important;max-height:none!important;overflow:visible!important;box-shadow:none!important;border-radius:0!important;background:#fff!important}
+  body.report-open #report .card-h,body.report-open #report .report-acts{display:none!important}
+  body.report-open #report .report-scroll{padding:0!important;background:none!important;max-height:none!important;overflow:visible!important}
+  body.report-open .sheet{width:auto!important;max-width:none!important;padding:0!important;box-shadow:none!important;border-radius:0!important;font-size:9.4pt;line-height:1.4}
+  body.report-open .sheet h1{font-size:14.5pt}
+  body.report-open .sheet .sub{font-size:8.4pt;margin-bottom:5pt}
+  body.report-open .sheet h2{font-size:9.6pt;margin:7pt 0 3pt}
+  body.report-open .sheet table{font-size:8.4pt}
+  body.report-open .sheet th,body.report-open .sheet td{padding:2.4pt 3.4pt}
+  body.report-open .sheet .box{font-size:8pt;padding:4pt 6pt}
+  body.report-open .sheet .foot,body.report-open .sheet .stamp{font-size:7.4pt}
+  body.report-open .sheet h2,body.report-open .sheet .road li,body.report-open .sheet .stamp{break-inside:avoid;page-break-inside:avoid}
+  body.report-open .sheet table,body.report-open .sheet .box{break-inside:avoid;page-break-inside:avoid}
+  body.report-open .sheet a{color:inherit;text-decoration:none}
 }
 @media print{ .sidebar,.topbar,.toolbar{display:none} }
 
@@ -685,8 +764,8 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
         <span class="statusline" id="h-date">최종 갱신 —</span>
         <span class="statusline" id="h-map"><i class="dot"></i>지도</span>
         <button class="icon-btn" id="btn-bell" aria-label="알림"><span data-i="bell"></span><span class="bell-dot"></span></button>
-        <button class="profile" id="btn-profile" aria-label="프로필 메뉴">
-          <span class="avatar">OFC</span><span class="pn">박소영</span><span data-i="chevDown"></span>
+        <button class="profile" id="btn-profile" aria-label="도구 · 가이드 메뉴" title="도구 · 가이드">
+          <span class="avatar"><span data-i="gear"></span></span><span class="pn">도구 · 가이드</span><span data-i="chevDown"></span>
         </button>
       </div>
       <div class="popover" id="pop-bell" hidden>
@@ -694,7 +773,7 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
         <div class="pop-b" id="bell-body"></div>
       </div>
       <div class="popover" id="pop-profile" hidden>
-        <div class="pop-h"><b>박소영</b><span class="faint">GS리테일 영업2팀 · OFC</span></div>
+        <div class="pop-h"><b>ONNURI RADAR</b><span class="faint">GS25 온누리 상권 공용 도구</span></div>
         <div class="pop-b">
           <button class="pop-item" data-guide><span class="pi-ic"><span data-i="book"></span></span><span><span class="pi-t">골목형상점가 지정 가이드</span><span class="pi-s">신청 절차와 필요서류를 확인합니다</span></span></button>
           <button class="pop-item" data-view="rules"><span class="pi-ic"><span data-i="doc"></span></span><span><span class="pi-t">조례 기준 관리</span><span class="pi-s">지자체 조례 기준·담당 부서</span></span></button>
@@ -900,6 +979,7 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
             <div class="field"><label for="d-met">기준 충족 여부</label><select class="select" id="d-met"><option value="">전체</option><option value="Y">충족</option><option value="N">미충족</option></select></div>
             <div class="field"><label for="d-score">우선순위 점수(이상)</label><input class="input num" id="d-score" type="number" min="0" max="100" value="0"></div>
             <div class="field"><label for="d-field">현장 확인 상태</label><select class="select" id="d-field"><option value="">전체</option><option>필요</option><option>진행 중</option><option>완료</option></select></div>
+            <div class="field"><label for="d-special">특수입지</label><select class="select" id="d-special"><option value="ex1" selected>특수입지(1단계) 제외</option><option value="only1">1단계만 보기</option><option value="all">전부 포함</option></select></div>
             <div class="acts"><select class="select" id="d-area" style="width:124px" aria-label="검토 면적"></select><button class="btn ghost" id="d-reset">초기화</button><button class="btn" id="d-csv"><span data-i="down"></span>CSV 다운로드</button></div>
           </div>
           <div class="kpis" style="grid-template-columns:repeat(4,1fr)" id="t3-kpis"></div>
@@ -1029,6 +1109,20 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
   </div>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+<!-- 한 장 리포트 모달 -->
+<div class="modal-bg" id="report">
+  <div class="modal report-modal" role="dialog" aria-modal="true" aria-labelledby="report-t">
+    <div class="card-h"><h3 id="report-t"><span data-i="doc"></span>한 장 분석 리포트</h3><div class="right"><button class="btn ghost sm" data-close>닫기</button></div></div>
+    <div class="report-scroll">
+      <div class="report-acts">
+        <button class="btn sm primary" id="report-print"><span data-i="print"></span>A4 인쇄 · PDF 저장</button>
+        <button class="btn sm" id="report-copy">텍스트 복사</button>
+        <span class="faint" style="font-size:11.5px;align-self:center">인쇄 대화상자에서 대상을 'PDF로 저장'으로 고르면 파일로 받을 수 있습니다.</span>
+      </div>
+      <div class="sheet" id="report-sheet"></div>
+    </div>
+  </div>
+</div>
 
 <script>
 /* #####################################################################
@@ -1652,6 +1746,7 @@ const ICONS = {
   doc:'<path d="M4 2.2h5l3.2 3.2V14H4z" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linejoin="round"/><path d="M6.4 7.6h3.4M6.4 10.2h3.4" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>',
   map:'<path d="M2.3 4.3l3.7-1.9 4 1.9 3.7-1.9v9.4l-3.7 1.9-4-1.9-3.7 1.9z" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linejoin="round"/><path d="M6 2.4v9.4M10 4.3v9.4" stroke="currentColor" stroke-width="1.4"/>',
   camera:'<rect x="2.2" y="4.6" width="7.4" height="6.6" rx="1.4" stroke="currentColor" stroke-width="1.4" fill="none"/><path d="M9.6 7.3l3.5-1.9v5.2l-3.5-1.9z" stroke="currentColor" stroke-width="1.4" fill="none" stroke-linejoin="round"/>',
+  print:'<path d="M4.6 6V2.6h6.8V6" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linejoin="round"/><rect x="2.2" y="6" width="11.6" height="5.4" rx="1.3" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M4.6 10.2h6.8v3.2H4.6z" stroke="currentColor" stroke-width="1.5" fill="none"/>',
   chevDown:'<path d="M4.2 6.4L8 10l3.8-3.6" stroke="currentColor" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>',
 };
 const ic = (k, sz = 16) => `<svg width="${sz}" height="${sz}" viewBox="0 0 16 16" aria-hidden="true">${ICONS[k] || ''}</svg>`;
@@ -1703,7 +1798,7 @@ function bearing(a, b) { const y = (b.lat - a.lat) * 110540, x = (b.lng - a.lng)
 const MAPL = { cand: true, shops: true, zones: true, members: true };
 const T1 = { sel: null, area: CONFIG.DEFAULT_AREA, results: [], ev: null, hl: null, rv: true, viewMode: 'both', max: false, sort: { k: 'd', dir: 1 }, page: 0, filter: '', ac: -1, open: false,
   /* 구역 직접 그리기 — 꺾인 다각형 도면(꼭짓점은 위도·경도 객체 배열) */
-  poly: { on: false, done: false, pts: [], excl: 0, list: false, store: null } };
+  poly: { on: false, done: false, pts: [], excl: 0, list: false, store: null, bizExcl: true } };
 
 function t1Init() {
   $('#area-seg').innerHTML = CONFIG.AREA_PRESETS.map(a => `<button data-a="${a}">${fmt(a)}㎡</button>`).join('');
@@ -1758,7 +1853,8 @@ function t1Init() {
       else setTimeout(() => { const el = $('#poly-excl-c'); if (el) { el.focus(); el.select(); } }, 0);
       renderPolyCard(); return;
     }
-    if (e.target.id === 'poly-excl-c') { T1.poly.excl = Math.max(0, Math.min(90, Math.round(+e.target.value || 0))); renderPolyCard(); }
+    if (e.target.id === 'poly-excl-c') { T1.poly.excl = Math.max(0, Math.min(90, Math.round(+e.target.value || 0))); renderPolyCard(); return; }
+    if (e.target.id === 'poly-biz') { T1.poly.bizExcl = e.target.checked; renderPolyCard(); }
   });
   /* 지도 / 로드뷰 / 동시 보기 + 레이어 체크박스 */
   $('#mapzone').addEventListener('click', e => {
@@ -1788,6 +1884,7 @@ function t1Init() {
       const rows = t1ShopRows(T1.ev), xcB = xcCompute(T1.ev);
       downloadCSV(`후보상가_${T1.ev.p.name}.csv`, toCSV([
         ['상가명', r => r.s.name], ['업종', r => r.s.category], ['거리(m)', r => Math.round(r.d)], ['포함여부', r => r.inc],
+        ['심사집계', r => r.biz.k === 'ex' ? `제외 가능(${r.biz.label})` : r.biz.k === 'check' ? '유흥 확인(주점)' : '포함'],
         ['교차검증', r => !xcB || !xcB.byId[r.s.id] ? '' : (xcB.byId[r.s.id].st === 'both' ? `영업 확인${xcB.byId[r.s.id].name && xcB.byId[r.s.id].name !== r.s.name ? ` (카카오: ${xcB.byId[r.s.id].name})` : ''}` : '카카오 미확인')],
         ['소상공인확인', r => r.chk], ['온누리', r => r.s.onnuri_member ? '가맹' : '미가맹']], rows));
       return;
@@ -1798,8 +1895,16 @@ function t1Init() {
   $('#t1-verdict').addEventListener('click', e => {
     if (e.target.closest('#v-fav')) { if (T1.ev) toggleFav(T1.ev.p); return; }
     if (e.target.closest('#empty-go')) { const q = $('#q'); if (q) q.focus(); return; }
-    if (e.target.closest('#v-detail')) { T1.open = !T1.open; renderVerdict(T1.ev); }
-    if (e.target.closest('#v-copy')) t1CopySummary();
+    if (e.target.closest('#v-detail')) { T1.open = !T1.open; renderVerdict(T1.ev); return; }
+    if (e.target.closest('#v-copy')) { t1CopySummary(); return; }
+    if (e.target.closest('#v-report') || e.target.closest('#a-report')) { openReport(); return; }
+    /* 원형 반경 오차 안내 → 구역 직접 그리기로 바로 이동 */
+    if (e.target.closest('#v-draw-go')) {
+      polyToggle(true);
+      const mz = $('#mapzone'); if (mz && mz.scrollIntoView) mz.scrollIntoView({ block: 'center', behavior: 'smooth' });
+      toast('지도를 누르면 꺾인 구역을 그릴 수 있습니다');
+      return;
+    }
   });
   $('#t1-verdict').addEventListener('change', e => {
     if (e.target.id !== 'v-stype' || !T1.ev) return;
@@ -1818,6 +1923,7 @@ function t1Init() {
       toast('통화 기록을 저장했습니다 (이 브라우저에 보관)'); renderAction(T1.ev);
     }
     const del = e.target.closest('[data-del]'); if (del) { const logs = LS.get('log:' + id, []); logs.splice(+del.dataset.del, 1); LS.set('log:' + id, logs); renderAction(T1.ev); }
+    if (e.target.closest('#a-report')) openReport();
   });
   $('#t1-action').addEventListener('change', e => {
     const c = e.target.closest('[data-chk]'); if (!c || !T1.sel) return;
@@ -1910,13 +2016,129 @@ function t1Run() {
   renderVerdict(e); renderShops(e); renderAction(e); renderMap1(e);
   renderPolyCard(); syncPolyUI();
   if (e.p.kind === 'store' && e.p.cov && !DB.nearby[e.p.sido]) {
-    loadNearby(e.p.sido).then(() => { if (T1.ev === e) renderShops(e); });
+    /* 상가 상세목록이 도착하면 C구역 리스트뿐 아니라 B구역의 [공무원 기준 보수적 추정] 박스도 다시 그린다 */
+    const refresh = () => { if (T1.ev === e) { renderShops(e); renderVerdict(e); } };
+    loadNearby(e.p.sido).then(refresh, refresh);
   }
 }
 
 function t1Expected(e) {
   const c = countsFor(e.p, e.area * UI.EDGE * UI.EDGE);
   return c ? (c.small ?? c.all) : null;
+}
+
+/* ---- 4d. 특수입지 판별(1·2단계) — 전통시장법·시행령(2026.06.17 개정) 및 지자체 조례 적용제외 기준
+   현장에서 동의서를 받기 전에 "공무원이 이 입지를 어떻게 볼지"를 먼저 보여 주는 것이 목적이다.
+   1단계 = 지정 제한 가능성이 높은 입지(지하철·철도 역사, 휴게소, 대규모점포 구내, 폐쇄·특수시설 구내)
+   2단계 = 구내인지 로드샵인지 확인이 필요한 입지(대학·병원·오피스·공장·관공서)
+   점포명·주소 문자열만 보고 판단하므로 확정 판정이 아니다. 특히 주소에는 '공항대로·공항로(도로명)',
+   '공항동(법정동)', '법원읍(지명)', '가구백화점(상호)'처럼 같은 글자가 다른 뜻으로 들어가므로,
+   키워드마다 도로·지명 표기를 걷어내는 가드를 붙여 오탐을 18,198개 점포 실데이터로 확인했다. */
+const SS_MALL_GUARD = /(가구|의류|패션|신발|잡화|할인)백화점/;          // 상호만 '백화점'인 개별 소매점
+const SS_TYPES = [
+  { t:'지하철·철도 역사 구내', chr:'g',
+    why:'역사 내 상가는 지자체가 별도 관리하는 지하도상가·대합실 상가로, 도로에 면한 골목 상권과 달리 구역 경계를 잡기 어렵습니다.',
+    ex:'지하도상가·역 출구 밖 외부 로드샵은 예외',
+    test:(n,a)=> /^GS25S(?![A-Z])/.test(n) || /(지하철|지하역|전철역|역내|역\s*내|역사점|역사\s*[0-9]+\s*점|역\s*지하)/.test(n + ' ' + a) },
+  { t:'고속도로·도로 휴게소', chr:'h',
+    why:'휴게소는 도로시설 구내로 주거·상업 블록이 형성되지 않아 골목형상점가 구역으로 인정되기 어렵습니다.',
+    ex:'휴게소 밖 일반 도로변 매장은 예외',
+    test:(n,a)=> /휴게소/.test(n + ' ' + a) },
+  { t:'대규모점포·준대규모점포 구내', chr:'m',
+    why:'백화점·대형마트 등 대규모점포(준대규모 포함) 구내 임차 매장은 소상공인 유효 상가 집계에서 빠지고 지정도 제한됩니다.',
+    ex:'대규모점포 건물 밖 외부 로드샵은 예외',
+    test:(n,a)=> { const s = n + ' ' + a; return !SS_MALL_GUARD.test(n)
+      && /(백화점|아울렛|아웃렛|면세점|이마트(?!24)|롯데마트|홈플러스|코스트코|스타필드|아이파크몰|타임스퀘어|롯데몰|AK플라자|NC백화점|노브랜드|트레이더스|메가마트|하나로마트)/.test(s); } },
+  { t:'폐쇄·특수시설 구내', chr:'f',
+    why:'공항·터미널·항만·군부대·리조트·골프장 등 외부 도로와 단절된 시설 구내는 구역 경계를 이룰 수 없습니다.',
+    ex:'시설 경계 밖 일반 도로변 매장은 예외',
+    test:(n,a)=> { const s = n + ' ' + a; return /(인천공항|김포공항|제주(?:국제)?공항|청주공항|대구공항|광주공항|여수공항|울산공항|양양공항|군산공항|포항공항|무안공항|사천공항|원주공항|공항화물청사|공항T[12]|여객터미널|선착장|항만(?![0-9])|군부대|사단부대|[0-9]+사단|여단|부대점|리조트|골프장|골프클럽|골프점|(?:^|[^A-Z])CC(?:[^A-Z]|$)|콘도|워터파크|스키장|에버랜드|롯데월드)/.test(s); } },
+];
+const SS2_TYPE = { t:'대학·병원·오피스·공장·관공서 인접', chr:'c',
+  why:'건물·캠퍼스 내부(구내)는 구역 경계를 잡기 어렵고 지정이 제한될 수 있습니다. 외부 도로에 면한 로드샵이면 문제없습니다.',
+  ex:'정문 앞·도로변 로드샵은 그대로 검토 가능',
+  test:(n,a)=> /(대학교|대학|캠퍼스|기숙사|학사|생활관|병원|의료원|메디컬센터|지식산업센터|사옥|공장|산업단지|산단|물류센터|구청|시청|도청|경찰서|소방서|법원|공사|공단|삼성전자|현대자동차|하이닉스|연구원|연구소|테크노파크)/.test(n + ' ' + a) };
+function specialSiteOf(p) {
+  if (!p) return { stage: 0 };
+  const n = String(p.name || ''), a = String(p.address || '');
+  for (const r of SS_TYPES) {
+    if (r.test(n, a)) return { stage: 1, type: r.t, why: r.why, ex: r.ex, label: '지정 제한 가능 (특수입지 확인 필요)' };
+  }
+  if (SS2_TYPE.test(n, a)) return { stage: 2, type: SS2_TYPE.t, why: SS2_TYPE.why, ex: SS2_TYPE.ex, label: '구내·로드샵 확인 필요' };
+  return { stage: 0 };
+}
+const SSC = new Map();
+function ssOf(p) {
+  if (!p) return { stage: 0 };
+  const k = (p.id || '') + '|' + p.name + '|' + (p.address || '');
+  if (!SSC.has(k)) SSC.set(k, specialSiteOf(p));
+  return SSC.get(k);
+}
+
+/* ---- 4e. 제한업종 분류 — 전통시장법 시행령 별표1(공무원 심사 기준)
+   소상공인 상가(상권)정보의 업종명 75종을 실제로 전수 확인해 만든 분류다. 주의할 점 두 가지:
+   · '의약·화장품 소매'(약국·화장품점)는 2026.10부터 허용 업종이므로 절대 빼지 않는다.
+   · '주점'은 일반 호프·술집과 유흥주점이 섞여 있어 제외 확정 대신 '유흥주점 여부 확인'으로 따로 센다. */
+const BIZ_EXCLUDE = {
+  '의원':'병·의원', '병원':'병·의원', '치과':'병·의원', '한의원':'병·의원', '보건소':'병·의원',
+  '동물병원':'동물병원', '수의':'동물병원',
+  '일반 교육':'일반교육(학원)', '일반교육':'일반교육(학원)', '학원':'일반교육(학원)',
+  '부동산 서비스':'부동산업', '부동산':'부동산업', '부동산중개':'부동산업',
+  '유원지·오락':'유원지·오락업', '유원지':'유원지·오락업',
+  '법무관련':'법무·전문직', '법무':'법무·전문직', '변호사':'법무·전문직', '법무사':'법무·전문직',
+  '회계·세무':'회계·세무', '회계':'회계·세무', '세무':'회계·세무', '세무사':'회계·세무',
+  '금융':'금융·보험업', '보험':'금융·보험업', '은행':'금융·보험업', '증권':'금융·보험업',
+  '저축은행':'금융·보험업', '새마을금고':'금융·보험업', '신협':'금융·보험업', '우체국':'금융·보험업',
+};
+function classifyShopBiz(cat, name) {
+  const c = String(cat || '').trim();
+  if (/소매|도매/.test(c)) return { k:'ok', label:/약국|의약/.test(c) ? '약국·의약품 소매(2026.10 허용)' : '' };
+  if (BIZ_EXCLUDE[c]) return { k:'ex', label:BIZ_EXCLUDE[c] };
+  if (/주점|호프|유흥|단란|술집/.test(c)) return { k:'check', label:'주점(유흥주점 여부 확인)' };
+  if (/(의원|병원|치과|한의원|동물병원|보건소)/.test(c)) return { k:'ex', label:'병·의원' };
+  if (/교육/.test(c) && /일반/.test(c)) return { k:'ex', label:'일반교육(학원)' };
+  if (/부동산/.test(c)) return { k:'ex', label:'부동산업' };
+  if (/(법무|변호|회계|세무)/.test(c)) return { k:'ex', label:'법무·회계·세무' };
+  if (/(금융|보험|은행|증권|저축|신협|금고)/.test(c)) return { k:'ex', label:'금융·보험업' };
+  if (/(유원지|오락)/.test(c)) return { k:'ex', label:'유원지·오락업' };
+  return { k:'ok', label:'' };
+}
+/* 반경(검토 구역 포함) 내 상가에서 제한업종을 갈라 센다 — 공단 상세목록(nearby) 우선,
+   없으면 카카오 실시간 조회 결과로 같은 계산을 한다. */
+function bizStatsOf(e) {
+  const out = { ok: false, src: '', n: 0, nEx: 0, nChk: 0, exTop: [], sample: 0 };
+  const rows = nearbyList(e.p.id).filter(x => x[0] <= e.r);
+  if (rows.length) {
+    out.ok = true; out.src = 'nearby'; out.n = rows.length;
+    const cnt = {};
+    rows.forEach(x => { const b = classifyShopBiz(x[2], x[1]);
+      if (b.k === 'ex') { out.nEx++; cnt[b.label] = (cnt[b.label] || 0) + 1; }
+      else if (b.k === 'check') out.nChk++; });
+    out.exTop = Object.keys(cnt).map(k => [k, cnt[k]]).sort((a, b) => b[1] - a[1]);
+  } else if (APP.live.key === e.p.id && APP.live.state === 'ok') {
+    const pls = APP.live.places.filter(p => p.d <= e.r);
+    const real = pls.filter(p => !XC_NOT_SMALL.includes(p.cat) && xcPairScore(e.p.name, p.name) < .9);
+    if (real.length) {
+      out.ok = true; out.src = 'kakao'; out.n = real.length;
+      const cnt = {};
+      real.forEach(p => { const b = classifyShopBiz(p.cat, p.name);
+        if (b.k === 'ex') { out.nEx++; cnt[b.label] = (cnt[b.label] || 0) + 1; }
+        else if (b.k === 'check') out.nChk++; });
+      out.exTop = Object.keys(cnt).map(k => [k, cnt[k]]).sort((a, b) => b[1] - a[1]);
+    }
+  }
+  if (out.ok && out.n) {
+    const rate = out.nEx / out.n;
+    const n0 = e.counts ? e.nSmall : out.n;
+    out.base = n0;
+    out.rate = rate;
+    out.eff = Math.max(0, Math.round(n0 * (1 - rate)));
+    out.effMin = Math.max(0, out.eff - Math.round(n0 * (out.nChk / out.n)));
+    out.per = out.eff * e.base / e.area;
+    out.ratio = e.th ? out.per / e.th : null;
+    out.required = e.th ? Math.ceil(e.th * e.area / e.base) : null;
+  }
+  return out;
 }
 
 
@@ -2181,8 +2403,72 @@ function verdictSub(e) {
   return ['pass', 'cond', 'fail'].includes(e.v) ? VMETA[e.v].head : (raw || VMETA[e.v].head);
 }
 
+/* 특수입지 배너 — 1단계(주황 경고) / 2단계(파란 참고) */
+function specialSiteHTML(ss, e) {
+  if (!ss || !ss.stage) return '';
+  const met = e.v === 'pass' || e.v === 'cond';
+  if (ss.stage === 1) {
+    return `<div class="ssite s1"><span class="si">${ic('warn', 18)}</span><div class="sb">
+      <b>지정 제한 가능 (특수입지 확인 필요)<span class="tag">1단계</span></b>
+      <span class="sx">${met ? '주변 지상 상가 수는 기준을 충족하지만, ' : ''}<b>${esc(ss.type)}</b> 입점 매장은 소상공인·조례 적용 제외 요건으로 실제 지정이 제한될 가능성이 높습니다. (<b>${esc(ss.ex)}</b>)
+      <br>${esc(ss.why)}</span></div></div>`;
+  }
+  return `<div class="ssite s2"><span class="si">${ic('info', 18)}</span><div class="sb">
+    <b>구내·로드샵 확인 필요<span class="tag">2단계</span></b>
+    <span class="sx"><b>${esc(ss.type)}</b> — ${esc(ss.why)} (<b>${esc(ss.ex)}</b>)</span></div></div>`;
+}
+
+/* [공무원 기준 보수적 추정] 박스 — 제한업종을 갈라 낸 유효 상가 수 */
+function bizBoxHTML(e, bs) {
+  const head = `<div class="ch"><b>공무원 기준 보수적 추정</b><span class="chip o">제한업종 분리 집계</span></div>`;
+  if (!bs.ok) {
+    const st = nearbyState(e.p.sido);
+    const why = !e.p.cov ? `${esc(e.p.sido)}는 상가(상권)정보 상세목록이 없습니다`
+      : st === 'loading' ? '상가 상세목록을 불러오는 중입니다(수 MB)'
+      : st === 'error' ? '상가 상세목록을 받지 못했습니다'
+      : st === 'idle' ? '상가 상세목록을 아직 불러오지 않았습니다'
+      : '반경 내 상세 상가 목록이 없습니다';
+    return `<div class="conservative">${head}
+      <div style="font-size:11.5px;color:var(--text-secondary);line-height:1.6">${why}. C구역의 <b>실시간 카카오 조회</b>를 실행하면 카카오 업종 기준으로 제한업종을 갈라 같은 보수적 추정치를 계산합니다.</div></div>`;
+  }
+  const n = bs.n, ex = bs.nEx, chk = bs.nChk, pct = bs.ratio != null ? Math.round(bs.ratio * 100) : null;
+  const col = bs.ratio == null ? 'var(--text-tertiary)' : bs.ratio >= 1 ? 'var(--success)' : bs.ratio >= CONFIG.COND_RATIO ? 'var(--warning)' : 'var(--danger)';
+  const srcTxt = bs.src === 'nearby' ? '공단 상가 상세목록' : '카카오 실시간 조회';
+  const exLine = bs.exTop.slice(0, 5).map(([k, v]) => `${k} ${v}`).join(' · ') || '없음';
+  const capped = bs.src === 'nearby' && bs.n < (e.nSmall || 0);
+  const cap = bs.src === 'nearby'
+    ? (capped
+      ? `반경 내 ${srcTxt} ${n}건 중 제외 ${ex}건(${Math.round(ex / n * 100)}%) — 목록은 가까운 150건까지만 담겨 밀집 상가에서는 표본이 되므로, 이 <b>제외율을 공단 집계 ${fmt(e.nSmall)}개에 적용</b>해 보수적 유효 상가를 계산했습니다.`
+      : `반경 내 ${srcTxt} ${n}건이 공단 집계와 같은 범위입니다. 제외 ${ex}건(${Math.round(ex / n * 100)}%)을 그대로 뺐습니다.`)
+    : `카카오 반경 ${Math.round(e.r)}m 조회 ${n}건 기준 — 카카오는 업종당 최대 45건까지만 반환하므로 표본 제외율(${Math.round(ex / n * 100)}%)을 공단 집계 ${fmt(e.nSmall)}개에 적용했습니다.`;
+  return `<div class="conservative">${head}
+    <div class="grid">
+      <div class="cell"><div class="k">반경 내 소상공인(공단 집계)</div><div class="v">${fmt(e.nSmall)}<small>개</small></div><div class="r">${e.counts && e.counts.est ? '보간 추정' : '실측'} · ${fmt(e.area)}㎡</div></div>
+      <div class="cell"><div class="k">제한업종 제외</div><div class="v" style="color:var(--warning)">−${fmt(ex)}<small>건 / ${n}</small></div><div class="r">${esc(exLine)}</div></div>
+      <div class="cell on"><div class="k">보수적 유효 상가</div><div class="v" style="color:${col}">${fmt(bs.eff)}<small>개</small></div><div class="r">${fmt(e.base)}㎡ 환산 ${bs.per != null ? bs.per.toFixed(1) : '—'}개${pct != null ? ` · 충족률 ${pct}%` : ''}</div></div>
+      <div class="cell"><div class="k">주점 확인 필요</div><div class="v">${fmt(chk)}<small>건</small></div><div class="r">유흥주점이면 추가 제외 → 최저 ${fmt(bs.effMin)}개</div></div>
+    </div>
+    <div class="note">${cap}<br>
+      제한업종은 전통시장법 시행령 별표1 기준 — 병·의원, 일반교육(학원), 부동산, 유원지·오락, 법무·회계·세무, 금융·보험, 동물병원만 뺐습니다. <b>약국·의약품 소매는 2026.10 허용 업종이라 포함</b>했고, <b>주점</b>은 일반 호프·술집과 유흥주점이 섞여 있어 빼지 않고 따로 셉니다.
+      ${pct != null ? `<br>보수적 기준으로도 ${bs.ratio >= 1 ? '<b style="color:var(--success)">기준 충족</b>' : bs.ratio >= CONFIG.COND_RATIO ? '<b style="color:var(--warning)">조건부 하한(80%) 이상</b>' : '<b style="color:var(--danger)">기준 미달</b>'}입니다.` : ''}
+    </div></div>`;
+}
+
+/* 원형 반경 오차 안내 + 직접 그리기 동선 */
+function circleHintHTML() {
+  return `<div class="hintline">${ic('info', 15)}
+    <span>원형 반경은 <b>대로 건너편·블록 밖 상가</b>까지 포함될 수 있고, 한 건물의 여러 호실이 중복 집계됩니다. 실제 심사 구역처럼 도면으로 확인하려면 <b>구역 직접 그리기</b>를 쓰세요.</span>
+    <button class="btn sm" id="v-draw-go">${ic('pin', 13)}구역 직접 그리기</button></div>`;
+}
+
+/* 3단계 — 가맹 결격 상시 안내(운영 형태와 무관하게 항상 보인다) */
+function storeTypeRuleHTML() {
+  return `<span class="noteline warn"><b>[상시 안내]</b> <span>본사 직영점(사업자번호 가운데 <b>85</b>)과 직전 연도 매출(환전액) <b>30억 원(일 약 822만 원) 초과</b> 점포는 <b>상권 지정 후에도 온누리 가맹 불가</b>입니다 (2026.06 시행령).</span></span>`;
+}
+
 function renderVerdict(e) {
   const r = e.rule, m = VMETA[e.v];
+  const ss = ssOf(e.p), bs = bizStatsOf(e);
   const pct = e.ratio != null ? Math.round(e.ratio * 100) : null;
   const w = e.ratio != null ? Math.min(e.ratio, 1.5) / 1.5 * 100 : 0;
   const expected = t1Expected(e);
@@ -2208,6 +2494,7 @@ function renderVerdict(e) {
       <div class="acts">
         <button class="icon-btn ${fav ? 'on' : ''}" id="v-fav" aria-pressed="${fav}" title="${fav ? '즐겨찾기에서 빼기' : '즐겨찾기에 추가'}">${ic(fav ? 'starFill' : 'star', 18)}</button>
         <button class="btn sm" id="v-copy" title="가맹 여부·운영 형태·교차 검증을 포함해 복사합니다">${ic('copy', 14)}요약 복사</button>
+        <button class="btn sm primary" id="v-report" title="점주·공무원에게 그대로 보여줄 A4 한 장 분석 리포트 · 실행 로드맵">${ic('doc', 14)}한 장 리포트</button>
       </div>
     </div>
     ${isM ? `<div class="member-banner">
@@ -2219,6 +2506,7 @@ function renderVerdict(e) {
       <span class="vb-ic">${ic(m.icon, 20)}</span>
       <div class="vb-t"><b>${esc(m.label)}</b><span>${esc(sub)}</span></div>
     </div>
+    ${specialSiteHTML(ss, e)}
     <div class="m3">
       <div><div class="k">적용 조례</div><div class="v" title="${r ? esc(r.ordinance) : esc(NAT_RULE.ordinance)}">${ruleName}</div></div>
       <div><div class="k">기준일</div><div class="v num" title="조례 기준일(자치법규 원문 확인일)">${r && r.updated ? fmtDate(r.updated) : '—'}</div></div>
@@ -2230,17 +2518,20 @@ function renderVerdict(e) {
       <div class="val"><b class="num">${e.counts ? e.nSmall : '—'}</b><span>/ ${e.required ?? '—'}개${e.counts && e.counts.est ? ' · 보간 추정' : ' · 실측'}</span></div>
       <span class="prog"><i style="width:${w}%;background:${pctCol}"></i><span class="tick" style="left:${100 / 1.5}%" title="기준 100%"></span></span>
     </div>
+    ${bizBoxHTML(e, bs)}
     <div class="s3">
       <div><div class="k">${ic('layers', 12)}검토 구역 면적</div><div class="v num">${fmt(e.area)}<span style="font-size:11.5px;font-weight:600;color:var(--text-tertiary)"> ㎡</span></div><div class="s">원형 환산 반경 ${Math.round(e.r)}m</div></div>
       <div><div class="k">${ic('pin', 12)}기존 구역 거리</div><div class="v num">${e.nearest ? fmtD(e.nearest.edge) : '—'}</div><div class="s">${e.nearest ? esc(e.nearest.z.name) : '주변 구역 없음'}</div></div>
       <div><div class="k">${ic('clip', 12)}중복 여부</div><div class="v">${esc(rel[0])}</div><div class="s">${esc(rel[2] || '—')}</div></div>
     </div>
+    ${circleHintHTML()}
     <div class="kvline"><span class="k">조례 완화 조건</span><span class="v">${ruleBadges(e.rule)}</span></div>
     <div class="kvline"><span class="k">점포 운영 형태</span><span class="v"><span class="stype">
         <select class="select" id="v-stype" aria-label="점포 운영 형태">${Object.keys(STORE_TYPE).map(k => `<option value="${esc(k)}" ${st === k ? 'selected' : ''}>${esc(STORE_TYPE[k])}</option>`).join('')}</select>
         <a class="btn sm" id="v-bizno" href="${esc(bizHref)}" target="_blank" rel="noopener" title="bizno.net에서 이 점포의 사업자등록번호를 확인합니다 — 가운데 2자리 85 직영 · 01~79 개인 · 81·86·87·88 법인">사업자·직영 확인 ↗</a>
         ${stNote ? `<span class="noteline ${stNote.kind}"><b>[직접 선택 기준]</b> <span>${stNote.text}</span></span>`
       : st === '' ? '<span class="hint">사업자번호 가운데 2자리 — 85 직영 · 01~79 개인 · 81·86·87·88 법인</span>' : ''}
+        ${storeTypeRuleHTML()}
     </span></span></div>
     <button class="detail-btn" id="v-detail" aria-expanded="${T1.open}">${ic('info', 15)} 판정 근거 상세보기 ${ic('chev', 14).replace('<svg', `<svg style="transform:rotate(${T1.open ? 90 : 0}deg)`)}</button>
     ${T1.open ? `<div class="vrows" style="margin-top:0">
@@ -2298,11 +2589,172 @@ function t1CopySummary() {
 }
 
 
+/* ---- 4f. 한 장 리포트(A4) — 점주·공무원 결용 ----
+   현장에서 동의서를 받기 전에 담당 공무원과 같은 숫자로 이야기하기 위한 1장 요약이다.
+   개인정보 없이 점포·구역 정보만 담아 누구에게 보여줘도 되는 공용 포맷으로 만든다. */
+function reportFacts(e) {
+  const p = e.p, r = e.rule, ss = ssOf(p), bs = bizStatsOf(e), sim = polySim(e), xc = xcCompute(e);
+  const st = storeTypeOf(p), mm = p.member || {};
+  const consent = r ? (r.owner_consent_waived === true ? '면제 — 상인 동의만으로 신청 가능(조례)' : r.owner_consent_waived === false ? '필요 — 토지·건축물 소유자 각 1/2 이상 동의' : '조례 미기재 — 담당 부서 확인') : '조례 미확인 — 담당 부서 확인';
+  const areaRule = r ? (r.excludes_road_parking === true ? '심의 거쳐 도로·주차장 공용면적 제외 가능' : r.excludes_road_parking === false ? '도로 면적 포함해 산정' : '면적 제외 규정 확인 안 됨') : '조례 미확인';
+  return { p, r, ss, bs, sim, xc, st, mm, consent, areaRule };
+}
+function storeTypeCheck(st) {
+  if (st === 'direct') return { bad: true, txt: '본사 직영점 — 소상공인 아님 · 온누리 가맹 불가' };
+  if (st === 'corp') return { bad: false, txt: '법인 가맹점 — 동일 사업자 합산 직전 연도 매출(환전액) 30억 원 이하일 때만 가맹 가능' };
+  if (st === 'indiv') return { bad: false, txt: '개인 가맹점 — 소상공인 요건 충족 시 가맹 대상' };
+  return { bad: false, txt: '미확인 — 사업자등록번호 가운데 2자리 확인 필요(85 직영 · 01~79 개인 · 81·86·87·88 법인)' };
+}
+function buildReportHTML(e) {
+  const g = reportFacts(e), p = g.p, r = g.r, ss = g.ss, bs = g.bs, sim = g.sim, xc = g.xc;
+  const today = fmtDate(new Date()), rel = zoneRel(e);
+  const pct = e.ratio != null ? Math.round(e.ratio * 100) : null;
+  const bsPct = bs.ok && bs.ratio != null ? Math.round(bs.ratio * 100) : null;
+  const stc = storeTypeCheck(g.st);
+  const thTxt = r ? (e.thNon != null ? `${fmt(e.base)}㎡당 상업 ${e.thCom}개 · 비상업 ${e.thNon}개 이상` : e.th ? `${fmt(e.base)}㎡당 소상공인 ${e.th}개 이상` : '조례 별표 위임 — 별표 원문 확인 필요') : '법정 기본 2,000㎡당 30개(조례 미확인)';
+  const need = e.required != null ? `${e.required}개` : '—';
+  const memberTxt = p.onnuri_member
+    ? `가맹 완료 — ${esc(g.mm.zone || '상권명 미기재')}${g.mm.year ? ` · ${esc(g.mm.year)}년 등록` : ''}`
+    : '미가맹 — 온누리 가맹점 DB(2026-07-31)에 같은 상호 없음';
+  const ssTxt = ss.stage === 1 ? `<b style="color:#B2550B">1단계 지정 제한 가능</b> — ${esc(ss.type)} (${esc(ss.ex)})`
+    : ss.stage === 2 ? `<b style="color:#1B4F9C">2단계 구내·로드샵 확인 필요</b> — ${esc(ss.type)}`
+    : '해당 없음 — 일반 도로변 상가';
+  const drawTxt = sim
+    ? `총 ${fmt(Math.round(sim.area))}㎡ · 유효 ${fmt(Math.round(sim.eff))}㎡(제외 ${sim.excl}%) · 구역 내 상가 ${sim.nSmall}개 · 환산 ${sim.per != null ? sim.per.toFixed(1) : '—'}개${sim.ratio != null ? ` (${Math.round(sim.ratio * 100)}%)` : ''} · ${esc(sim.label)}`
+    : '미작성 — [구역 직접 그리기]에서 도면을 그리면 공무원 실측과 가장 가까운 수치가 나옴';
+  const xcTxt = xc
+    ? `영업 확실 ${xc.both.length + xc.dups.length}건 · 폐업 의심 ${xc.suspect.length}건 · 신규 후보 ${xc.fresh.length}건 (공단 ${xc.rowTotal}건 ↔ 카카오 ${xc.inR}건)`
+    : '미실행 — C구역 [실시간 카카오 조회]로 폐업·신규 누락을 확인할 수 있음';
+  const exLine = bs.ok && bs.exTop.length ? bs.exTop.map(([k, v]) => `${esc(k)} ${v}건`).join(' · ') : (bs.ok ? '해당 없음' : '집계 불가');
+  const zoneLine = e.nearest
+    ? `${esc(e.nearest.z.name)} — ${esc(rel[0])}, 중심 ${fmtD(e.nearest.d)} · 경계 ${fmtD(e.nearest.edge)}`
+    : '반경 주변에 등록된 온누리 구역 없음';
+  /* ---- 동적 로드맵 ---- */
+  const s1 = [];
+  s1.push(ss.stage === 1
+    ? `<b>${esc(ss.type)}</b> 구내 매장 여부 먼저 확인 — 구내면 지정 대상이 아님 (${esc(ss.ex)})`
+    : '도로에 면한 일반 점포 — 입지 자체의 제한 없음');
+  s1.push(g.st === 'direct' ? '사업자등록번호 가운데 85 — 본사 직영점이면 온누리 가맹 불가' : '사업자등록번호 가운데 2자리 확인 (85 직영 · 01~79 개인 · 81·86·87·88 법인)');
+  s1.push('직전 연도 매출(환전액) 30억 원(일 약 822만 원) 이하인지 확인 — 초과 시 지정되어도 가맹 불가 (2026.06 시행령)');
+  if (p.onnuri_member) s1.push('이미 온누리 가맹 등록된 점포 — 신규 지정보다 기존 상권 유지·확장을 검토');
+  const s2 = [
+    `원형 반경 ${Math.round(e.r)}m(${fmt(e.area)}㎡)는 추정값 — 지번·도로 중심으로 <b>구역 경계를 직접 그려</b> 면적을 확정`,
+    '구역 안 점포를 한 집씩 현장 확인: 폐업·임대 빈 점포, 실제 업종(유흥주점 여부), 건물 내부·외부(구내·로드샵) 구분',
+    `대로 건너편·블록 밖 상가는 구역에서 빼고, 같은 건물 여러 호실은 1개 점포로 합산`,
+  ];
+  if (r && r.excludes_road_parking === true) s2.push('조례상 도로·주차장 공용면적을 뺄 수 있는 시군구다 — 심의 전 제외 면적·비율을 담당자와 미리 합의');
+  const s3 = [
+    `동의 요건: <b>${esc(g.consent)}</b>`,
+    '구역 내 점포주(상인) 동의서 징구 — 동의서는 현장에서 받는 단계이므로 시행 전에 범위·양식을 담당자와 확인',
+    '상인회(또는 상인 조직) 구성 — 대표자·회원 명부·회칙 준비',
+  ];
+  const s4 = [
+    r && r.phone ? `관할 담당 부서 사전 협의: ${esc(r.sido)} ${esc(r.sigungu)} ${esc(r.dept)} ${esc(r.team)}${r.manager ? ' ' + esc(r.manager) : ''} · <b>${esc(r.phone)}</b>`
+      : `${esc(p.sido)} ${esc(p.sigungu)} 소상공인 담당 부서를 대표번호로 확인해 사전 협의`,
+    '제출: 지정 신청서 + 구역 위치도·경계도(도면) + 점포 현황(상호·업종·면적) + 상인회 구성 현황 + 동의서 + 사업 계획서',
+    '담당자 현장 실측 시 함께 돌며 업종·폐업 상태를 설명할 수 있게 이 리포트와 점포 명부를 지참',
+  ];
+  const s5 = [
+    '지정 고시 확인 후 구역 내 점포별 온누리상품권 가맹 신청(소상공인시장진흥공단)',
+    '가맹 신청 시 사업자등록증·매출 확인서류 제출 — 직영점· 30억 초과 점포는 신청 불가',
+  ];
+  const steps = [['점포 자격·특수입지·매출 결격 확인', s1], ['도면 경계 획정 · 현장 실사', s2], ['상인회 구성 · 동의서 확보', s3], ['지자체 사전 협의 · 신청서 제출', s4], ['지정 고시 후 온누리 가맹 신청', s5]];
+  return `
+  <h1>골목형상점가 지정 사전검토 리포트</h1>
+  <div class="sub">${esc(p.name)} · ${esc(p.address)} · 분석 기준일 ${today} · 온누리 레이더</div>
+  <h2>1. 기본 현황</h2>
+  <table class="kv">
+    <tr><th>점포명</th><td colspan="3"><b>${esc(p.name)}</b>${p.kind === 'store' ? ` (점포코드 ${esc(p.id)})` : ''}</td></tr>
+    <tr><th>주소</th><td colspan="3">${esc(p.address || '—')} · ${esc(p.sido)} ${esc(p.sigungu)}</td></tr>
+    <tr><th>검토 구역</th><td>${fmt(e.area)}㎡ · 원형 환산 반경 ${Math.round(e.r)}m (${e.counts ? (e.counts.est ? '보간 추정' : '실측 프리셋') : '상가데이터 미수집'})</td><th>기존 상권</th><td>${zoneLine}</td></tr>
+    <tr><th>조례 판정</th><td>${esc(VMETA[e.v].label)} — ${esc(e.label)} (충족률 ${pct != null ? pct + '%' : '—'})</td><th>온누리 가맹</th><td>${memberTxt}</td></tr>
+    <tr><th>점포 운영 형태</th><td colspan="3">${esc(STORE_TYPE[g.st] || '미확인')} — ${esc(stc.txt)}</td></tr>
+    <tr><th>특수입지 판정</th><td colspan="3">${ssTxt}</td></tr>
+  </table>
+  ${ss.stage === 1 ? `<div class="box"><b>주의(특수입지 1단계)</b> — ${esc(ss.why)} ${esc(ss.ex)}.</div>` : ''}
+  ${stc.bad ? '<div class="box red"><b>가맹 결격</b> — 본사 직영점은 소상공인이 아니어서 상권 지정 후에도 온누리 가맹이 불가합니다.</div>' : ''}
+  <h2>2. 공무원 심사 기준 정량 비교</h2>
+  <table>
+    <tr><th>항목</th><th>조례·법정 기준</th><th>공단 실측(원형)</th><th>제한업종 제외(보수적)</th></tr>
+    <tr><td>적용 조례</td><td colspan="3">${r ? esc(r.ordinance) + ` (기준일 ${esc(r.updated || '—')})` : esc(NAT_RULE.ordinance) + ' — 조례 미확인, 법정 기본 기준 적용'}</td></tr>
+    <tr><td>필요 점포 수</td><td>${thTxt}</td><td>필요 ${need} / 확인 ${e.counts ? fmt(e.nSmall) : '미수집'}개${pct != null ? ` (${pct}%)` : ''}</td><td>${bs.ok ? `유효 ${fmt(bs.eff)}개${bsPct != null ? ` (${bsPct}%)` : ''}` : '집계 불가'}</td></tr>
+    <tr><td>도로·주차장 공용면적</td><td colspan="3">${esc(g.areaRule)}</td></tr>
+    <tr><td>소유자 동의</td><td colspan="3">${esc(g.consent)}</td></tr>
+    <tr><td>기존 상권 중복</td><td colspan="3">${zoneLine}</td></tr>
+  </table>
+  <table style="margin-top:4px">
+    <tr><th>추가 확인</th><th>결과</th></tr>
+    <tr><td>직접 그린 도면 실측</td><td>${drawTxt}</td></tr>
+    <tr><td>카카오 교차검증</td><td>${xcTxt}</td></tr>
+  </table>
+  <h2>3. 제외·주의 업종 및 주변 상가 요약</h2>
+  <table class="kv">
+    <tr><th>제한업종</th><td>${bs.ok ? `반경 내 ${bs.n}건 중 ${bs.nEx}건(${Math.round(bs.nEx / bs.n * 100)}%) 제외 — ${exLine}` : '상가 상세목록 없음 — 카카오 조회 또는 현장 확인 필요'}</td></tr>
+    <tr><th>주점</th><td>${bs.ok ? `${bs.nChk}건 — 유흥주점 여부 확인 필요(유흥주점이면 제외, 최저 유효 ${fmt(bs.effMin)}개)` : '미집계'}</td></tr>
+    <tr><th>약국</th><td>약국·의약품 소매는 2026.10 허용 업종이라 제외하지 않음</td></tr>
+    <tr><th>대로 단절</th><td>원형 반경은 대로 건너편·블록 밖 상가까지 포함될 수 있음 — 도면으로 확인</td></tr>
+    <tr><th>호실 중복</th><td>상가(상권)정보는 호실 단위 등록 — 한 건물에 여러 점포가 중복 집계될 수 있음</td></tr>
+  </table>
+  <h2>4. 현장 실행 로드맵</h2>
+  <ol class="road">${steps.map(([t, items]) => `<li><b>${t}</b><br>${items.map(x => '· ' + x).join('<br>')}</li>`).join('')}</ol>
+  <div class="box blue"><b>필요서류 체크리스트</b> — □ 지정 신청서 □ 구역 위치도·경계도(도면) □ 점포 현황(상호·업종·면적) □ 상인회 구성 현황 □ 점포주 동의서${g.r && g.r.owner_consent_waived === false ? '(토지·건축물 소유자 동의서 포함)' : ''} □ 사업 계획서 □ 사업자등록증 사본 □ 매출 확인서류</div>
+  <div class="foot">본 리포트는 공개 실데이터(소상공인시장진흥공단 상가(상권)정보 2026-09-30, 자치법규 원문 기준일 2026-11-14, 온누리 가맹점 2026-07-31)로 계산한 사전검토 자료입니다. 최종 지정 여부·기준·절차는 관할 지자체 담당 부서 확인이 필요합니다.</div>
+  <div class="stamp"><span>온누리 레이더 · GS25 온누리 상권 공용 도구</span><span>${esc(p.name)} · ${today}</span></div>`;
+}
+function reportText(e) {
+  const g = reportFacts(e), p = g.p, r = g.r, bs = g.bs;
+  const pct = e.ratio != null ? Math.round(e.ratio * 100) : null;
+  const stc = storeTypeCheck(g.st);
+  const L = [
+    `[골목형상점가 지정 사전검토 리포트] ${p.name}`,
+    `주소: ${p.address}`,
+    `분석 기준일: ${fmtDate(new Date())}`,
+    `검토 구역: ${fmt(e.area)}㎡ (원형 반경 ${Math.round(e.r)}m)`,
+    `판정: ${VMETA[e.v].label} — ${e.label}${pct != null ? ` (충족률 ${pct}%)` : ''}`,
+    `조례: ${r ? r.ordinance + ' / 기준일 ' + (r.updated || '-') : NAT_RULE.ordinance + ' (조례 미확인)'}`,
+    `요건: ${e.thNon != null ? `${fmt(e.base)}㎡당 상업 ${e.thCom}개·비상업 ${e.thNon}개` : e.th ? `${fmt(e.base)}㎡당 ${e.th}개` : '별표 위임'}`,
+    `공단 실측: 소상공인 ${e.counts ? e.nSmall : '미수집'}개 / 필요 ${e.required ?? '-'}개`,
+    `제한업종 제외 보수적: ${bs.ok ? `유효 ${bs.eff}개 (제외 ${bs.nEx}/${bs.n}건, 주점 확인 ${bs.nChk}건)` : '집계 불가'}`,
+    `온누리 가맹: ${p.onnuri_member ? '가맹 완료 — ' + ((p.member || {}).zone || '상권명 미기재') : '미가맹'}`,
+    `점포 운영 형태: ${STORE_TYPE[g.st] || '미확인'} — ${stc.txt}`,
+    `특수입지: ${g.ss.stage === 1 ? '1단계 지정 제한 가능 — ' + g.ss.type : g.ss.stage === 2 ? '2단계 구내·로드샵 확인 필요 — ' + g.ss.type : '해당 없음'}`,
+    `소유자 동의: ${g.consent}`,
+    `공용면적: ${g.areaRule}`,
+    `담당: ${r && r.phone ? `${r.sigungu} ${r.dept} ${r.team} ${r.phone}` : '-'}`,
+    '',
+    '[현장 실행 순서]',
+    '1) 점포 자격·특수입지·매출 30억 결격 확인',
+    '2) 도면 경계 획정 및 현장 폐업·업종 실사',
+    '3) 상인회 구성 및 동의서 확보 (' + g.consent + ')',
+    '4) 관할 지자체 사전 협의 후 신청서·구역도·점포명부 제출',
+    '5) 지정 고시 후 온누리 가맹 신청',
+  ];
+  return L.join('\n');
+}
+function openReport() {
+  const e = T1.ev;
+  if (!e) { toast('먼저 점포를 분석한 뒤 리포트를 열 수 있습니다'); return; }
+  $('#report-sheet').innerHTML = buildReportHTML(e);
+  $('#report').classList.add('open');
+  document.body.classList.add('report-open');
+  $('#report').querySelector('.modal').scrollTop = 0;
+}
+function closeReport() {
+  $('#report').classList.remove('open');
+  document.body.classList.remove('report-open');
+}
+function reportPrint() {
+  if (!$('#report-sheet').innerHTML.trim()) openReport();
+  document.body.classList.add('report-open');
+  setTimeout(() => window.print(), 60);
+}
+function reportCopy() { if (!T1.ev) return; copyText(reportText(T1.ev), '리포트 텍스트를 복사했습니다'); }
+
 function t1ShopRows(e) {
   const R = e.r * UI.EDGE, out = [];
   nearbyList(e.p.id).forEach((x, i) => {
     const d = x[0]; if (d > R) return;
-    out.push({ s: { id: e.p.id + '-' + i, name: x[1], category: x[2], is_small_biz: true, onnuri_member: !!matchShopMember(x[1], e.p.sido), pay: [] }, d, inc: d <= e.r ? '포함' : '경계', chk: '미확인' });
+    out.push({ s: { id: e.p.id + '-' + i, name: x[1], category: x[2], is_small_biz: true, onnuri_member: !!matchShopMember(x[1], e.p.sido), pay: [] }, d, inc: d <= e.r ? '포함' : '경계', chk: '미확인', biz: classifyShopBiz(x[2], x[1]) });
   });
   return out;
 }
@@ -2310,9 +2762,12 @@ function t1ShopRows(e) {
 function renderShops(e) {
   let rows = t1ShopRows(e);
   const total = rows.length;
+  const nEx = rows.filter(r => r.biz.k === 'ex').length, nChk = rows.filter(r => r.biz.k === 'check').length;
   const f = T1.filter;
   const xc = xcCompute(e);              // 카카오 실시간 조회가 끝난 점포만 값이 있다
   if (f === 'inc') rows = rows.filter(r => r.inc === '포함'); else if (f === 'edge') rows = rows.filter(r => r.inc === '경계');
+  else if (f === 'ex') rows = rows.filter(r => r.biz.k === 'ex');
+  else if (f === 'chk') rows = rows.filter(r => r.biz.k === 'check');
   else if (f === 'sus' && xc) rows = rows.filter(r => xc.byId[r.s.id] && xc.byId[r.s.id].st === 'sus');
   const G = { d: r => r.d, name: r => r.s.name, cat: r => r.s.category, inc: r => r.inc, chk: r => r.chk };
   rows = sortBy(rows, G[T1.sort.k] || G.d, T1.sort.dir);
@@ -2343,14 +2798,15 @@ function renderShops(e) {
       <div class="right">
         <button class="btn sm" id="shops-csv" title="반경 내 상가 리스트를 CSV로 저장합니다(교차 검증·소상공인·온누리 열 포함)">${ic('down', 14)}CSV 다운로드</button>
         <select class="select" id="shops-filter" style="width:150px;height:28px" aria-label="상가 필터">
-          <option value="">전체</option><option value="inc" ${f === 'inc' ? 'selected' : ''}>검토 구역 포함</option><option value="edge" ${f === 'edge' ? 'selected' : ''}>경계(+15%)</option>${xc ? `<option value="sus" ${f === 'sus' ? 'selected' : ''}>카카오 미확인 ${xc.suspect.length}</option>` : ''}</select>
+          <option value="">전체</option><option value="inc" ${f === 'inc' ? 'selected' : ''}>검토 구역 포함</option><option value="edge" ${f === 'edge' ? 'selected' : ''}>경계(+15%)</option><option value="ex" ${f === 'ex' ? 'selected' : ''}>제외 가능 업종 ${nEx}</option><option value="chk" ${f === 'chk' ? 'selected' : ''}>주점(유흥 확인) ${nChk}</option>${xc ? `<option value="sus" ${f === 'sus' ? 'selected' : ''}>카카오 미확인 ${xc.suspect.length}</option>` : ''}</select>
         </div></div>
     <div class="tbl-wrap">${rows.length ? `<table class="tbl num"><thead><tr>
-        <th>No.</th>${thSort('상가명', 'name', st)}${thSort('업종', 'cat', st)}${thSort('거리', 'd', st)}${thSort('포함 여부', 'inc', st)}${xc ? '<th>교차 검증</th>' : ''}</tr></thead><tbody>
+        <th>No.</th>${thSort('상가명', 'name', st)}${thSort('업종', 'cat', st)}${thSort('거리', 'd', st)}${thSort('포함 여부', 'inc', st)}<th>심사 집계</th>${xc ? '<th>교차 검증</th>' : ''}</tr></thead><tbody>
       ${slice.map((r, i) => { const x = xc && xc.byId[r.s.id]; return `<tr class="click ${T1.hl === r.s.id ? 'sel' : ''}" data-sid="${esc(r.s.id)}">
         <td class="faint">${T1.page * size + i + 1}</td><td><b>${esc(r.s.name)}</b></td><td>${esc(r.s.category)}</td>
         <td>${Math.round(r.d)}m</td>
         <td>${r.inc === '포함' ? '<span class="chip a">포함</span>' : '<span class="chip o">경계</span>'}</td>
+        <td>${r.biz.k === 'ex' ? `<span class="chip xx" title="전통시장법 시행령 별표1 제한업종 — 공무원 심사에서 빠질 수 있습니다">제외 가능 · ${esc(r.biz.label)}</span>` : r.biz.k === 'check' ? '<span class="chip cf" title="일반 호프와 유흥주점이 섬여 있어 확인이 필요합니다">유흥 확인(주점)</span>' : '<span class="faint">포함</span>'}</td>
         ${xc ? `<td>${x ? (x.st === 'both' ? `<span class="chip s" title="${x.dup ? '같은 상호가 호실 단위로 중복 등록된 행입니다' : '카카오 실시간 조회 확인: ' + esc(x.name)}">영업 확인</span>` : `<span class="chip d" title="카카오 실시간 조회에서 확인되지 않음 — 폐업 단정 아님">카카오 미확인</span>`) : '<span class="faint">—</span>'}</td>` : ''}</tr>`; }).join('')}
       </tbody></table>` : (f === 'sus' && xc && total ? stateBox('info', '카카오 미확인 점포가 없습니다', '반경 내 공단 상가가 모두 카카오 실시간 조회에서 확인됐습니다.') : emptyHtml)}</div>
     ${loading ? '' : `<div class="pager">${pagerHTML(T1.page, pages, rows.length, size)}</div>`}
@@ -2373,6 +2829,8 @@ function renderAction(e) {
     <div class="card-h"><span class="step">D</span><h3>후속 조치</h3><span class="sub">관할 담당 연락 · 현장 확인</span>
       <div class="right">${fieldChip(fieldState(id))}</div></div>
     <div class="card-b">
+      <div class="report-bar">${ic('doc', 15)}<span style="flex:1;min-width:140px"><b>한 장 리포트</b> — 분석 결과·공무원 기준 비교·현장 실행 로드맵을 A4 한 장으로 출력·PDF 저장합니다. 점주와 담당 공무원에게 그대로 보여줄 수 있는 공용 양식입니다.</span>
+        <button class="btn sm primary" id="a-report">${ic('print', 14)}한 장 리포트</button></div>
       ${r ? `<div class="phone">
         <span style="color:var(--accent)">${ic('phone', 20)}</span>
         <div class="who"><b>${esc(r.sido)} ${esc(r.sigungu)} · ${esc(r.dept)} ${esc(r.team)}${r.manager ? ' · ' + esc(r.manager) : ''}</b><span>${r.phone ? esc(r.phone) : '연락처 미등록 — 지자체 대표번호로 확인'}</span></div>
@@ -2448,7 +2906,13 @@ function polySim(e) {
     const small = !self && !XC_NOT_SMALL.includes(pl.cat);      // 소상공인 성격 업종만 집계
     inside.push({ p: pl, self, small });
   });
-  const nAll = inside.length, nSmall = inside.filter(x => x.small).length;
+  const nAll = inside.length;
+  /* 제한업종(공무원 심사 기준) 분리 — 기본값은 적용(보수적). 체크를 풀면 예전처럼 전체 상가로 계산한다. */
+  const smallAll = inside.filter(x => x.small);
+  const bizEx = smallAll.filter(x => classifyShopBiz(x.p.cat, x.p.name).k === 'ex');
+  const bizChk = smallAll.filter(x => classifyShopBiz(x.p.cat, x.p.name).k === 'check');
+  const bizOn = P.bizExcl !== false;
+  const nSmall = bizOn ? smallAll.length - bizEx.length : smallAll.length;
   const excl = Math.max(0, Math.min(90, +P.excl || 0));
   const eff = area * (1 - excl / 100);
   const base = e.base || 2000, th = e.th, thCom = e.thCom, thNon = e.thNon;
@@ -2464,6 +2928,7 @@ function polySim(e) {
     else { v = 'fail'; label = '미달 — 기준 미충족'; }
   }
   return { area, eff, excl, nAll, nSmall, inside, required, requiredNon, per, ratio, base, th, thCom, thNon,
+    nSmallAll: smallAll.length, nEx: bizEx.length, nChk: bizChk.length, bizOn,
     v, label, live: !!live, liveState: APP.live.key === o.id ? APP.live.state : 'idle', span: polySpan(pts, o), ring };
 }
 
@@ -2659,7 +3124,7 @@ function renderPolyCard() {
       <table class="tbl num"><thead><tr><th>상호</th><th>업종</th><th>거리</th><th>주소</th><th>집계</th></tr></thead><tbody>
       ${sim.inside.length ? sim.inside.slice().sort((a, b) => a.p.d - b.p.d).map(x => `<tr><td><b>${esc(x.p.name)}</b></td><td>${esc(x.p.cat)}</td>
         <td>${Math.round(x.p.d)}m</td><td class="faint">${esc(x.p.addr || '')}</td>
-        <td>${x.self ? '<span class="chip o">대상 점포</span>' : x.small ? '<span class="chip s">포함</span>' : '<span class="chip d">제외 업종</span>'}</td></tr>`).join('')
+        <td>${x.self ? '<span class="chip o">대상 점포</span>' : !x.small ? '<span class="chip d">제외 업종</span>' : (b => b.k === 'ex' ? `<span class="chip xx">제외 가능 · ${esc(b.label)}</span>` : b.k === 'check' ? '<span class="chip cf">유흥 확인(주점)</span>' : '<span class="chip s">포함</span>')(classifyShopBiz(x.p.cat, x.p.name))}</td></tr>`).join('')
       : '<tr><td colspan="5" class="faint">아직 구역 내에서 확인된 상가가 없습니다.</td></tr>'}
       </tbody></table></div>` : '';
   box.innerHTML = `
@@ -2668,12 +3133,15 @@ function renderPolyCard() {
     <div class="trio num">
       <div><div class="k">도면 총 면적</div><div class="v">${fmt(Math.round(sim.area))}<small>㎡</small></div></div>
       <div><div class="k">유효 면적 <span class="faint">(제외 ${sim.excl}%)</span></div><div class="v">${fmt(Math.round(sim.eff))}<small>㎡</small></div></div>
-      <div><div class="k">구역 내 상가 <span class="faint">(카카오)</span></div><div class="v" style="color:${m.color}">${sim.nSmall}<small>개 / 전체 ${sim.nAll}</small></div></div>
+      <div><div class="k">구역 내 상가 <span class="faint">(카카오)</span></div><div class="v" style="color:${m.color}">${sim.nSmall}<small>개 / 전체 ${sim.nAll}${sim.bizOn && sim.nEx ? ` · 제한업종 ${sim.nEx}건 제외` : ''}</small></div></div>
     </div>
     <div class="vrows" style="margin-top:12px;border-top:0">
       <div class="vrow"><span class="k">도로·주차장 제외율</span><span class="v" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
         ${exclSel}<input class="input num" id="poly-excl-c" type="number" min="0" max="90" step="1" value="${sim.excl}" style="width:74px;height:30px" aria-label="공용면적 제외율 직접 입력(%)"><span class="faint">%</span>
         <span class="faint" style="font-size:11.5px">유효 면적 = 도면 × (1 − 제외율)</span></span></div>
+      <div class="vrow"><span class="k">제한업종 제외</span><span class="v" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <label class="laychk" style="border:1px solid var(--border);border-radius:10px;padding:3px 9px;background:#fff"><input type="checkbox" id="poly-biz" ${sim.bizOn ? 'checked' : ''}>공무원 심사 기준 적용</label>
+        <span class="faint" style="font-size:11.5px">병·의원·일반학원·부동산·유원지·법무·회계·금융·동물병원 제외(약국은 포함) · 주점은 유흥 확인 ${sim.nChk}건${sim.bizOn ? ` → ${sim.nSmallAll}개 중 ${sim.nEx}건 제외` : ' · 지금은 전체 상가로 계산 중'}</span></span></div>
       <div class="vrow"><span class="k">조례 공용면적</span><span class="v">${exclChip} <span class="faint" style="font-size:11.5px">${exclOk === true ? '이 지자체는 심의를 거쳐 도로·주차장 부지를 뺄 수 있습니다' : exclOk === false ? '이 조례는 도로 면적을 포함해 산정합니다' : '조례에 면적 제외 규정이 확인되지 않습니다'}</span></span></div>
       <div class="vrow"><span class="k">필요 상가 수</span><span class="v"><b class="num">${sim.required ?? '—'}</b>개 <span class="faint">유효 면적 기준${sim.requiredNon != null ? ` (비상업 ${sim.requiredNon}개)` : ''}</span>
         ${sim.thNon != null ? `<span class="faint" style="font-size:11.5px">· ${fmt(sim.base)}㎡당 상업 ${sim.thCom}·비상업 ${sim.thNon}개</span>` : ''}</span></div>
@@ -2702,6 +3170,7 @@ function polyCopy() {
     `도면: 꼭짓점 ${T1.poly.pts.length}개 · 총 면적 ${fmt(Math.round(sim.area))}㎡ (신발끈 공식 실측)`,
     `도로·주차장 제외율: ${sim.excl}% → 유효 면적 ${fmt(Math.round(sim.eff))}㎡`,
     `구역 내 확인 상가: ${sim.nSmall}개 (카카오 실시간 · 전체 ${sim.nAll}개)`,
+    `제한업종: ${sim.bizOn ? `공무원 심사 기준 적용 — 전체 ${sim.nSmallAll}개 중 ${sim.nEx}건 제외, 주점 유흥 확인 ${sim.nChk}건` : '제외하지 않음(전체 상가 기준)'}`,
     `기준: ${r ? r.ordinance : NAT_RULE.ordinance} — ${sim.thNon != null ? `${fmt(sim.base)}㎡당 상업 ${sim.thCom}개·비상업 ${sim.thNon}개` : `${fmt(sim.base)}㎡당 ${sim.th}개`}`,
     `필요 상가: ${sim.required ?? '-'}개${sim.requiredNon != null ? ` (비상업 ${sim.requiredNon}개)` : ''} · 2,000㎡ 환산 ${sim.per != null ? sim.per.toFixed(1) : '-'}개 · 충족률 ${sim.ratio != null ? Math.round(sim.ratio * 100) + '%' : '-'}`,
     `시뮬레이션 판정: ${VMETA[sim.v].label} (${sim.label})`,
@@ -2715,7 +3184,7 @@ function polyCSV() {
   const rows = sim.inside.slice().sort((a, b) => a.p.d - b.p.d);
   downloadCSV(`직접그린구역_${e.p.name}_${Math.round(sim.area)}m2.csv`, toCSV([
     ['상호', x => x.p.name], ['업종', x => x.p.cat], ['거리(m)', x => Math.round(x.p.d)], ['주소', x => x.p.addr || ''],
-    ['집계', x => x.self ? '대상 점포' : x.small ? '포함' : '제외 업종'], ['위도', x => x.p.lat], ['경도', x => x.p.lng],
+    ['집계', x => { const b = classifyShopBiz(x.p.cat, x.p.name); return x.self ? '대상 점포' : !x.small ? '제외 업종' : b.k === 'ex' ? `제외 가능(${b.label})` : b.k === 'check' ? '유흥 확인(주점)' : '포함'; }], ['위도', x => x.p.lat], ['경도', x => x.p.lng],
   ], rows));
 }
 
@@ -2979,18 +3448,18 @@ function t2Detail(id) {
    10. TAB 3 — 전국 잠재 점포 발굴
    ##################################################################### */
 const T3 = { rows: [], sort: { k: 'score', dir: -1 }, page: 0, dirty: true };
-const T3_FILTERS = ['#d-sido', '#d-sgg', '#d-member', '#d-verdict', '#d-shops', '#d-met', '#d-score', '#d-field', '#d-area'];
+const T3_FILTERS = ['#d-sido', '#d-sgg', '#d-member', '#d-verdict', '#d-shops', '#d-met', '#d-score', '#d-field', '#d-area', '#d-special'];
 function t3Init() {
   $('#d-area').innerHTML = CONFIG.AREA_PRESETS.map(a => `<option value="${a}" ${a === CONFIG.DEFAULT_AREA ? 'selected' : ''}>${fmt(a)}㎡</option>`).join('');
   T3_FILTERS.forEach(s => $(s).addEventListener($(s).tagName === 'INPUT' ? 'input' : 'change', () => { if (s === '#d-sido') $('#d-sgg').value = ''; T3.page = 0; t3Render(); }));
-  $('#d-reset').onclick = () => { ['#d-sido', '#d-sgg', '#d-met', '#d-field'].forEach(s => $(s).value = ''); $('#d-member').value = 'N'; $('#d-verdict').value = 'cond'; $('#d-shops').value = 0; $('#d-score').value = 0; $('#d-area').value = CONFIG.DEFAULT_AREA; T3.page = 0; T3.sort = { k: 'score', dir: -1 }; t3Render(); };
+  $('#d-reset').onclick = () => { ['#d-sido', '#d-sgg', '#d-met', '#d-field'].forEach(s => $(s).value = ''); $('#d-member').value = 'N'; $('#d-verdict').value = 'cond'; $('#d-shops').value = 0; $('#d-score').value = 0; $('#d-area').value = CONFIG.DEFAULT_AREA; $('#d-special').value = 'ex1'; T3.page = 0; T3.sort = { k: 'score', dir: -1 }; t3Render(); };
   $('#d-csv').onclick = () => downloadCSV('잠재점포_우선순위.csv', toCSV([
     ['순위', r => r.rank], ['점포코드', r => r.e.p.id], ['점포명', r => r.e.p.name], ['지역', r => `${r.e.p.sido} ${r.e.p.sigungu}`],
     ['온누리가맹', r => r.e.p.onnuri_member ? '가맹' : '미가맹'], ['가맹상권', r => r.e.p.member ? r.e.p.member.zone : ''],
     ['법적판정', r => VMETA[r.e.v].label], ['충족률%', r => r.e.ratio != null ? Math.round(r.e.ratio * 100) : ''], ['소상공인수', r => r.e.nSmall], ['필요수', r => r.e.required ?? ''],
     ['기존구역관계', r => r.rel[0]], ['최근접구역', r => r.rel[2]], ['우선순위점수', r => r.pr.total],
     ['지자체기준35', r => r.pr.rule], ['밀집도25', r => r.pr.density], ['기존구역가맹15', r => r.pr.zone], ['후보형성15', r => r.pr.form], ['데이터신뢰10', r => r.pr.trust],
-    ['현장확인', r => r.field], ['담당', r => r.e.rule ? `${r.e.rule.dept} ${r.e.rule.team}` : ''], ['전화', r => r.e.rule?.phone || '']], T3.rows));
+    ['현장확인', r => r.field], ['특수입지', r => ssOf(r.e.p).stage === 1 ? `1단계(${ssOf(r.e.p).type})` : ssOf(r.e.p).stage === 2 ? `2단계(${ssOf(r.e.p).type})` : '해당 없음'], ['담당', r => r.e.rule ? `${r.e.rule.dept} ${r.e.rule.team}` : ''], ['전화', r => r.e.rule?.phone || '']], T3.rows));
   $('#t3-table').addEventListener('click', e => {
     const th = e.target.closest('[data-sort]'); if (th) { const k = th.dataset.sort; T3.sort = T3.sort.k === k ? { k, dir: -T3.sort.dir } : { k, dir: k === 'score' || k === 'shops' || k === 'ratio' ? -1 : 1 }; t3Render(); return; }
     const b = e.target.closest('[data-open]');
@@ -3022,8 +3491,12 @@ function t3Render() {
   ].map(([c, i, v, l]) => `<div class="kpi"><span class="ic ${c}">${ic(i, 20)}</span><div><b>${fmt(v)}<small>개</small></b><span>${l}</span></div></div>`).join('');
 
   const vf = $('#d-verdict').value, minShops = +$('#d-shops').value || 0, met = $('#d-met').value, minScore = +$('#d-score').value || 0, fieldF = $('#d-field').value;
+  const spF = ($('#d-special') || {}).value || 'ex1';
   const vOk = vf === 'pass' ? ['pass'] : vf === 'cond' ? ['pass', 'cond'] : ['pass', 'cond', 'fail', 'na'];
-  let rows = regional.filter(r => vOk.includes(r.e.v) && r.e.nSmall >= minShops && r.pr.total >= minScore
+  /* 특수입지(1단계) — 지하철 역사·휴게소·대규모점포 구내는 기본으로 목록에서 빼 지상 상가 후보가 먼저 보이게 한다 */
+  const spPass = p => spF === 'all' ? true : spF === 'only1' ? ssOf(p).stage === 1 : ssOf(p).stage !== 1;
+  const nSp1 = regional.filter(r => ssOf(r.e.p).stage === 1).length;
+  let rows = regional.filter(r => spPass(r.e.p) && vOk.includes(r.e.v) && r.e.nSmall >= minShops && r.pr.total >= minScore
     && (!met || (met === 'Y' ? r.e.ratio >= 1 : !(r.e.ratio >= 1))) && (!fieldF || r.field === fieldF));
   rows = sortBy(rows, r => r.pr.total, -1).map((r, i) => ({ ...r, rank: i + 1 }));
   const vOrd = { pass: 0, cond: 1, fail: 2, na: 3 };
@@ -3032,7 +3505,7 @@ function t3Render() {
   T3.rows = rows;
   const size = UI.PAGE.disc, pages = Math.max(1, Math.ceil(rows.length / size)); T3.page = Math.min(T3.page, pages - 1);
   const slice = rows.slice(T3.page * size, (T3.page + 1) * size);
-  $('#t3-count').textContent = `${rows.length}개 후보 · 검토 면적 ${fmt(area)}㎡`;
+  $('#t3-count').textContent = `${rows.length}개 후보 · 검토 면적 ${fmt(area)}㎡${spF === 'ex1' ? ` · 특수입지 1단계 ${nSp1}곳 제외` : spF === 'only1' ? ' · 특수입지 1단계만 보는 중' : ' · 특수입지 포함'}`;
   const st = T3.sort;
   const CROWN = ['#D4A017', '#9AA5B1', '#B87333'];
   const SEG = [['rule', '#315F95', '지자체 기준'], ['density', '#6E9BD1', '밀집도'], ['zone', '#7357C9', '기존 구역·가맹'], ['form', '#25866B', '후보 형성 용이성'], ['trust', '#A3AFBF', '데이터 신뢰도']];
@@ -3044,7 +3517,7 @@ function t3Render() {
     ${slice.map(r => { const e = r.e, pct = e.ratio != null ? Math.round(e.ratio * 100) : null, col = VMETA[e.v].color;
       return `<tr class="click" data-row="${esc(e.p.id)}">
         <td><span class="crown">${r.rank <= 3 && T3.sort.k === 'score' && T3.sort.dir < 0 ? `<span style="color:${CROWN[r.rank - 1]}">${ic('crown', 16)}</span>` : '<span style="width:16px;display:inline-block"></span>'}${r.rank}</span></td>
-        <td><div class="cell2"><b>${esc(e.p.name)}</b> ${memberChip(e.p)}<small>${esc(e.p.id)} · ${esc(e.p.address)}</small></div></td>
+        <td><div class="cell2"><b>${esc(e.p.name)}</b> ${memberChip(e.p)} ${ssOf(e.p).stage === 1 ? '<span class="chip cf" title="지하철 역사·휴게소·대규모점포 구내 등 지정 제한 가능 입지">특수입지 1단계</span>' : ssOf(e.p).stage === 2 ? '<span class="chip a" title="건물·캠퍼스 내부(구내)는 지정이 어렵고, 외부 도로변(로드샵)이면 문제없습니다">구내·로드샵 확인</span>' : ''}<small>${esc(e.p.id)} · ${esc(e.p.address)}</small></div></td>
         <td>${esc(e.p.sido)} ${esc(e.p.sigungu)}</td>
         <td class="sep">${badge(e.v)}</td>
         <td>${pct != null ? `<b style="color:${col}">${pct}%</b><span class="minibar"><i style="width:${Math.min(e.ratio, 1.5) / 1.5 * 100}%;background:${col}"></i></span>` : '<span class="faint">—</span>'}</td>
@@ -3453,7 +3926,19 @@ function renderGuide() {
     <h4>${ic('warn', 15)}온누리 가맹 시 유의</h4>
     <ul>
       <li><b>본사 직영점</b>은 소상공인이 아니어서 온누리 가맹이 불가합니다(사업자등록번호 가운데 85 등)</li>
-      <li><b>법인 가맹점</b>은 2026.06 시행령 개정 기준, 동일 사업자 합산 직전 연도 매출(환전액) 30억 원 이하일 때만 가맹 가능합니다</li>
+      <li><b>법인 가맹점</b>은 2026.06 시행령 개정 기준, 동일 사업자 합산 직전 연도 매출(환전액) 30억 원(일 약 822만 원) 이하일 때만 가맹 가능합니다</li>
+    </ul>
+    <h4>${ic('pin', 15)}특수입지 — 지정이 제한되는 자리</h4>
+    <ul>
+      <li><b>1단계(지정 제한 가능)</b>: 지하철·철도 역사 구내(GS25S 점포), 고속도로·도로 휴게소, 백화점·대형마트 등 대규모점포 구내, 공항·터미널·항만·군부대·리조트·골프장 등 폐쇄·특수시설 구내 — 지하도상가·역 출구 밖 외부 로드샵은 예외</li>
+      <li><b>2단계(확인 필요)</b>: 대학·병원·오피스·공장·관공서 인접 — 캠퍼스·건물 내부(구내)면 지정이 어렵고, 정문 앞·도로변 로드샵이면 문제없습니다</li>
+      <li>탭 3은 1단계를 기본으로 빼고 보여줍니다(필터에서 포함 가능). 탭 1은 해당되면 판정 배너 아래에 주황색 경고를 띄웁니다.</li>
+    </ul>
+    <h4>${ic('clip', 15)}공무원 심사 기준 — 제한업종 분리</h4>
+    <ul>
+      <li>전통시장법 시행령 별표1 제한업종(병·의원, 일반교육, 부동산, 유원지·오락, 법무·회계·세무, 금융·보험, 동물병원)은 유효 상가 수에서 빠집니다</li>
+      <li><b>약국·의약품 소매는 2026.10 허용</b>되어 제외하지 않습니다. <b>주점</b>은 일반 호프와 유흥주점이 섬여 있어 '유흥 확인'으로 따로 셀니다</li>
+      <li>탭 1 판정 카드의 <b>[공무원 기준 보수적 추정]</b> 박스가 제한업종을 뺀 유효 상가 수와 충족률을 보여줍니다</li>
     </ul>
     <div class="callout">이 앱의 조례 DB는 <b>${fmt(k.rules)}곳</b>의 자치법규 원문을 반영했습니다. 최종 기준과 절차는 반드시 <b>관할 지자체 담당 부서</b>에 확인하세요 — 탭 1 판정 카드의 [후속 조치]에서 담당 부서·전화로 바로 연결됩니다.</div>`;
 }
@@ -3479,6 +3964,8 @@ function initViews() {
     if (un) { e.stopPropagation(); LS.set('fav', favList().filter(x => x.id !== un.dataset.unfav)); renderFav(); refreshBadges(); if (T1.ev) renderVerdict(T1.ev); toast('즐겨찾기에서 뺐습니다'); return; }
   });
   bind('#data-cards', 'click', e => { const b = e.target.closest('[data-dl]'); if (b) dataDownload(b.dataset.dl); });
+  bind('#report-print', 'click', () => reportPrint());
+  bind('#report-copy', 'click', () => reportCopy());
   bind('#recent-btn', 'click', e => {
     e.stopPropagation();
     const m = $('#recent-menu'); if (!m) return;
@@ -3575,8 +4062,8 @@ async function start() {
     if (st && st.dataset.store) { openStore(st.dataset.store); const pb = $('#pop-bell'); if (pb) pb.hidden = true; return; }
     if (t.closest('[data-guide]')) { renderGuide(); const g = $('#guide'); if (g) g.classList.add('open'); return; }
     if (t.closest('[data-close-drawer]') || t.id === 'guide') { const g = $('#guide'); if (g) g.classList.remove('open'); return; }
-    if (t.closest('[data-close]')) { const m = t.closest('.modal-bg'); if (m) m.classList.remove('open'); return; }
-    if (t.classList && t.classList.contains('modal-bg')) { t.classList.remove('open'); return; }
+    if (t.closest('[data-close]')) { const m = t.closest('.modal-bg'); if (m) m.classList.remove('open'); if (m && m.id === 'report' && typeof closeReport === 'function') document.body.classList.remove('report-open'); return; }
+    if (t.classList && t.classList.contains('modal-bg')) { t.classList.remove('open'); if (t.id === 'report') document.body.classList.remove('report-open'); return; }
   });
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
@@ -3587,6 +4074,7 @@ async function start() {
     const ha = $('#h-ac'); if (ha) ha.hidden = true;
     const md = $('#modal'); if (md) md.classList.remove('open');
     const dt = $('#detail'); if (dt) dt.classList.remove('open');
+    const rp = $('#report'); if (rp) { rp.classList.remove('open'); document.body.classList.remove('report-open'); }
   });
   let rz; window.addEventListener('resize', () => { clearTimeout(rz); rz = setTimeout(() => { if (!KMap.ready) { if (T1.ev) renderMap1(T1.ev); if ($('#view-db').classList.contains('active')) t2Map(); } }, 150); });
   t1Init(); t2Init(); t3Init(); importInit(); initViews(); renderRecent();
