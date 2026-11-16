@@ -1834,8 +1834,15 @@ function t1Max(on) {
 }
 
 function t1Match(q) {
-  q = q.trim().toLowerCase(); if (!q) return DB.stores.slice(0, 8).map(s => ({ kind: 'store', ...s }));
-  return DB.stores.filter(s => (s.name + ' ' + s.address + ' ' + s.sigungu + ' ' + s.id).toLowerCase().includes(q)).slice(0, 10).map(s => ({ kind: 'store', ...s }));
+  const raw = q.trim();
+  if (!raw) return DB.stores.slice(0, 8).map(s => ({ kind: 'store', ...s }));
+  const q0 = raw.toLowerCase(), nq = q0.replace(/\s+/g, '');
+  /* 점포명은 데이터에 'GS25기흥예현로점'처럼 띄어쓰기 없이 들어 있다. 사용자가 'GS25 기흥예현로점'처럼
+     띄어 써도 찾도록 공백을 지운 질의로 한 번 더 대조한다. */
+  return DB.stores.filter(s => {
+    const hay = (s.name + ' ' + s.address + ' ' + s.sigungu + ' ' + s.id).toLowerCase();
+    return hay.includes(q0) || (nq && hay.replace(/\s+/g, '').includes(nq));
+  }).slice(0, 10).map(s => ({ kind: 'store', ...s }));
 }
 function t1Suggest(show) { T1.results = t1Match($('#q').value); T1.ac = -1; if (show && document.activeElement === $('#q')) t1RenderAC(); }
 function t1RenderAC() {
@@ -1863,7 +1870,8 @@ async function t1Analyze() {
     }));
   }
   T1.results = res;
-  if (res.length === 1 || (res[0] && res[0].name.toLowerCase() === raw.toLowerCase())) t1Select(res[0]);
+  const norm = t => String(t || '').toLowerCase().replace(/\s+/g, '');
+  if (res.length === 1 || (res[0] && norm(res[0].name) === norm(raw))) t1Select(res[0]);
   else if (res.length) { $('#q').focus(); t1RenderAC(); }
   else toast(KMap.ready ? '검색 결과가 없습니다' : '일치하는 점포가 없습니다. 주소 지오코딩은 카카오 키 설정 후 사용할 수 있습니다.');
 }
@@ -3514,7 +3522,8 @@ function hRun() {
   if (!q) { switchView('check'); $('#q').focus(); return; }
   const res = t1Match(q);
   if (!res.length) { toast('일치하는 점포가 없습니다'); return; }
-  if (res.length === 1 || String(res[0].name).toLowerCase() === q.toLowerCase()) { openStore(res[0].id); return; }
+  const norm = t => String(t || '').toLowerCase().replace(/\s+/g, '');
+  if (res.length === 1 || norm(res[0].name) === norm(q)) { openStore(res[0].id); return; }
   hSuggest();
 }
 
