@@ -2118,6 +2118,12 @@ function pinFixKakao() {
       const best = cand[0];
       if (!best || !isFinite(best.lat)) continue;
       if (best.off < 5) { toast(`카카오 등록 좌표와 ${Math.round(best.off)}m 차이 — 이미 일치합니다`); return; }
+      /* 공단 등록 위치와 사실상 같은 좌표면 보정을 쌓지 않는다(0m 보정 표시 방지) */
+      if (dist(basePos(p), { lat: best.lat, lng: best.lng }) < 5) {
+        if (pinOf(p)) { clearPinOf(p); pinRefresh(e, '카카오 등록 좌표가 공단 등록 위치와 같습니다 — 보정을 해제했습니다'); }
+        else toast('카카오 등록 좌표가 공단 등록 위치와 이미 같습니다');
+        return;
+      }
       setPinAt(p, best.lat, best.lng);
       T1.pinMode = false;
       pinRefresh(e, `카카오 등록 좌표로 맞췄습니다 — ${Math.round(best.off)}m 이동 · ${best.name}`);
@@ -2950,7 +2956,7 @@ function buildReportHTML(e) {
     <tr><th>도면 총 면적</th><td>${fmt(Math.round(sim.area))}㎡ (꼭짓점 ${T1.poly.pts.length}개 · 신발끈 공식)</td><th>유효 면적</th><td>${fmt(Math.round(sim.eff))}㎡ (도로·주차장 제외 ${sim.excl}%)</td></tr>
     <tr><th>도면 내 상가(카카오)</th><td>${sim.nSmall}개 / 전체 ${sim.nAll}개 (제한업종 ${sim.nEx}건 ${sim.bizOn ? '제외' : '제외 안 함'})</td><th>공단 실측 환산</th><td>${sim.gongdan ? `${sim.gongdan.small}개 (상가 전체 ${sim.gongdan.all})` : '—'} — 공단 자료는 좌표가 없어 면적 비례 환산</td></tr>
     <tr><th>조례 필요 점포 수</th><td>${sim.required ?? '—'}개${sim.over ? ` (2,000㎡ 기준 ${sim.overInfo.thBase ?? '—'}개에서 상향)` : ''}</td><th>2,000㎡ 환산 밀도</th><td>${sim.per != null ? sim.per.toFixed(1) : '—'}개${sim.ratio != null ? ` (${Math.round(sim.ratio * 100)}%)` : ''}</td></tr>
-    <tr><th>도면 기준 재판정</th><td colspan="3"><b>${esc(sim.label)}</b>${sim.over ? ' — 도면 유효 면적이 2,000㎡를 넘어 2,000㎡ 이상 기준으로 상향해 비교했습니다.' : ''}</td></tr>
+    <tr><th>도면 기준 재판정</th><td colspan="3"><b>${esc(sim.label)}</b>${sim.over ? ' · 도면 유효 면적이 2,000㎡를 넘어 2,000㎡ 이상 기준으로 상향해 비교했습니다.' : ''}</td></tr>
   </table></div>` : ''}
   <h2>3. 제외·주의 업종 및 주변 상가 요약</h2>
   <div class="tblwrap"><table class="kv">
