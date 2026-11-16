@@ -1876,7 +1876,12 @@ function pinOf(p) {
   if (!p || !p.id) return null;
   if (PIN_MEM.has(p.id)) return PIN_MEM.get(p.id);
   const v = LS.get('pin:' + p.id);
-  const out = v && isFinite(v.lat) && isFinite(v.lng) ? { lat: +v.lat, lng: +v.lng } : null;
+  let out = v && isFinite(v.lat) && isFinite(v.lng) ? { lat: +v.lat, lng: +v.lng } : null;
+  /* 공단 등록 위치와 사실상 같은 좌표는 보정으로 치지 않고 조용히 지운다(0m 보정 칩이 남지 않게) */
+  if (out && dist(basePos(p), out) < 3) {
+    try { localStorage.removeItem('onnuri:pin:' + p.id); } catch (_) { /* storage unavailable */ }
+    out = null;
+  }
   PIN_MEM.set(p.id, out);
   return out;
 }
