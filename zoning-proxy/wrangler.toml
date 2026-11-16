@@ -1,0 +1,12 @@
+name = "onnuri-zoning"
+main = "worker.mjs"
+compatibility_date = "2026-11-16"
+
+[vars]
+SITE_ORIGIN = "https://kayla0401.github.io"
+VWORLD_DOMAIN = "https://kayla0401.github.io"
+
+[[ratelimits]]
+name = "LOOKUP_LIMIT"
+namespace_id = "1010"
+simple = { limit = 20, period = 60 }
