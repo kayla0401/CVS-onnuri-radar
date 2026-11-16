@@ -3371,7 +3371,7 @@ function buildReportHTML(e) {
     <tr><th>검토 구역</th><td>${fmt(e.area)}㎡ · 원형 환산 반경 ${Math.round(e.r)}m (${e.counts ? (e.counts.est ? '보간 추정' : '실측 프리셋') : '상가데이터 미수집'})</td><th>기존 상권</th><td>${zoneLine}</td></tr>
     <tr><th>조례 판정</th><td>${esc(e.label)} (${pct != null ? '충족률 ' + pct + '%' : '충족률 미상'})</td><th>온누리 가맹</th><td>${memberTxt}</td></tr>
     <tr><th>점포 운영 형태</th><td colspan="3">${esc(STORE_TYPE[g.st] || '미확인')} — ${esc(stc.txt)}</td></tr>
-    <tr><th>법적 용도지역</th><td colspan="3">점포 필지 ${pointTxt}</td></tr>
+    <tr><th>법적 용도지역</th><td colspan="3">점포 필지 ${pointTxt}${sim ? ` · 도면 혼합 ${esc(zoneTxt)}` : ''}</td></tr>
     <tr><th>특수입지 판정</th><td colspan="3">${ssTxt}</td></tr>
   </table></div>
   ${ss.stage === 1 ? `<div class="box"><b>주의(특수입지 1단계)</b> — ${esc(ss.why)} ${esc(ss.ex)}.</div>` : ''}
@@ -3393,7 +3393,6 @@ function buildReportHTML(e) {
     <tr><th>도면 내 상가(카카오)</th><td>${sim.nSmall}개 / 전체 ${sim.nAll}개 (제한업종 ${sim.nEx}건 ${sim.bizOn ? '제외' : '제외 안 함'})</td><th>공단 실측 환산</th><td>${sim.gongdan ? `${sim.gongdan.small}개 (상가 전체 ${sim.gongdan.all})` : '—'} — 공단 자료는 좌표가 없어 면적 비례 환산</td></tr>
     <tr><th>조례 필요 점포 수</th><td>${sim.required ?? '—'}개${sim.over ? ` (2,000㎡ 기준 ${sim.overInfo.thBase ?? '—'}개에서 상향)` : ''}</td><th>2,000㎡ 환산 밀도</th><td>${sim.per != null ? sim.per.toFixed(1) : '—'}개${sim.ratio != null ? ` (${Math.round(sim.ratio * 100)}%)` : ''}</td></tr>
     <tr><th>도면 기준 재판정</th><td colspan="3"><b>${esc(sim.label)}</b>${sim.over ? ' · 도면 유효 면적이 2,000㎡를 넘어 2,000㎡ 이상 기준으로 상향해 비교했습니다.' : ''}</td></tr>
-    <tr><th>용도지역 혼합</th><td colspan="3">${esc(zoneTxt)}</td></tr>
   </table></div>` : ''}
   <h2>3. 제외·주의 업종 및 주변 상가 요약</h2>
   <div class="tblwrap"><table class="kv">
