@@ -2714,12 +2714,15 @@ function t1RenderAC() {
 }
 function t1HideAC() { $('#ac').hidden = true; $('#q').setAttribute('aria-expanded', 'false'); }
 
+let searchRequestSequence = 0;
 async function t1Analyze() {
+  const request = ++searchRequestSequence;
   const raw = $('#q').value.trim();
   if (!raw) { $('#q').focus(); toast('분석할 점포명이나 주소를 입력해 주세요'); return; }
   let res = t1Match(raw);
   if (KMap.ready) {
     const g = await KMap.geocode(raw);
+    if (request !== searchRequestSequence || $('#q').value.trim() !== raw) return;
     res = res.concat(g.slice(0, 5).map(r => {
       const a = r.address || r.road_address || {};
       return { kind: 'addr', id: 'A:' + r.address_name, name: r.address_name, address: r.address_name, lat: +r.y, lng: +r.x, sido: normSido(a.region_1depth_name), sigungu: a.region_2depth_name || '' };
@@ -2733,6 +2736,7 @@ async function t1Analyze() {
 }
 
 function t1Select(p, noHist) {
+  ++searchRequestSequence; // 수동 선택 이후 도착한 이전 주소 검색은 무시한다.
   T1.sel = p; T1.hl = null; T1.page = 0; T1.filter = ''; T1.open = false; T1.pinMode = false;
   resetPolyState();                      /* 다른 점포를 열거나 같은 점포를 다시 분석해도 이전 도면은 지운다 */
   $('#q').value = p.name; $('#q-clear').hidden = false; t1HideAC(); t1Run();
@@ -3510,7 +3514,7 @@ function legalAxisHTML(e, bs) {
       <div class="cell"><div class="k">조례상 밀집도 제외</div><div class="v" style="font-size:13px">${esc((DENSITY_POLICIES[policy] || DENSITY_POLICIES.UNKNOWN).label)}</div><div class="r">${c.exclusion_effective_date ? esc(c.exclusion_effective_date) + ' 시행' : '시행일 미기재'}</div></div>
       <div class="cell"><div class="k">조례상 제외 점포</div>${exCell}</div>
       <div class="cell on"><div class="k">밀집도 인정 점포 / 필요</div><div class="v" style="color:${a.statusColor || 'var(--text-tertiary)'}">${range}<span class="faint" style="font-size:11px"> / ${need}개</span></div><div class="r">${a.requiredNon != null && a.requiredCom != null ? `상업 ${a.requiredCom} · 비상업 ${a.requiredNon}개` : `${fmt(e.base)}㎡ 기준`}</div></div>
-      <div class="cell"><div class="k">최종 판정</div><div class="v" style="font-size:13px;color:${a.statusColor || 'var(--text-tertiary)'}">${esc(a.statusLabel || '추가 확인 필요')}</div><div class="r">${esc(srcTxt)} · 실측 아님</div></div>
+      <div class="cell"><div class="k">법적 근거 확인 상태</div><div class="v" style="font-size:13px;color:${a.statusColor || 'var(--text-tertiary)'}">${esc(a.statusLabel || '추가 확인 필요')}</div><div class="r">${esc(srcTxt)} · 실측 아님</div></div>
     </div>
     <div class="note">${aNotes.map(x => '· ' + x).join('<br>')}${a.basis ? `<br>· 판정 근거: ${esc(a.basis)}` : ''}</div>
   </div>
@@ -3532,7 +3536,7 @@ function legalAxisHTML(e, bs) {
     <div class="grid">
       <div class="cell"><div class="k">상인 동의율</div><div class="v">${ratio ? esc(ratio) : '—'}<small> 이상</small></div><div class="r">${ownerWaived === true ? '토지·건축물 소유자 동의 불요' : ownerWaived === false ? '소유자 동의 필요' : '소유자 동의 요건 미기재'}</div></div>
       <div class="cell"><div class="k">동의 분모</div><div class="v" style="font-size:12.5px">${esc(CONSENT_BASIS[denom] || CONSENT_BASIS.UNKNOWN)}</div><div class="r">${denom === 'UNKNOWN' ? '지자체 확인 필요' : '조례 기준'}</div></div>
-      <div class="cell"><div class="k">충돌 경고</div><div class="v" style="font-size:12.5px;color:${c.rule_conflict_flag ? 'var(--danger)' : 'var(--text-secondary)'}">${c.rule_conflict_flag ? '확인 필요' : '없음'}</div><div class="r">${c.rule_conflict_flag ? '유권해석 전 확정 불가' : '조례·시행규칙 일치 확인'}</div></div>
+      <div class="cell"><div class="k">충돌 경고</div><div class="v" style="font-size:12.5px;color:${c.rule_conflict_flag ? 'var(--danger)' : 'var(--text-secondary)'}">${c.rule_conflict_flag ? '확인 필요' : '없음'}</div><div class="r">${c.rule_conflict_flag ? '유권해석 전 확정 불가' : '등록된 충돌 없음 · 조문 대조 별도 확인'}</div></div>
       <div class="cell"><div class="k">담당 부서</div><div class="v" style="font-size:12.5px">${esc((c.dept || '미확인') + (c.team ? ' ' + c.team : ''))}</div><div class="r">${esc(c.phone || '연락처 미등록')}</div></div>
     </div>
     <div class="note">${cNotes.length ? cNotes.map(x => '· ' + x).join('<br>') + '<br>' : ''}· 상인회 설립 동의율(시행규칙 제12조, 상인 수 구간별 1/2·1/3·1/4)과 지정 신청 동의율(조례)은 별개입니다.<br>· 담당 부서·연락처는 조례 DB 기준 — 인사이동 시 재확인하세요.</div>
@@ -3546,7 +3550,7 @@ function bizBoxHTML(e, bs) {
 
 function circleHintHTML() {
   return `<div class="hintline">${ic('info', 15)}
-    <span>원형 반경은 <b>대로 건너편·블록 밖 상가</b>까지 포함될 수 있고, 한 건물의 여러 호실이 중복 집계됩니다. 실제 심사 구역처럼 도면으로 확인하려면 <b>구역 직접 그리기</b>를 쓰세요.</span>
+    <span>원형 반경은 <b>대로 건너편·블록 밖 상가</b>까지 포함될 수 있고, 동일 점포가 중복 등록되어 있을 수 있습니다. 실제 심사 구역처럼 도면으로 확인하려면 <b>구역 직접 그리기</b>를 쓰세요.</span>
     <button class="btn sm" id="v-draw-go">${ic('pin', 13)}구역 직접 그리기</button></div>`;
 }
 
@@ -3795,7 +3799,7 @@ function buildReportHTML(e) {
     : '해당 없음 — 일반 도로변 상가';
   const drawTxt = sim
     ? `총 ${fmt(Math.round(sim.area))}㎡ · 유효 ${fmt(Math.round(sim.eff))}㎡(제외율 가정 ${sim.excl}%) · 카카오 발견 ${sim.nSmall}개 · 참고 환산 ${sim.per != null ? sim.per.toFixed(1) : '—'}개${sim.ratio != null ? ` (최소 점포수 대비 ${Math.round(sim.ratio * 100)}%)` : ''} · ${esc(sim.label)} · 공단 원형 추정 ${sim.gongdan ? sim.gongdan.small : '—'}개${sim.over ? ' · 기준면적 초과 규칙 별도 검증 필요' : ''}`
-    : '미작성 — [구역 직접 그리기]에서 도면을 그리면 공무원 실측과 가장 가까운 수치가 나옴';
+    : '미작성 — [구역 직접 그리기]에서 후보 경계를 지정하면 참고 면적과 점포 수를 확인할 수 있음. 현장 실측과는 다름';
   const xcTxt = xc
     ? `영업 확실 ${xc.both.length + xc.dups.length}건 · 폐업 의심 ${xc.suspect.length}건 · 신규 후보 ${xc.fresh.length}건 (공단 ${xc.rowTotal}건 ↔ 카카오 ${xc.inR}건)`
     : '미실행 — C구역 [실시간 카카오 조회]로 폐업·신규 누락을 확인할 수 있음';
@@ -3814,7 +3818,7 @@ function buildReportHTML(e) {
   const s2 = [
     `원형 반경 ${Math.round(e.r)}m(${fmt(e.area)}㎡)는 추정값 — 지번·도로 중심으로 <b>구역 경계를 직접 그려</b> 면적을 확정`,
     '구역 안 점포를 한 집씩 현장 확인: 폐업·임대 빈 점포, 실제 업종(유흥주점 여부), 건물 내부·외부(구내·로드샵) 구분',
-    `대로 건너편·블록 밖 상가는 구역에서 빼고, 같은 건물 여러 호실은 1개 점포로 합산`,
+    `신청 구역 경계와 실제 영업 점포를 확인하고, 동일 점포의 중복 등록만 정리. 같은 건물의 독립된 점포를 일괄 합산하지 않음`,
   ];
   if (r && r.excludes_road_parking === true) s2.push('조례상 도로·주차장 공용면적을 뺄 수 있는 시군구다 — 심의 전 제외 면적·비율을 담당자와 미리 합의');
   const s3 = [
@@ -3871,11 +3875,11 @@ function buildReportHTML(e) {
       <td>${r && r.rule_conflict_flag ? '<b style="color:var(--danger)">조례·시행규칙 충돌 확인 필요</b>' : '조례 기준'}<br><span class="faint">담당 ${r && r.dept ? esc(r.dept) : '미확인'}${r && r.phone ? ' · ' + esc(r.phone) : ''}</span></td></tr>
     <tr><td>도로·주차장 공용면적</td><td colspan="3">${esc(g.areaRule)}</td></tr>
     <tr><td>기존 상권 중복</td><td colspan="3">${zoneLine}</td></tr>
-    <tr><td>직접 그린 도면 실측</td><td colspan="3">${drawTxt}</td></tr>
+    <tr><td>직접 그린 후보 구역 · 참고 집계</td><td colspan="3">${drawTxt}</td></tr>
     <tr><td>카카오 교차검증</td><td colspan="3">${xcTxt}</td></tr>
   </table></div>
 
-  ${sim ? `<h2>2-1. 직접 그린 도면 실측 · 재판정</h2>
+  ${sim ? `<h2>2-1. 직접 그린 후보 구역 · 참고 집계 · 재판정</h2>
   <div class="tblwrap"><table class="kv">
     <tr><th>도면 총 면적</th><td>${fmt(Math.round(sim.area))}㎡ (꼭짓점 ${T1.poly.pts.length}개 · 신발끈 공식)</td><th>유효 면적</th><td>${fmt(Math.round(sim.eff))}㎡ (도로·주차장 제외 ${sim.excl}%)</td></tr>
     <tr><th>도면 내 상가(카카오)</th><td>${sim.nSmall}개 / 전체 ${sim.nAll}개 (밀집도 인정 ${sim.nDensity}개 · 조례상 제외 ${(DENSITY_POLICIES[sim.policy] || DENSITY_POLICIES.UNKNOWN).label}${sim.policy === 'UNKNOWN' ? ` → ${sim.nDensityLo}~${sim.nDensityHi}개` : ` · 가맹 제한 의심 ${sim.nEx}건`}${sim.nNonSmall ? ` · 소상공인 아님 ${sim.nNonSmall}건` : ''})</td><th>공단 실측 환산</th><td>${sim.gongdan ? `${sim.gongdan.small}개 (상가 전체 ${sim.gongdan.all})` : '—'} — 공단 자료는 좌표가 없어 면적 비례 환산</td></tr>
