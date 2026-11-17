@@ -6114,6 +6114,8 @@ function rebuild() {
   buildDB(RAW); EVC.clear(); EKVC.clear(); invalidateKPI(); t2Build();
   if (DB.memberIdx) DB.memberMatched = applyMemberMatch(DB.stores, DB.memberIdx);
   updateHeader(); updateNavKPI();
+  /* 홈이 기본 화면이므로, 가맹 색인 로딩을 기다리는 동안에도 KPI 카드를 먼저 그려 둔다(계산 중 표시) */
+  if (APPX.view === 'home') renderHome();
   if (T1.sel && T1.sel.kind === 'store') { const s = DB.stores.find(x => x.id === T1.sel.id); T1.sel = s ? { kind: 'store', ...s } : null; }
   T1.sel ? t1Run() : t1RenderEmpty();
   T3.dirty = true;
