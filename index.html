@@ -3805,7 +3805,7 @@ function buildReportHTML(e) {
   return `
   <h1>골목형상점가 지정 사전검토 리포트</h1>
   <div class="sub">${esc(p.name)} · ${esc(p.address)} · 분석 기준일 ${today} · 온누리 레이더</div>
-  <div class="box"><b>${esc(hv.full)}</b> — ${esc(hv.sub)}<br><span class="faint">수학적 범위 판정: 상한 ${hv.maxShops == null ? '—' : hv.maxShops}개(업종 제외 0건) · 하한 ${hv.minShops == null ? '—' : hv.minShops}개(조례 제외 최대 반영) · 기준 ${hv.reqLow == null ? '—' : hv.reqLow === hv.reqHigh ? hv.reqLow + '개' : hv.reqLow + '~' + hv.reqHigh + '개'}. A축 카드의 조문 확인 결과와 함께 읽으세요.</span></div>
+  <div class="box"><b>${esc(hv.full)}</b> — ${esc(hv.sub)}<br><span class="faint">수학적 범위 판정: 상한 ${hv.maxShops == null ? '미수집' : hv.maxShops + '개'}(업종 제외 0건) · 하한 ${hv.minShops == null ? '미수집' : hv.minShops + '개'}(조례 제외 최대 반영) · 기준 ${hv.reqLow == null ? '미상' : hv.reqLow === hv.reqHigh ? hv.reqLow + '개' : hv.reqLow + '~' + hv.reqHigh + '개'}. A축 카드의 조문 확인 결과와 함께 읽으세요.</span></div>
   <h2>1. 기본 현황</h2>
   <div class="tblwrap"><table class="kv">
     <tr><th>점포명</th><td colspan="3"><b>${esc(p.name)}</b>${p.kind === 'store' ? ` (점포코드 ${esc(p.id)})` : ''} · ${esc(p.sido)} ${esc(p.sigungu)}</td></tr>
