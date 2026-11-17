@@ -141,6 +141,122 @@ test('카카오 45건 상한 대응이 코드에 있다(3페이지·분할 조�
   assert.ok(sum.includes('45건 상한') && sum.includes('sweep.added'));
 });
 
+/* ── 망포센트럴점 라이브 검증에서 확인된 7개 실제 사례 — 영문 음차·업종 꼬리말·과목 수식어 ───── */
+const xcGrp = new Function(section('const XC_NONSHOP', 'function xcCompute(') + '\n' + section('const KW_MAX_TARGETS', 'async function xcKeywordPass') + ';return {xcPairScore,xcNorm,xcNormKo,xcBizGroup,xcGroupStub,xcGroupScore,xcGroupSpan,xcKeywordTerms};')();
+for (const [a, b, note] of [
+  ['아가페미용실', '아가페헤어샵', '미용 계열 꼬리말 차이'],
+  ['수원바디온필라테스', '수원 바디온필라테스 망포점', '지점명·띄어쓰기'],
+  ['에이앤아이영어교습소', 'A&I영어교습소', '한글↔영문 이니셜'],
+  ['이알씨영어독서클럽수원망포대선초점영어교습소', 'ERC영어독서클럽 수원망포대선초점', '한글↔영문 이니셜 + 긴 지점명'],
+  ['망포플레이팩토창의수학교습소', '플레이팩토 창의수학놀이터', '앞 지명 + 뒤 수식어 차이'],
+  ['뮤엠영어망포영어교습소', '뮤엠영어폴리오국어논술 망포학원', '과목 수식어 차이'],
+  ['이투스수학신영통학원', '이투스영수학원', '과목·동네명 차이'],
+]) {
+  const sc = xcGrp.xcPairScore(a, b);
+  test(`교차검증 강화 매칭: ${a} ↔ ${b} (${note})`, () => assert.ok(sc >= .6, `점수 ${sc.toFixed(2)}`));
+}
+test('영문 표기를 한글 발음으로 읽어 같은 상호로 본다', () => {
+  assert.equal(xcGrp.xcNormKo('A&I영어교습소'), xcGrp.xcNormKo('에이앤아이영어교습소'));
+  assert.equal(xcGrp.xcNormKo('ERC영어독서클럽'), xcGrp.xcNormKo('이알씨영어독서클럽'));
+  assert.notEqual(xcGrp.xcNormKo('GS25고양본점'), xcGrp.xcNormKo('GS25대전성남점'));
+  /* 영문 음차가 우연히 겹치는 짧은 브랜드는 붙이지 않는다(라이브 데이터에서 나온 실제 오탐 사례) */
+  assert.ok(xcGrp.xcPairScore('광교SK뷰공인중개사사무소', '에스케이뷰') < .6);
+  assert.ok(xcGrp.xcPairScore('BBMC헬스클럽', 'BBMS헬스클럽') < .6);
+  assert.ok(xcGrp.xcPairScore('광교라온수학학원', '광교라온스터디카페') < .6);
+});
+test('업종 꼬리말 계열은 다르게 둔다(내과↔치과·부동산↔세탁소 가드 유지)', () => {
+  assert.equal(xcGrp.xcBizGroup('굿모닝내과의원'), null);
+  assert.equal(xcGrp.xcBizGroup('굿모닝치과'), null);
+  assert.notEqual(xcGrp.xcBizGroup('아가페미용실'), xcGrp.xcBizGroup('맑은아침세탁소'));
+  for (const [a, b] of [['굿모닝내과의원', '굿모닝치과'], ['서울굿모닝내과의원', '서울굿모닝치과'],
+    ['맑은아침공인중개사', '맑은아침세탁소'], ['중앙학원', '중앙의원'], ['중앙영어학원', '중앙수학학원'],
+    ['한솔수학학원', '한솔영어학원'], ['중앙', '중앙식당'], ['중앙', '중앙학원']]) {
+    assert.ok(xcGrp.xcPairScore(a, b) < .6, `${a} ↔ ${b}`);
+  }
+});
+test('계열 매칭은 같은 건물 안 오매칭을 막기 위해 거리를 좀게 건다', () => {
+  assert.equal(xcGrp.xcGroupSpan('아가페미용실', '아가페헤어샵'), 20);
+  assert.equal(xcGrp.xcGroupSpan('이투스수학신영통학원', '이투스영수학원'), 25);
+  assert.equal(xcGrp.xcGroupSpan('굿모닝내과의원', '굿모닝치과'), 0);
+});
+test('키워드 검색어는 원 상호 → 업종 꼬리를 뗸 핵심 상호 순서로 만든다', () => {
+  assert.deepEqual(xcGrp.xcKeywordTerms('아가페미용실'), ['아가페미용실', '아가페']);
+  const t = xcGrp.xcKeywordTerms('뮤엠영어망포영어교습소');
+  assert.equal(t[0], '뮤엠영어망포영어교습소');
+  assert.equal(t[1], '뮤엠영어망포영어');
+  assert.equal(xcGrp.xcKeywordTerms('중').length, 0, '1글자 검색은 하지 않는다');
+  assert.ok(xcGrp.xcKeywordTerms('아가페미용실').length <= 2, '점포당 최대 2회');
+});
+test('폐업 의심 단정 라벨을 카카오 미확인으로 바꿨다', () => {
+  const sum = section('function xcSummaryHTML', 'function liveBlock');
+  assert.ok(sum.includes('카카오 미확인') && sum.includes('kw.added'));
+  assert.ok(!/>폐업 의심/.test(html), '칩·표에 폐업 의심 단정 라벨이 남아 있으면 안 된다');
+  assert.ok(!html.includes('폐업 의심 제외') && !html.includes('폐업·미확인 의심'));
+});
+/* 2차 상호 키워드 재조회 — 업종 코드 밖 점포를 상호로 다시 찾아 합치는지 실측 */
+test('2차 상호 키워드 재조회가 미매칭 점포만 조회해 결과를 합친다', async () => {
+  const src = section('let liveRequestSequence', 'function noteBox');
+  const kw = [], renders = [];
+  const e = { p: { id: 'M' }, pos: { lat: 37, lng: 127 }, r: 25 };
+  const kwCallbacks = [];
+  const ctx2 = {
+    APP: {}, T1: { ev: e, poly: { on: false, pts: [] } }, T3: { dirty: false }, KMap: { ready: true },
+    KAKAO_GROUPS: [['CS2', '편의점']], UI: { EDGE: 1.15 },
+    t1ShopRows: () => [{ s: { id: 'r1', name: '아가페미용실', category: '미용실' }, d: 12 },
+      { s: { id: 'r2', name: '이미있음', category: '편의점' }, d: 15 }],
+    xcPairScore: (a, b) => (a === '이미있음' && b === '이미있음' ? 1 : 0),
+    posOf: p => p, renderShops: () => renders.push(1), renderMap1() {}, renderVerdict() {},
+    renderPolyCard() {}, syncDrawBar() {}, toast() {},
+    kakao: { maps: { LatLng: function (lat, lng) { this.lat = lat; this.lng = lng; }, services: {
+      Places: function () {
+        this.categorySearch = (c, fn) => fn([{ id: 'p1', place_name: '이미있음', x: '127', y: '37' }], 'OK');
+        this.keywordSearch = (q, fn) => { kw.push(q); kwCallbacks.push(fn); };
+      }, Status: { OK: 'OK' }, SortBy: { DISTANCE: 1 } } } },
+  };
+  vm.createContext(ctx2); vm.runInContext(src, ctx2);
+  const p = ctx2.t1Live(e);
+  const tick = () => new Promise(r => setTimeout(r, 5));
+  await tick();
+  assert.deepEqual(kw, ['아가페미용실'], '미매칭 1곳만, 원 상호부터 조회한다');
+  kwCallbacks.shift()([{ id: 'k1', place_name: '아가페헤어샵', category_name: '가정,생활 > 미용실', x: '127.0002', y: '37.0001', road_address_name: '수원시 팔달구' }], 'OK');
+  await tick();
+  assert.deepEqual(kw, ['아가페미용실', '아가페'], '결과가 없거나 부족하면 업종 꼬리를 뗸 핵심 상호로 한 번 더');
+  kwCallbacks.shift()([{ id: 'k1', place_name: '아가페헤어샵', category_name: '가정,생활 > 미용실', x: '127.0002', y: '37.0001', road_address_name: '수원시 팔달구' }], 'OK');
+  await p;
+  assert.equal(ctx2.APP.live.state, 'ok');
+  const kh = ctx2.APP.live.places.find(x => x.name === '아가페헤어샵');
+  assert.ok(kh && kh.via === 'kw', '키워드로 찾은 장소는 via kw 로 들어간다');
+  assert.equal(ctx2.APP.live.kw.added, 1);
+  assert.equal(ctx2.APP.live.kw.targets, 1);
+  assert.equal(ctx2.APP.live.places.filter(x => x.name === '아가페헤어샵').length, 1, '중복 합치기');
+});
+test('키워드 2차 조회 결과도 오래된 요청이면 버린다', async () => {
+  const src = section('let liveRequestSequence', 'function noteBox');
+  const kwCallbacks = [];
+  const e = { p: { id: 'X' }, pos: { lat: 37, lng: 127 }, r: 25 };
+  const ctx3 = {
+    APP: {}, T1: { ev: e, poly: { on: false, pts: [] } }, T3: { dirty: false }, KMap: { ready: true },
+    KAKAO_GROUPS: [['CS2', '편의점']], UI: { EDGE: 1.15 },
+    t1ShopRows: () => [{ s: { id: 'r1', name: '아가페미용실', category: '미용실' }, d: 12 }],
+    xcPairScore: () => 0, posOf: p => p, renderShops() {}, renderMap1() {}, renderVerdict() {},
+    renderPolyCard() {}, syncDrawBar() {}, toast() {},
+    kakao: { maps: { LatLng: function () {}, services: {
+      Places: function () {
+        this.categorySearch = (c, fn) => fn([{ id: 'p1', place_name: '어떤가게', x: '127', y: '37' }], 'OK');
+        this.keywordSearch = (q, fn) => kwCallbacks.push(fn);
+      }, Status: { OK: 'OK' }, SortBy: { DISTANCE: 1 } } } },
+  };
+  vm.createContext(ctx3); vm.runInContext(src, ctx3);
+  const p = ctx3.t1Live(e);
+  await new Promise(r => setTimeout(r, 5));
+  ctx3.T1.ev = { ...e, p: { id: 'Y' } };            /* 다른 점포·다른 구역으로 바뀜 */
+  kwCallbacks.forEach(fn => fn([{ id: 'k9', place_name: '늦게온가게', x: '127.001', y: '37.001' }], 'OK'));
+  await p;
+  assert.equal(ctx3.APP.live.key, 'X');
+  assert.equal(ctx3.APP.live.state, 'loading', '늦은 키워드 응답으로 결과를 확정하지 않는다');
+  assert.ok(!ctx3.APP.live.places.some(x => x.name === '늦게온가게'));
+});
+
 /* ── 이미 지정 구역 내 점포는 '신규 후보'에서 뺀다 ─────────────────────────── */
 test('상단 KPI·탭3 가 이미 지정 구역 내 점포를 후보에서 제외한다', () => {
   const kpi = section('function computeKPI() {', 'function updateNavKPI(');
