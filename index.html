@@ -794,6 +794,7 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
     <button class="nav-item" data-view="rules" aria-selected="false"><span data-i="book"></span>조례 기준 관리<span class="nb" id="nb-rules" hidden></span></button>
     <button class="nav-item" data-view="fav" aria-selected="false"><span data-i="star"></span>즐겨찾기<span class="nb" id="nb-fav" hidden></span></button>
     <button class="nav-item" data-view="data" aria-selected="false"><span data-i="down"></span>데이터 다운로드</button>
+    <button class="nav-item" data-view="feedback" aria-selected="false"><span data-i="doc"></span>오류 제보·문의</button>
 
     <div class="side-foot">
       <button class="guide-card" data-guide>
@@ -1134,6 +1135,21 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
             <div class="card-b"><div class="srcs" id="data-sources"></div></div>
           </div>
         </div>
+      </section>
+      <section class="view" id="view-feedback" role="tabpanel">
+        <div class="pagewrap"><div class="card">
+          <div class="card-h"><h3>오류 제보·문의</h3></div>
+          <form class="card-b" id="feedback-form">
+            <p>이상한 결과나 개선할 점을 알려주세요. 관련 점포와 조회 정보를 함께 전달할 수 있습니다.</p>
+            <div class="callout">GitHub 공개 문의로 등록됩니다. GitHub 로그인이 필요하며, 전화번호·이메일·고객 개인정보는 적지 마세요. 답변은 등록한 문의에서 확인할 수 있습니다.</div>
+            <div class="field"><label for="feedback-type">문의 유형</label><select class="select" id="feedback-type"><option>오류 제보</option><option>데이터 수정 요청</option><option>사용 문의</option><option>개선 제안</option></select></div>
+            <div class="field"><label for="feedback-content">어떤 부분이 이상하거나 궁금한가요?</label><textarea class="input" id="feedback-content" required maxlength="1500" rows="6" style="height:auto;width:100%" placeholder="예: 비상업지역으로 조회됐는데 위에는 미확인으로 나와요."></textarea></div>
+            <div class="field"><label><input type="checkbox" id="feedback-include" checked> 현재 점포·조회 정보 함께 전달</label><pre id="feedback-context" style="white-space:pre-wrap;overflow-wrap:anywhere;max-height:280px;overflow:auto"></pre></div>
+            <p class="faint">사진은 다음 GitHub 등록 화면에서 첨부할 수 있습니다. 아래 버튼은 등록 화면을 여는 단계이며, GitHub에서 최종 등록해야 접수됩니다. 등록 후 표시되는 이슈 번호가 접수번호입니다.</p>
+            <div class="acts" style="flex-wrap:wrap"><button class="btn primary" type="submit">내용 확인 후 GitHub에서 등록 ↗</button><button class="btn" type="button" id="feedback-copy">문의 내용 복사</button><a class="btn" href="https://github.com/kayla0401/CVS-onnuri-radar/issues" target="_blank" rel="noopener noreferrer">문의·답변 목록 ↗</a></div>
+            <p id="feedback-status" role="status" aria-live="polite"></p>
+          </form>
+        </div></div>
       </section>
     </main>
   </div>
@@ -3639,6 +3655,7 @@ function renderVerdict(e) {
     </div>
     <div class="callout" style="margin:12px 16px"><b>점포 위치: ${gis?.status === 'ok' ? esc(gisType) + ' · ' + esc((gis.names || []).join(' · ')) : '용도지역 확인 필요'}</b><br>신청 구역 전체: 별도 확인 필요 — 점포 한 필지의 조회 결과를 구역 전체에 적용하지 않습니다.${zoneKind && gis?.status === 'ok' && zoneKind !== gis.kind ? '<br><b>수동 기록과 자동조회 결과가 다릅니다. 원문을 확인해 주세요.</b>' : ''}</div>
     <div class="callout" style="margin:12px 16px"><b>현장 방문 전 확인할 사항</b><ul>${fieldNextSteps(e).map(x => `<li>${esc(x)}</li>`).join('')}</ul>이 결과는 실사 후보 선별을 위한 사전검토입니다. 지정 승인이나 온누리 가맹을 확정하지 않습니다.</div>
+    <div style="padding:8px 16px"><button class="btn ghost sm" data-view="feedback">이 결과가 이상한가요? 오류 제보 ↗</button></div>
     ${specialSiteHTML(ss, e)}
     <div class="m3">
       <div><div class="k">적용 조례</div><div class="v" title="${r ? esc(r.ordinance) : esc(NAT_RULE.ordinance)}">${ruleName}</div></div>
@@ -4872,7 +4889,7 @@ function importInit() { const b = $('#btn-import'); if (b) b.style.display = 'no
 /* #####################################################################
    11b. 뷰 라우팅 · 홈 · 히스토리 · 조례 관리 · 즐겨찾기 · 다운로드
    ##################################################################### */
-const VIEWS = ['check', 'db', 'discover', 'home', 'history', 'rules', 'fav', 'data'];
+const VIEWS = ['check', 'db', 'discover', 'home', 'history', 'rules', 'fav', 'data', 'feedback'];
 const VIEW_META = {
   home: ['홈', '오늘의 온누리 적격 판별 현황을 한눈에 확인합니다.'],
   check: ['점포 적격 판별', '특정 점포의 골목형상점가 지정 가능성을 빠르게 분석합니다.'],
@@ -4881,6 +4898,7 @@ const VIEW_META = {
   history: ['분석 히스토리', '최근 분석한 점포를 다시 열어 바로 분석합니다.'],
   rules: ['조례 기준 관리', '지자체별 골목형상점가 조례 기준과 담당 부서를 확인합니다.'],
   fav: ['즐겨찾기', '저장한 점포를 바로 분석합니다.'],
+  feedback: ['오류 제보·문의', '조회 오류, 데이터 수정, 사용 문의와 개선 의견을 전달합니다.'],
   data: ['데이터 다운로드', '분석에 쓰는 실데이터셋을 내려받습니다.'],
 };
 const APPX = { view: 'check', k: null };
@@ -4996,6 +5014,7 @@ function switchView(v) {
     if (v === 'rules') renderRules();
     if (v === 'fav') renderFav();
     if (v === 'data') renderData();
+    if (v === 'feedback') renderFeedback();
   });
 }
 
@@ -5275,8 +5294,54 @@ function renderGuide() {
     <div class="callout">이 앱의 조례 DB는 <b>${fmt(k.rules)}곳</b>의 자치법규 원문을 반영했습니다. 최종 기준과 절차는 반드시 <b>관할 지자체 담당 부서</b>에 확인하세요 — 탭 1 판정 카드의 [후속 조치]에서 담당 부서·전화로 바로 연결됩니다.</div>`;
 }
 
+/* ---------- 오류 제보: 사용자가 최종 제출하는 공개 GitHub 문의 ---------- */
+const FEEDBACK_VERSION = 'feedback-2026.11.17';
+function renderFeedback() {
+  const e = T1.ev, gis = e ? ZONE_GIS.get(e.p) : null;
+  const zone = e ? LS.get('zoning:' + e.p.id, {type:''}) : null;
+  const kind = k => ({commercial:'상업지역', noncommercial:'비상업지역'}[k] || '미확인');
+  const lines = e ? [
+    '점포: ' + e.p.name, '주소: ' + (e.p.address || '미기재'),
+    '자동조회: ' + (gis?.status || '미조회') + ' / ' + kind(gis?.kind),
+    '용도지역: ' + (gis?.names || []).join(', '),
+    '조회 출처: ' + (gis?.source || '미확인'),
+    '수동 기록: ' + kind(zone?.type),
+    '적용 조례: ' + (e.rule?.ordinance || '미확인'),
+    '분석 면적: ' + e.area + '㎡ / 기준 면적: ' + e.base + '㎡',
+    '상업 기준: ' + (e.thCom ?? '미확인') + ' / 비상업 기준: ' + (e.thNon ?? '미확인'),
+    '현재 화면 판정: ' + ($('#t1-verdict .vb-t')?.textContent || '').trim()
+  ] : ['관련 점포: 선택 안 함 (일반 문의)'];
+  lines.push('앱 버전: ' + FEEDBACK_VERSION, '작성 시각: ' + new Date().toISOString());
+  $('#feedback-context').textContent = lines.join('\n');
+  $('#feedback-status').textContent = '';
+}
+function feedbackBody() {
+  return '## 문의 내용\n' + $('#feedback-content').value.trim()
+    + ($('#feedback-include').checked ? '\n\n## 조회 정보\n' + $('#feedback-context').textContent : '')
+    + '\n\n사진은 이 문의에 첨부해 주세요.';
+}
+function initFeedback() {
+  $('#feedback-form').addEventListener('submit', event => {
+    event.preventDefault();
+    const input = $('#feedback-content');
+    if (!input.value.trim()) { input.setCustomValidity('문의 내용을 입력해 주세요.'); input.reportValidity(); return; }
+    const title = '[' + $('#feedback-type').value + '] ' + input.value.trim().replace(/\s+/g, ' ').slice(0, 55);
+    const url = new URL('https://github.com/kayla0401/CVS-onnuri-radar/issues/new');
+    url.searchParams.set('title', title); url.searchParams.set('body', feedbackBody());
+    window.open(url.href, '_blank', 'noopener,noreferrer');
+    $('#feedback-status').textContent = '아직 접수되지 않았습니다. 열린 GitHub 화면에서 최종 등록해 주세요. 창이 열리지 않으면 내용을 복사한 뒤 문의·답변 목록에서 새 문의를 등록해 주세요.';
+  });
+  $('#feedback-content').addEventListener('input', e => e.target.setCustomValidity(''));
+  $('#feedback-include').addEventListener('change', e => { $('#feedback-context').hidden = !e.target.checked; });
+  $('#feedback-copy').addEventListener('click', async () => {
+    try { await navigator.clipboard.writeText(feedbackBody()); $('#feedback-status').textContent = '문의 내용을 복사했습니다. 아직 접수되지 않았습니다.'; }
+    catch { $('#feedback-status').textContent = '복사하지 못했습니다. 입력한 내용을 직접 선택해 복사해 주세요.'; }
+  });
+}
+
 /* ---------- 새 뷰 필터 바인딩 ---------- */
 function initViews() {
+  initFeedback();
   const bind = (sel, ev, fn) => { const el = $(sel); if (el) el.addEventListener(ev, fn); };
   bind('#r-q', 'input', e => { RULES.q = e.target.value.trim(); RULES.page = 0; renderRules(); });
   bind('#r-sido', 'change', e => { RULES.sido = e.target.value; RULES.page = 0; renderRules(); });
