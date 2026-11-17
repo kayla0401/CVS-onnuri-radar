@@ -134,7 +134,7 @@ function runTests(html, rules, stores) {
   lines.push('[6] 메인 배너 직관 판정(headlineVerdict) — 수학적 상한·하한');
   /* ① 명백한 미달: GS252테크노파크점(부천) 4개 / 25·20개 필요 · density UNKNOWN */
   const hvTech = headline({ population: 4, maxShops: 4, minShops: 4, reqCom: 25, reqNon: 20, policy: 'UNKNOWN' });
-  eq('테크노파크점 판정 = 조문 확인 필요', [hvTech.level, hvTech.cls, hvTech.emoji], ['FAIL', 'fail', '❌']);
+  eq('테크노파크점 판정 = 조문 확인 필요', [hvTech.level, hvTech.cls, hvTech.emoji], ['FAIL', 'fail', '🔴']);
   ok('테크노파크점 부제: 업종 제외와 무관한 점포 수 부족', /조문도 별도 확인/.test(hvTech.sub), hvTech.sub);
   ok('테크노파크점 부제에 현재/필요 개수', /현재 자료 4개/.test(hvTech.sub) && /20~25개/.test(hvTech.sub), hvTech.sub);
   /* ② 경계: 수원 망포센트럴점 20개 · 상업 25 / 비상업 20 · density NONE */
@@ -143,28 +143,28 @@ function runTests(html, rules, stores) {
   ok('망포센트럴점 부제: 비상업 충족·상업 5개 부족', /비상업\(20개\) 충족/.test(hvSuwon.sub) && /상업\(25개\)엔 5개 부족/.test(hvSuwon.sub), hvSuwon.sub);
   /* ③ 명백한 충족: 35/25 UNKNOWN */
   const hvPass = headline({ population: 35, maxShops: 35, minShops: 35, reqCom: 25, reqNon: null, policy: 'UNKNOWN' });
-  eq('35개라도 조문 미확인이면 통과 금지', [hvPass.level, hvPass.cls, hvPass.emoji], ['COND_LEGAL', 'cond', '⚠️']);
+  eq('35개라도 조문 미확인이면 통과 금지', [hvPass.level, hvPass.cls, hvPass.emoji], ['COND_LEGAL', 'cond', '🟡']);
   ok('충족 배너도 조문 미확인을 괄호로 병기', /조문 미확인/.test(hvPass.sub), hvPass.sub);
   /* ④ UNKNOWN 경계: 22~28개 / 25개 */
   const hvRange = headline({ population: 28, maxShops: 28, minShops: 22, reqCom: 25, reqNon: null, policy: 'UNKNOWN' });
   eq('22~28개 경계 = 가능성 있음 · 조문 확인', [hvRange.level, hvRange.cls], ['COND_LEGAL', 'cond']);
-  ok('경계 배너 제목에 조문 확인', /조문 확인/.test(hvRange.title), hvRange.title);
+  ok('경계 배너 제목에 조문 확인', hvRange.title === '조건부', hvRange.title);
   ok('경계 부제에 22~28개 범위와 갈림 설명', /집계 28개/.test(hvRange.sub) && /인정 점포 수 확인/.test(hvRange.sub), hvRange.sub);
   /* ⑤ 데이터 없음 */
   eq('숫자가 충분해도 조례 충돌이면 통과 금지', headline({population:35,minShops:35,maxShops:35,reqCom:25,policy:'NONE',conflict:true}).level, 'COND');
   eq('보간·표본 자료는 통과 금지', headline({population:35,minShops:35,maxShops:35,reqCom:25,policy:'NONE',evidenceLimited:true}).level, 'COND');
   eq('표본 부족은 현재 자료상 부족으로 구분', headline({population:4,minShops:0,maxShops:4,reqCom:25,policy:'NONE',evidenceLimited:true}).level, 'FAIL');
   const five = headline({population:5,maxShops:5,minShops:0,reqCom:25,reqNon:20,policy:'UNKNOWN',evidenceLimited:true});
-  eq('기흥예현로 5개는 현재 자료상 부족', five.title, '현재 자료상 점포 수 부족');
+  eq('기흥예현로 5개는 현재 자료상 부족', five.title, '부적합');
   ok('부족 15개와 자료 누락 확인을 함께 안내', /15개 부족/.test(five.sub) && /데이터 누락/.test(five.sub), five.sub);
   ok('시작 시 첫 점포 자동선택 제거', !html.includes('const first = DB.stores[0]'), '첫 점포 자동선택 없음');
   ok('빈 검색에서 임의 점포선택 제거', !html.includes('if (T1.results[0]) t1Select(T1.results[0])'), '빈 검색 안전');
   const hvNone = headline({ population: null, reqCom: 30, reqNon: null, policy: 'UNKNOWN' });
-  eq('상가 데이터 0건 = 데이터 없음(회색)', [hvNone.level, hvNone.cls, hvNone.emoji], ['NO_DATA', 'na', '🔍']);
+  eq('상가 데이터 0건 = 데이터 없음(회색)', [hvNone.level, hvNone.cls, hvNone.emoji], ['NO_DATA', 'cond', '🟡']);
   ok('데이터 없음 부제에 현장/카카오 확인 안내', /현장\/카카오|현장 확인/.test(hvNone.sub), hvNone.sub);
   /* ⑥ 기준 자체가 불확정 — 초과면적 미검증 */
   const hvBasis = headline({ population: 20, maxShops: 20, minShops: 20, reqCom: null, reqNon: null, policy: 'NONE', basisUnknown: '검토 면적 5,000㎡ 초과면적 계산식 미검증' });
-  eq('기준 불확정 = 기준 확인 필요', [hvBasis.level, hvBasis.title], ['BASIS', '기준 확인 필요']);
+  eq('기준 불확정 = 기준 확인 필요', [hvBasis.level, hvBasis.title], ['BASIS', '조건부']);
   ok('기준 확인 부제에 사유 한 줄', /초과면적 계산식 미검증/.test(hvBasis.sub), hvBasis.sub);
   /* ⑦ 조례·시행규칙 충돌(서해구) */
   const hvConflict = headline({ population: 18, maxShops: 18, minShops: 11, reqCom: 15, reqNon: null, policy: 'ALL_RESTRICTED', conflict: true, conflictSub: '조례(15개) vs 시행규칙(30개) 충돌 — 담당 부서 확인 필요' });
