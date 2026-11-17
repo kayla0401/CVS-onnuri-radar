@@ -680,9 +680,15 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
   .tbl th,.tbl td{padding:9px 6px;word-break:keep-all}
   .tbl th{white-space:normal}
   .tbl td.nw,.tbl th.nw{white-space:normal}
-  .tbl .cell2{min-width:132px}
+  .tbl .cell2{min-width:126px}
   .tbl .cell2 small{white-space:normal;overflow:visible;max-width:none;text-overflow:clip;word-break:keep-all;overflow-wrap:anywhere}
   .tbl .cell2 b{overflow-wrap:anywhere}
+  #history-body .tbl td:nth-child(3),#fav-body .tbl td:nth-child(3){min-width:58px}
+  /* 즐겨찾기 주소 열 — 한 글자씩 세로로 꺾이지 않게 최소 폭(넘치면 카드 안에서 옆으로 스크롤) */
+  #fav-body .tbl td:nth-child(2){min-width:132px}
+  /* 조례 표 — 기준 점포 수·완화 조건이 한 글자씩 세로로 꺾이지 않게 최소 폭을 준다 */
+  #rules-body .tbl td:nth-child(3),#rules-body .tbl th:nth-child(3){min-width:66px}
+  #rules-body .tbl td:nth-child(4),#rules-body .tbl th:nth-child(4){min-width:84px}
   .tbl td .btn.xs{padding:0 8px}
 }
 @media (max-width:520px){
