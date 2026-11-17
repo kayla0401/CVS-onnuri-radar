@@ -112,10 +112,10 @@ function runTests(html, rules) {
     sample: { n: 150, nEx: 12, nChk: 3, nNonSmall: 0, truncated: true, src: 'nearby' } });
   eq('표본 상한이면 추가 확인 필요(제외 규정 있는 조례)', trunc.status, 'NEEDS_CHECK');
   ok('표본 상한이면 범위로 표시(28~40)', trunc.rangeLo === 28 && trunc.rangeHi === 40, `${trunc.rangeLo}~${trunc.rangeHi}`);
-  const noneTrunc = assess({ rule: suwon, area: 2000, population: 24, thCom: 25, thNon: 20,
+  const noneTrunc = assess({ rule: suwon, area: 2000, population: 30, thCom: 25, thNon: 20,
     sample: { n: 150, nEx: 12, nChk: 3, nNonSmall: 1, truncated: true, src: 'nearby' } });
   eq('NONE 조례는 표본 상한과 무관하게 차감 없음', noneTrunc.excludedSample, 1);
-  ok('NONE 조례는 표본 상한이어도 판정을 보류하지 않음', noneTrunc.status !== 'NEEDS_CHECK', noneTrunc.status);
+  eq('NONE 조례는 표본 상한이어도 판정을 보류하지 않음(비소상공인 1건만 빼고 충족 추정)', noneTrunc.status, 'EST_PASS');
   eq('초과면적 미검증 수원시 3,000㎡ 는 보류(null)', req(suwon, 3000, 25), null);
   const noRule = assess({ rule: null, area: 2000, population: 10, thCom: 30, thNon: null, sample: { n: 10, nEx: 0, nChk: 0, nNonSmall: 0 } });
   eq('조례 미확인이면 법적 기준 미확인', noRule.status, 'LEGAL_UNVERIFIED');

@@ -2973,7 +2973,9 @@ function densityAssess(o) {
     /* 조문 미확인 — 조례가 별표 1 전체를 제외한다고 가정한 하한과, 전혀 빼지 않은 상한을 함께 보여준다 */
     out.rangeLo = Math.max(0, population - (sample.nEx || 0) - (sample.nNonSmall || 0));
     out.rangeHi = population;
-    setStatus('LEGAL_UNVERIFIED', `조례상 제외 업종을 확인하지 못해 ${out.rangeLo}~${out.rangeHi}개 범위로만 제시`);
+    setStatus('LEGAL_UNVERIFIED', out.rangeLo === out.rangeHi
+      ? `조례상 제외 업종을 확인하지 못해 ${out.rangeLo}개(제외 0건)로만 제시 — 조문 확인 필요`
+      : `조례상 제외 업종을 확인하지 못해 ${out.rangeLo}~${out.rangeHi}개 범위로만 제시`);
     return out;
   }
   if (area > baseArea && rule.over_area_verified !== true) { setStatus('LEGAL_UNVERIFIED', '초과면적 계산식 미검증'); return out; }
@@ -2989,10 +2991,11 @@ function densityAssess(o) {
   }
   if (policy !== 'NONE' && sample.nChk) { out.rangeLo = Math.max(0, shrunk - sample.nChk); out.rangeHi = shrunk; }
   if (shrunk >= (reqNon != null ? reqNon : reqMain)) {
-    const vsCom = reqCom != null && shrunk < reqCom;
-    setStatus('EST_PASS', vsCom
-      ? `비상업 기준 ${reqNon}개는 충족, 상업 기준 ${reqCom}개에는 ${reqCom - shrunk}개 부족 — 용도지역 확인 필요`
-      : `필요 ${reqMain}개 이상 확인`);
+    if (reqCom != null && shrunk < reqCom) {
+      setStatus('NEEDS_CHECK', `비상업 기준 ${reqNon}개는 충족하나 상업 기준 ${reqCom}개에는 ${reqCom - shrunk}개 부족 — 용도지역 확인 필요`);
+    } else {
+      setStatus('EST_PASS', `필요 ${reqMain}개 이상 확인`);
+    }
   } else {
     setStatus('EST_FAIL', `필요 ${need}개에 ${need - shrunk}개 부족(확인된 점포 기준)`);
   }
@@ -3332,8 +3335,10 @@ function legalAxisHTML(e, bs) {
   const range = (a.status === 'LEGAL_UNVERIFIED' && a.rangeLo != null && a.rangeHi != null && a.rangeLo !== a.rangeHi)
     ? `${a.rangeLo}~${a.rangeHi}<small>개</small>` : (eff == null ? '—' : `${eff}<small>개</small>`);
   const exCell = policy === 'UNKNOWN'
-    ? `<div class="v" style="color:var(--text-tertiary)">미확인</div><div class="r">확인된 표본 ${bs.nEx || 0}건 · 자동 차감 안 함</div>`
-    : `<div class="v" style="color:var(--warning)">−${a.excludedSample == null ? 0 : a.excludedSample}<small>건</small></div><div class="r">표본 ${bs.n || 0}건 중 확인분${bs.nNonSmall ? ` · 비소상공인 ${bs.nNonSmall}` : ''}</div>`;
+    ? `<div class="v" style="color:var(--text-tertiary)">미확인</div><div class="r">가맹 제한 의심 ${bs.nEx || 0}건 · 자동 차감 안 함</div>`
+    : policy === 'NONE'
+      ? `<div class="v" style="color:var(--text-secondary)">0<small>건</small></div><div class="r">조례상 업종 제외 없음 — 가맹 제한 의심 ${bs.nEx || 0}건도 포함</div>`
+      : `<div class="v" style="color:var(--warning)">−${a.excludedSample == null ? 0 : a.excludedSample}<small>건</small></div><div class="r">표본 ${bs.n || 0}건 중 확인분${bs.nNonSmall ? ` · 비소상공인 ${bs.nNonSmall}` : ''}</div>`;
   const srcTxt = bs.src === 'nearby' ? '공단 CSV(표본)' : bs.src === 'kakao' ? '카카오 대조(표본)' : '표본 없음';
   const aNotes = [`적용 면적 기준: <b>${esc(a.areaBasisLabel || AREA_BASIS.UNKNOWN)}</b> — 도면·반경 면적은 ${(a.areaBasis === 'SUM_OF_SHOP_AREA' || a.areaBasis === 'CHECK_REQUIRED') ? '그대로 대입할 수 없습니다' : '조례 표현과 대조 필요'}`];
   if (a.truncated) aNotes.push(`표본 상한 도달(${bs.n}건) — <b>표본 밖 점포는 확정할 수 없습니다</b>`);
@@ -3367,10 +3372,10 @@ function legalAxisHTML(e, bs) {
   <div class="conservative">
     <div class="ch"><b>B. 온누리상품권 가맹 적격성</b><span class="chip o">참고 · 밀집도와 별개</span><span class="chip s">별표 1 33종</span></div>
     <div class="grid">
-      <div class="cell"><div class="k">가맹 가능 업종</div><div class="v" style="color:var(--success)">${bs.ok ? gOk : '—'}<small>건${bs.ok ? ` / ${bs.n}` : ''}</small></div><div class="r">약국·의약품 소매 포함</div></div>
-      <div class="cell"><div class="k">가맹 제한 의심</div><div class="v" style="color:var(--warning)">${bs.ok ? gEx : '—'}<small>건</small></div><div class="r">${bs.ok ? esc((bs.exTop || []).slice(0, 3).map(([k, v]) => `${k} ${v}`).join(' · ') || '없음') : '집계 불가'}</div></div>
-      <div class="cell"><div class="k">조건부(주점 등)</div><div class="v">${bs.ok ? gChk : '—'}<small>건</small></div><div class="r">별표 1의2 소득기준 이하 예외 가능</div></div>
-      <div class="cell"><div class="k">소상공인 아님</div><div class="v">${bs.ok ? gNon : '—'}<small>건</small></div><div class="r">보건소·학교·공공기관 등</div></div>
+      <div class="cell"><div class="k">가맹 가능 업종</div><div class="v" style="color:var(--success)">${bs.ok ? gOk : '—'}<small>${bs.ok ? `건 / ${bs.n}` : ''}</small></div><div class="r">약국·의약품 소매 포함</div></div>
+      <div class="cell"><div class="k">가맹 제한 의심</div><div class="v" style="color:var(--warning)">${bs.ok ? gEx : '—'}<small>${bs.ok ? '건' : ''}</small></div><div class="r">${bs.ok ? esc((bs.exTop || []).slice(0, 3).map(([k, v]) => `${k} ${v}`).join(' · ') || '없음') : '집계 불가'}</div></div>
+      <div class="cell"><div class="k">조건부(주점 등)</div><div class="v">${bs.ok ? gChk : '—'}<small>${bs.ok ? '건' : ''}</small></div><div class="r">별표 1의2 소득기준 이하 예외 가능</div></div>
+      <div class="cell"><div class="k">소상공인 아님</div><div class="v">${bs.ok ? gNon : '—'}<small>${bs.ok ? '건' : ''}</small></div><div class="r">보건소·학교·공공기관 등</div></div>
     </div>
     <div class="note">${bNote}<br>
       · <b>소상공인 기준은 업종별 10억~120억(도소매 50억)</b>, <b>온누리 가맹은 일괄 30억 원</b> — 매출 30억~50억 도소매점은 소상공인이라 밀집도·상인회에는 들어가지만 <b>가맹은 불가</b>합니다.<br>
