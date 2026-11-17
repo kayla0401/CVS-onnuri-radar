@@ -1297,6 +1297,7 @@ function buildDB(raw) {
     s2000: a[ix.s2000], s5000: a[ix.s5000], s10000: a[ix.s10000],
     other10000: a[ix.other10000], cov: a[ix.cov] === 1, onnuri_member: false, kind: 'store',
   }));
+  DB.storeById = Object.fromEntries(DB.stores.map(s => [s.id, s]));
   DB.coverage = {};
   DB.stores.forEach(s => {
     DB.coverage[s.sido] = DB.coverage[s.sido] || { total: 0, covered: 0 };
@@ -1321,7 +1322,7 @@ async function loadNearby(sido) {
 }
 function nearbyState(sido) { return DB.nearby[sido] ? 'ready' : (DB.nearbyState[sido] || 'idle'); }
 function nearbyReset(sido) { delete DB.nearby[sido]; delete DB.nearbyLoading[sido]; delete DB.nearbyState[sido]; }
-function nearbyList(code) { const s = DB.stores.find(x => x.id === code); if (!s || !s.cov) return []; const d = DB.nearby[s.sido]; return (d && d[code]) || []; }
+function nearbyList(code) { const s = DB.storeById[code]; if (!s || !s.cov) return []; const d = DB.nearby[s.sido]; return (d && d[code]) || []; }
 
 /* 온누리 가맹점 리스트(시도 단위 파일) */
 async function loadMerchants(sido) {
@@ -1512,6 +1513,7 @@ function requiredShopsFor(rule, area, baseCount) {
 function countsFor(p, areaM2) {
   if (!p.cov) return null;
   const presets = [[2000, p.n2000, p.s2000], [5000, p.n5000, p.s5000], [10000, p.n10000, p.s10000]];
+  if (!Number.isFinite(areaM2) || areaM2 <= 0 || presets.some(([,n,k]) => !Number.isInteger(n) || !Number.isInteger(k) || n < 0 || k < 0 || k > n)) return null;
   const exact = presets.find(x => x[0] === areaM2);
   if (exact) return { all: exact[1], small: exact[2], est: false };
   const r = Math.sqrt(areaM2 / Math.PI);
@@ -1612,7 +1614,7 @@ function evaluate(p, areaM2) {
     reasons.push(`반경 ${r.toFixed(0)}m(${fmt(areaM2)}㎡) 내 상가업소 ${nAll}개 중 소상공인 점포 ${nSmall}개로 산정했습니다. 대형마트·백화점 등 대규모 점포는 제외했습니다.`);
     reasons.push('상가(상권)정보는 호실(층·호) 단위로 등록되어, 한 건물에 여러 점포가 있는 상가·오피스 건물에서는 밀집도가 높게 집계될 수 있습니다. 실제 점포 수는 현장 확인이 필요합니다.');
     if (p.other10000) reasons.push(`반경 56m 내 상가 ${p.other10000}곳이 다른 시·군·구 소재입니다(행정경계 인접). 구역 설정 시 관할 지자체 확인이 필요합니다.`);
-    if (c.est) reasons.push('선택한 면적은 실측 프리셋(2,000·5,000·10,000㎡) 사이 보간값입니다. 프리셋 선택 시 정확한 실측값으로 판정합니다.');
+    if (c.est) reasons.push('선택한 면적은 공단 집계(2,000·5,000·10,000㎡) 사이 보간 추정값입니다. 원래 집계도 현장 실측이 아니므로 실제 점포 수 확인이 필요합니다.');
     if (!local) reasons.push('이 지자체의 골목형상점가 조례 기준은 아직 DB에 없습니다. 법정 기본값으로 판정했으니 담당 부서에 실제 기준을 확인하세요.');
   }
   if (rm.legacy) {
@@ -1908,10 +1910,10 @@ const ICONS = {
 };
 const ic = (k, sz = 16) => `<svg width="${sz}" height="${sz}" viewBox="0 0 16 16" aria-hidden="true">${ICONS[k] || ''}</svg>`;
 const VMETA = {
-  pass: { label:'예비 충족', icon:'check', head:'점포수 기준 예비 충족 · 현장 검증 필요', color:'var(--success)' },
-  cond: { label:'추가 확인', icon:'warn', head:'현장·지자체 확인 필요', color:'var(--warning)' },
-  fail: { label:'추정 미달', icon:'x', head:'추정 점포수 부족 · 현장 재검증 필요', color:'var(--danger)' },
-  na:   { label:'판정 보류', icon:'info', head:'조례·실측 자료 추가 확인 필요', color:'var(--unknown)' },
+  pass: { label:'적합', icon:'check', head:'점포수 기준 예비 충족 · 현장 검증 필요', color:'var(--success)' },
+  cond: { label:'조건부', icon:'warn', head:'현장·지자체 확인 필요', color:'var(--warning)' },
+  fail: { label:'부적합', icon:'x', head:'추정 점포수 부족 · 현장 재검증 필요', color:'var(--danger)' },
+  na:   { label:'조건부', icon:'warn', head:'조례·실측 자료 추가 확인 필요', color:'var(--warning)' },
 };
 const badge = (v, lg) => `<span class="badge ${v}${lg ? ' big' : ''}">${ic(VMETA[v].icon, lg ? 16 : 13)}${VMETA[v].label}</span>`;
 const stateBox = (kind, title, desc, actHtml = '') => `<div class="state ${kind === 'err' ? 'err' : ''}"><div class="ic">${kind === 'loading' ? '<div class="spin" style="width:18px;height:18px;border-width:2px"></div>' : ic(kind === 'err' || kind === 'warn' ? 'warn' : kind === 'empty' ? 'search' : 'info', 20)}</div><b>${esc(title)}</b>${desc ? `<span>${esc(desc)}</span>` : ''}${actHtml}</div>`;
@@ -3084,12 +3086,12 @@ function densityAssess(o) {
    → 상한이 비상업 기준(reqLow)에도 못 미치면 업종 제외 여부와 무관하게 '추정 미달',
      하한이 상업 기준(reqHigh)을 넘으면 '지정 가능성 높음', 그 사이는 '가능성 있음 · 조건 확인 필요'. */
 const HEADLINE_STATUS = {
-  NO_DATA:   { emoji:'🔍', title:'데이터 없음 · 현장/카카오 확인 필요', cls:'na' },
-  FAIL:      { emoji:'❌', title:'현재 자료상 점포 수 부족', cls:'fail' },
-  PASS:      { emoji:'✅', title:'현장 검토 후보 · 수치상 충족', cls:'pass' },
-  COND:      { emoji:'⚠️', title:'조건 확인 필요', cls:'cond' },
-  COND_LEGAL:{ emoji:'⚠️', title:'조문 확인 필요', cls:'cond' },
-  BASIS:     { emoji:'⚠️', title:'기준 확인 필요', cls:'cond' },
+  NO_DATA: { emoji:'🟡', title:'조건부', cls:'cond' },
+  FAIL: { emoji:'🔴', title:'부적합', cls:'fail' },
+  PASS: { emoji:'🟢', title:'적합', cls:'pass' },
+  COND: { emoji:'🟡', title:'조건부', cls:'cond' },
+  COND_LEGAL: { emoji:'🟡', title:'조건부', cls:'cond' },
+  BASIS: { emoji:'🟡', title:'조건부', cls:'cond' },
 };
 function headlineVerdict(o) {
   o = o || {};
@@ -3350,7 +3352,10 @@ function liveBlock(e) {
 }
 
 
+let liveRequestSequence = 0;
 async function t1Live(e) {
+  const request = ++liveRequestSequence;
+  const current = () => request === liveRequestSequence && T1.ev === e;
   APP.live = { key: e.p.id, places: [], state: 'loading' };
   renderShops(e);
   if (!KMap.ready || !kakao.maps.services) { APP.live.state = 'error'; renderShops(e); return; }
@@ -3373,9 +3378,10 @@ async function t1Live(e) {
     try { ps.categorySearch(code, collect, { location: center, radius, sort: kakao.maps.services.SortBy.DISTANCE }); } catch (_) { res(); }
   }));
   await Promise.all(jobs);
+  if (!current()) return;
   const list = [...seen.values()].sort((a, b) => a.d - b.d);
   APP.live = { key: e.p.id, places: list, state: list.length ? 'ok' : 'empty' };
-  renderShops(e); renderMap1(e);
+  renderShops(e); renderMap1(e); renderVerdict(e); T3.dirty = true;
   if (T1.poly.on || T1.poly.pts.length) { renderPolyCard(); syncDrawBar(); }
   toast(`실시간 조회 ${list.length}건`);
 }
@@ -3573,6 +3579,8 @@ function headlineOf(e, legal) {
     noDataReason: e.counts ? null : (pinOf(e.p) ? '핀 보정 좌표 기준 상가 수 재집계 필요' : `${e.p.sido} 상가(상권)정보 CSV 미수집`),
   });
 }
+
+function assessmentOf(e) { return headlineOf(e, bizStatsOf(e).assess); }
 
 function fieldNextSteps(e) {
   const tasks = ['신청 구역 경계와 구역 전체 용도지역 확인', '상가 후보의 실제 영업·중복·소상공인 산정 여부 확인'];
@@ -4793,7 +4801,7 @@ function t3Init() {
   $('#d-csv').onclick = () => downloadCSV('잠재점포_우선순위.csv', toCSV([
     ['순위', r => r.rank], ['점포코드', r => r.e.p.id], ['점포명', r => r.e.p.name], ['지역', r => `${r.e.p.sido} ${r.e.p.sigungu}`],
     ['온누리가맹', r => r.e.p.onnuri_member ? '가맹' : '미가맹'], ['가맹상권', r => r.e.p.member ? r.e.p.member.zone : ''],
-    ['법적판정', r => VMETA[r.e.v].label], ['충족률%', r => r.e.ratio != null ? Math.round(r.e.ratio * 100) : ''], ['소상공인수', r => r.e.nSmall], ['필요수', r => r.e.required ?? ''],
+    ['사전검토 판정', r => r.verdict.title], ['판정 사유', r => r.verdict.sub], ['충족률%', r => r.e.ratio != null ? Math.round(r.e.ratio * 100) : ''], ['소상공인수', r => r.e.nSmall], ['필요수', r => r.e.required ?? ''],
     ['기존구역관계', r => r.rel[0]], ['최근접구역', r => r.rel[2]], ['우선순위점수', r => r.pr.total],
     ['지자체기준35', r => r.pr.rule], ['밀집도25', r => r.pr.density], ['기존구역가맹15', r => r.pr.zone], ['후보형성15', r => r.pr.form], ['데이터신뢰10', r => r.pr.trust],
     ['현장확인', r => r.field], ['특수입지', r => ssOf(r.e.p).stage === 1 ? `1단계(${ssOf(r.e.p).type})` : ssOf(r.e.p).stage === 2 ? `2단계(${ssOf(r.e.p).type})` : '해당 없음'], ['담당', r => r.e.rule ? `${r.e.rule.dept} ${r.e.rule.team}` : ''], ['전화', r => r.e.rule?.phone || '']], T3.rows));
@@ -4817,14 +4825,14 @@ function t3Render() {
   const sido = $('#d-sido').value;
   fillSelect($('#d-sgg'), uniq(base.filter(s => !sido || s.sido === sido).map(s => sggTop(s.sigungu))));
   const sgg = $('#d-sgg').value, area = +$('#d-area').value;
-  const regional = base.filter(s => (!sido || s.sido === sido) && (!sgg || sggTop(s.sigungu) === sgg)).map(s => { const e = ev(s, area); return { e, pr: priority(e), rel: zoneRel(e), field: fieldState(s.id) }; });
-  const ok = r => ['pass', 'cond'].includes(r.e.v);
+  const regional = base.filter(s => (!sido || s.sido === sido) && (!sgg || sggTop(s.sigungu) === sgg)).map(s => { const e = ev(s, area); return { e, verdict: assessmentOf(e), pr: priority(e), rel: zoneRel(e), field: fieldState(s.id) }; });
+  const ok = r => ['pass', 'cond'].includes(r.verdict.cls);
   const unmember = DB.stores.filter(s => !s.onnuri_member && (!sido || s.sido === sido) && (!sgg || sggTop(s.sigungu) === sgg)).length;
   $('#t3-kpis').innerHTML = [
     ['', 'store', unmember, '미가맹 GS25 수'],
     ['', 'target', regional.filter(r => ok(r) && r.pr.total >= 70).length, '우선 검토 대상 (70점↑)'],
     ['w', 'clip', regional.filter(r => ok(r) && r.field !== '완료').length, '현장 확인 필요'],
-    ['s', 'check', regional.filter(r => r.e.v === 'pass').length, '지정 가능성 높은 후보 (적합)'],
+    ['s', 'check', regional.filter(r => r.verdict.cls === 'pass').length, '자료 기준 적합 후보'],
   ].map(([c, i, v, l]) => `<div class="kpi"><span class="ic ${c}">${ic(i, 20)}</span><div><b>${fmt(v)}<small>개</small></b><span>${l}</span></div></div>`).join('');
 
   const vf = $('#d-verdict').value, minShops = +$('#d-shops').value || 0, met = $('#d-met').value, minScore = +$('#d-score').value || 0, fieldF = $('#d-field').value;
@@ -4833,11 +4841,11 @@ function t3Render() {
   /* 특수입지(1단계) — 지하철 역사·휴게소·대규모점포 구내는 기본으로 목록에서 빼 지상 상가 후보가 먼저 보이게 한다 */
   const spPass = p => spF === 'all' ? true : spF === 'only1' ? ssOf(p).stage === 1 : ssOf(p).stage !== 1;
   const nSp1 = regional.filter(r => ssOf(r.e.p).stage === 1).length;
-  let rows = regional.filter(r => spPass(r.e.p) && vOk.includes(r.e.v) && r.e.nSmall >= minShops && r.pr.total >= minScore
+  let rows = regional.filter(r => spPass(r.e.p) && vOk.includes(r.verdict.cls) && r.e.nSmall >= minShops && r.pr.total >= minScore
     && (!met || (met === 'Y' ? r.e.ratio >= 1 : !(r.e.ratio >= 1))) && (!fieldF || r.field === fieldF));
   rows = sortBy(rows, r => r.pr.total, -1).map((r, i) => ({ ...r, rank: i + 1 }));
   const vOrd = { pass: 0, cond: 1, fail: 2, na: 3 };
-  const G = { score: r => r.pr.total, name: r => r.e.p.name, region: r => r.e.p.sido + r.e.p.sigungu, v: r => vOrd[r.e.v], ratio: r => r.e.ratio ?? -1, shops: r => r.e.nSmall, rel: r => r.e.nearest ? r.e.nearest.edge : 1e9, field: r => r.field };
+  const G = { score: r => r.pr.total, name: r => r.e.p.name, region: r => r.e.p.sido + r.e.p.sigungu, v: r => vOrd[r.verdict.cls], ratio: r => r.e.ratio ?? -1, shops: r => r.e.nSmall, rel: r => r.e.nearest ? r.e.nearest.edge : 1e9, field: r => r.field };
   rows = sortBy(rows, G[T3.sort.k] || G.score, T3.sort.dir);
   T3.rows = rows;
   const size = UI.PAGE.disc, pages = Math.max(1, Math.ceil(rows.length / size)); T3.page = Math.min(T3.page, pages - 1);
@@ -4851,12 +4859,12 @@ function t3Render() {
       <tr>${thSort('순위', 'score', st)}${thSort('점포명 / 코드', 'name', st)}${thSort('지역', 'region', st)}
         ${thSort('예상 적격 가능성', 'v', st, 'sep')}${thSort('충족률', 'ratio', st)}${thSort('주변 상가 수', 'shops', st, 'r')}${thSort('기존 구역 관계', 'rel', st)}
         ${thSort('우선순위 점수 (100)', 'score', st, 'sep')}${thSort('현장 확인', 'field', st)}<th class="sep"></th></tr></thead><tbody>
-    ${slice.map(r => { const e = r.e, pct = e.ratio != null ? Math.round(e.ratio * 100) : null, col = VMETA[e.v].color;
+    ${slice.map(r => { const e = r.e, pct = e.ratio != null ? Math.round(e.ratio * 100) : null, col = VMETA[r.verdict.cls].color;
       return `<tr class="click" data-row="${esc(e.p.id)}">
         <td><span class="crown">${r.rank <= 3 && T3.sort.k === 'score' && T3.sort.dir < 0 ? `<span style="color:${CROWN[r.rank - 1]}">${ic('crown', 16)}</span>` : '<span style="width:16px;display:inline-block"></span>'}${r.rank}</span></td>
         <td><div class="cell2"><b>${esc(e.p.name)}</b> ${memberChip(e.p)} ${ssOf(e.p).stage === 1 ? '<span class="chip cf" title="지하철 역사·휴게소·대규모점포 구내 등 지정 제한 가능 입지">특수입지 1단계</span>' : ssOf(e.p).stage === 2 ? '<span class="chip a" title="건물·캠퍼스 내부(구내)는 지정이 어렵고, 외부 도로변(로드샵)이면 문제없습니다">구내·로드샵 확인</span>' : ''}<small>${esc(e.p.id)} · ${esc(e.p.address)}</small></div></td>
         <td>${esc(e.p.sido)} ${esc(e.p.sigungu)}</td>
-        <td class="sep">${badge(e.v)}</td>
+        <td class="sep">${badge(r.verdict.cls)}</td>
         <td>${pct != null ? `<b style="color:${col}">${pct}%</b><span class="minibar"><i style="width:${Math.min(e.ratio, 1.5) / 1.5 * 100}%;background:${col}"></i></span>` : '<span class="faint">—</span>'}</td>
         <td class="r"><b>${e.nSmall}</b> <span class="faint">/ 필요 ${e.required ?? '-'}</span></td>
         <td><span class="chip ${r.rel[1]}">${r.rel[0]}</span> <span class="muted">${esc(r.rel[2])}${e.nearest && !e.inside.length ? ' · ' + fmtD(e.nearest.edge) : ''}</span></td>
