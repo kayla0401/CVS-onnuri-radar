@@ -3,7 +3,8 @@
  * 실행: node tests/test_legal_criteria.mjs
  *
  * index.html 의 @legal-core 블록(DOM 비의존)을 그대로 떼어내 실행하고,
- * data/city_rules.json 의 대표 3곳(수원·성남·인천 서해구)으로 판정을 검증한다.
+ * data/city_rules.json(2026-11-17 원문 검증본)으로 판정을 검증한다.
+ * 성남시 블록은 UNKNOWN 방어 로직 검증용 사본을 쓰고, 나머지는 실제 DB 값을 쓴다.
  * 실패가 하나라도 있으면 종료 코드 1.
  */
 import { readFileSync } from 'node:fs';
@@ -80,10 +81,15 @@ function runTests(html, rules, stores) {
   ok('수원시 판정은 법적 미확인으로 보류되지 않음', sA.status !== 'LEGAL_UNVERIFIED', sA.status);
   ok('수원시 판정 상태는 4종 중 하나', ['EST_PASS', 'EST_FAIL', 'NEEDS_CHECK', 'LEGAL_UNVERIFIED'].includes(sA.status));
 
-  lines.push('[3] 경기 성남시 — UNKNOWN: 최종 적합 단정 금지, 범위 병기');
-  const seongnam = ruleOf('경기', '성남시');
-  eq('성남시 density_exclusion_policy', seongnam.density_exclusion_policy, 'UNKNOWN');
-  eq('성남시 legal_review_status', seongnam.legal_review_status, 'NEEDS_TEXT_CHECK');
+  lines.push('[3] 조문 미확인(UNKNOWN) 조례 — 최종 적합 단정 금지, 범위 병기');
+  /* 2026-11-17 조례 원문 전수 검증으로 성남시는 NONE/VERIFIED 로 확정됐다.
+     UNKNOWN 방어 로직 자체를 계속 검증하기 위해, 확정된 성남시 규칙을 UNKNOWN 상태로 되돌린 사본을 쓴다. */
+  const seongnam = Object.assign({}, ruleOf('경기', '성남시'),
+    { density_exclusion_policy: 'UNKNOWN', legal_review_status: 'NEEDS_TEXT_CHECK' });
+  eq('성남시 원문 검증 결과는 NONE·VERIFIED', [ruleOf('경기', '성남시').density_exclusion_policy,
+    ruleOf('경기', '성남시').legal_review_status], ['NONE', 'VERIFIED']);
+  eq('UNKNOWN 사본 density_exclusion_policy', seongnam.density_exclusion_policy, 'UNKNOWN');
+  eq('UNKNOWN 사본 legal_review_status', seongnam.legal_review_status, 'NEEDS_TEXT_CHECK');
   const nA = assess({ rule: seongnam, area: 2000, population: 12, thCom: 30, thNon: null,
     sample: { n: 12, nEx: 4, nChk: 1, nNonSmall: 0, truncated: false, src: 'nearby' } });
   eq('성남시 판정 상태 = 법적 기준 미확인', nA.status, 'LEGAL_UNVERIFIED');
@@ -127,9 +133,19 @@ function runTests(html, rules, stores) {
   const noRule = assess({ rule: null, area: 2000, population: 10, thCom: 30, thNon: null, sample: { n: 10, nEx: 0, nChk: 0, nNonSmall: 0 } });
   eq('조례 미확인이면 법적 기준 미확인', noRule.status, 'LEGAL_UNVERIFIED');
   eq('215개 전체에 density_exclusion_policy 존재', rules.filter(r => r.density_exclusion_policy).length, rules.length);
-  eq('UNKNOWN 이 아닌 지자체는 2곳(수원 NONE·서해구 ALL_RESTRICTED)',
-    rules.filter(r => r.density_exclusion_policy !== 'UNKNOWN').map(r => `${r.sigungu}:${r.density_exclusion_policy}`).sort(),
-    ['서해구:ALL_RESTRICTED', '수원시:NONE']);
+  /* 정책 분포는 데이터 상태이므로 분포 자체를 고정하지 않고, 확정 정책의 정합성만 검사한다. */
+  const polCount = rules.reduce((a, r) => (a[r.density_exclusion_policy] = (a[r.density_exclusion_policy] || 0) + 1, a), {});
+  eq('수원시는 NONE 유지', ruleOf('경기', '수원시').density_exclusion_policy, 'NONE');
+  eq('서해구는 ALL_RESTRICTED 유지', ruleOf('인천', '서해구').density_exclusion_policy, 'ALL_RESTRICTED');
+  ok('정책 분포 합 = 조례 수', Object.values(polCount).reduce((a, b) => a + b, 0) === rules.length, JSON.stringify(polCount));
+  ok('검증 완료(VERIFIED) 조례는 정책이 확정돼 있다',
+    rules.filter(r => r.legal_review_status === 'VERIFIED').every(r => r.density_exclusion_policy !== 'UNKNOWN'));
+  ok('정책 UNKNOWN 조례는 검증 완료로 표시되지 않는다',
+    rules.filter(r => r.density_exclusion_policy === 'UNKNOWN').every(r => r.legal_review_status !== 'VERIFIED'));
+  ok('PARTIAL 조례는 제외 업종 목록을 갖는다',
+    rules.filter(r => r.density_exclusion_policy === 'PARTIAL').every(r => Array.isArray(r.density_excluded_industries) && r.density_excluded_industries.length > 0));
+  ok('초과면적 검증 조례는 계산식 3요소를 모두 갖는다',
+    rules.filter(r => r.over_area_verified === true).every(r => r.over_area_rule_type && r.over_area_step_m2 > 0 && r.over_area_shops > 0));
 
   lines.push('[6] 메인 배너 직관 판정(headlineVerdict) — 수학적 상한·하한');
   /* ① 명백한 미달: GS252테크노파크점(부천) 4개 / 25·20개 필요 · density UNKNOWN */
@@ -170,7 +186,32 @@ function runTests(html, rules, stores) {
   const hvConflict = headline({ population: 18, maxShops: 18, minShops: 11, reqCom: 15, reqNon: null, policy: 'ALL_RESTRICTED', conflict: true, conflictSub: '조례(15개) vs 시행규칙(30개) 충돌 — 담당 부서 확인 필요' });
   ok('충돌이면 확정 배너 대신 조건 확인', hvConflict.level === 'COND' && /충돌/.test(hvConflict.sub), `${hvConflict.level} / ${hvConflict.sub}`);
   /* 배너 상태 6종이 색상 클래스와 함께 정의되어 있는지 */
-  eq('헤드라인 상태 6종', Object.keys(api.HEADLINE_STATUS).sort(), ['BASIS', 'COND', 'COND_LEGAL', 'FAIL', 'NO_DATA', 'PASS']);
+  eq('헤드라인 상태 7종(이미 지정·가맹 MEMBER 포함)', Object.keys(api.HEADLINE_STATUS).sort(), ['BASIS', 'COND', 'COND_LEGAL', 'FAIL', 'MEMBER', 'NO_DATA', 'PASS']);
+  ok('공개 판정 어휘는 MEMBER 를 더해도 3종 그대로', [...new Set(Object.values(api.HEADLINE_STATUS).map(x => x.title))].length === 3);
+
+  lines.push('[6-1] 이미 가맹·이미 구역 내 — 점포 수 비교보다 먼저');
+  const hvMember = headline({ population: 4, maxShops: 4, minShops: 4, reqCom: 15, policy: 'UNKNOWN', alreadyMember: { zone: '궁동 골목형상점가', year: '2026' } });
+  eq('이미 가맹 점포는 부적합이 아니라 MEMBER 로 표시', [hvMember.level, hvMember.title], ['MEMBER', '조건부']);
+  ok('이미 가맹 문구에 상권명·등록연도·신규 대상 아님', /궁동 골목형상점가/.test(hvMember.sub) && /2026/.test(hvMember.sub) && /신규 지정 대상 아닙니다/.test(hvMember.sub), hvMember.sub);
+  const hvInside = headline({ population: 0, maxShops: 0, minShops: 0, reqCom: 15, policy: 'UNKNOWN', insideZone: { name: '안녕마을 골목형상점가', type: '골목형상점가' } });
+  eq('구역 내 점포도 0개여도 부적합으로 단정하지 않음', [hvInside.level, hvInside.title], ['MEMBER', '조건부']);
+  ok('구역 내 문구에 구역명', /안녕마을 골목형상점가/.test(hvInside.sub), hvInside.sub);
+  const hvInsideEst = headline({ population: 10, reqCom: 15, policy: 'UNKNOWN', insideZone: { name: '추정 상권', type: '골목형상점가', est: true } });
+  ok('추정 위치 구역은 추정임을 밝힌다', /추정/.test(hvInsideEst.sub), hvInsideEst.sub);
+
+  lines.push('[6-2] 상가 미수집(cov:false)·초과면적 — 기준은 남기고 판정만 보류');
+  const hvNoCov = headline({ population: null, reqCom: 15, reqNon: null, policy: 'UNKNOWN', noDataReason: '전남 상가(상권)정보 CSV 미수집' });
+  eq('상가 미수집은 데이터 없음(조건부)', [hvNoCov.level, hvNoCov.title], ['NO_DATA', '조건부']);
+  ok('상가 미수집이어도 조례 기준 숫자를 함께 보여준다', /15개/.test(hvNoCov.sub), hvNoCov.sub);
+  ok('상가 미수집 문구가 "조례 별표 기준이 없다"로 오표시되지 않는다', !/별표의 점포 수 기준이 DB에 없습니다/.test(hvNoCov.sub), hvNoCov.sub);
+  const hvOverFail = headline({ population: 8, maxShops: 8, minShops: 8, reqCom: null, reqNon: null, policy: 'NONE', overAreaFloor: 15 });
+  eq('초과면적 미검증이어도 최소 기준 미달은 부적합', [hvOverFail.level, hvOverFail.title], ['FAIL', '부적합']);
+  ok('최소 기준 미달 문구에 기준·부족 수', /최소 기준 15개/.test(hvOverFail.sub) && /7개 부족/.test(hvOverFail.sub), hvOverFail.sub);
+  const hvOverOk = headline({ population: 20, maxShops: 20, minShops: 20, reqCom: null, reqNon: null, policy: 'NONE', overAreaFloor: 15 });
+  eq('최소 기준을 넘으면 기준 확인 필요로 남긴다', [hvOverOk.level, hvOverOk.title], ['BASIS', '조건부']);
+  ok('기준 확인 문구에 최소 기준 숫자', /최소 기준 15개/.test(hvOverOk.sub), hvOverOk.sub);
+  const hvOverNoPop = headline({ population: null, reqCom: null, reqNon: null, policy: 'NONE', overAreaFloor: 15, noDataReason: '상가 미수집' });
+  eq('자료가 없으면 초과면적보다 데이터 없음이 먼저', hvOverNoPop.level, 'NO_DATA');
 
   lines.push('[7] 옛 행정구역 → 새 구 조례 매칭(2026-07-01 인천 개편)');
   const mt = (sg, addr) => ruleMatch('인천', sg, addr, rules);
@@ -193,14 +234,23 @@ function runTests(html, rules, stores) {
   ok('옛 인천 남구 → 미추홀구 조례', rNam.rule && rNam.rule.sigungu === '미추홀구', JSON.stringify(rNam.rule && rNam.rule.sigungu));
   ok('현행 구 이름은 그대로 매칭(legacy 없음)', mt('서해구', '인천 서해구 서달로207번길10-1').legacy === null);
 
-  lines.push('[8] stores.json 중복 구조 진단(원본 유지)');
-  eq('점포 18,198건 그대로', stores.length, 18198);
+  /* track B에서 중복 등록 점포를 병합했다(18,198 → 17,951행, 내역 data/dup_merge.json).
+     원본 저장소(work/CVS-onnuri-latest)는 그대로이므로 그쪽에서는 기존 기대값(18,198/253)이 유효하다. */
+  lines.push('[8] stores.json 중복 구조 진단(track B 병합 반영)');
+  eq('점포 17,951건', stores.length, 17951);
   const byName = {};
   stores.forEach(s => { (byName[s[1]] = byName[s[1]] || []).push(s); });
   const dupNames = Object.keys(byName).filter(n => byName[n].length > 1);
-  eq('같은 상호가 2건 이상인 그룹 253개', dupNames.length, 253);
-  const crossGu = dupNames.filter(n => byName[n].some(s => s[3] === '서구') && byName[n].some(s => s[3] === '서해구' || s[3] === '검단구'));
-  eq('인천 옛 서구·새 구에 동시에 있는 점포 4건', crossGu.sort(), ['GS25가정3동점', 'GS25검단더휴점', 'GS25경서타운점', 'GS25청라베르디움점']);
+  eq('같은 상호 2건 이상 그룹 7개(주소·좌표가 모두 다른 동명이점만 남김)', dupNames.length, 7);
+  const near = dupNames.filter(n => {
+    const g = byName[n];
+    for (let i = 0; i < g.length; i++) for (let j = i + 1; j < g.length; j++) {
+      const dx = (g[i][5] - g[j][5]) * 111320, dy = (g[i][6] - g[j][6]) * 88000;
+      if (Math.hypot(dx, dy) <= 30) return true;
+    }
+    return false;
+  });
+  eq('30m 이내·같은 주소 동일상호 중복은 0개', near, []);
   ok('점포코드는 서로 달라 코드 기준 중복은 0건', new Set(stores.map(s => s[0])).size === stores.length);
 
   lines.push('');

@@ -202,6 +202,7 @@ select.select{padding-right:34px;appearance:none;background-image:url("data:imag
 
 /* ============================ KPI ============================ */
 .kpis{display:grid;gap:14px;grid-template-columns:repeat(4,minmax(0,1fr))}
+.kpis-4{grid-template-columns:repeat(4,minmax(0,1fr))}   /* 4칸 KPI(가맹점·발굴 탭) — 인라인 style 대신 클래스로: 1240px 이하 2열, 520px 이하 1열 */
 .kpi{display:flex;align-items:center;gap:14px;padding:18px 20px;background:#fff;border-radius:var(--radius-card);box-shadow:var(--shadow-card);min-width:0}
 .kpi .ic{width:46px;height:46px;border-radius:15px;display:grid;place-items:center;background:var(--primary-light);color:var(--primary);flex:none}
 .kpi .ic.s{background:var(--success-bg);color:var(--success)}
@@ -594,7 +595,7 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
   .tb-title h1{font-size:22px}
 }
 @media (max-width:1240px){
-  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .kpis,.kpis-4{grid-template-columns:repeat(2,minmax(0,1fr))}
   .statusline{display:none}
   .tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
@@ -619,7 +620,7 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
   .tb-title h1{font-size:19px}
   .tb-title p{display:none}
   .profile .pn{display:none}
-  .kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .kpis,.kpis-4{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
   .kpi{padding:14px;gap:10px}
   .kpi .ic{width:38px;height:38px;border-radius:12px}
   .kpi b{font-size:20px}
@@ -645,8 +646,11 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
   .tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
   .hero{padding:20px}
   .hero-txt h2{font-size:19px}
-  .hero-search{flex-direction:column}
-  .hero-search .btn{width:100%}
+  /* 홈 검색창 — 세로 배치에서 .searchbox 의 flex:1 때문에 높이가 눌리지 않게 고정한다 */
+  .hero-search{flex-direction:column;gap:10px}
+  .hero-search .searchbox{flex:none;width:100%;height:54px;min-height:54px;padding:0 14px;border:2px solid rgba(255,255,255,.95);border-radius:15px}
+  .hero-search .searchbox .input{font-size:15px;font-weight:600;letter-spacing:-.01em}
+  .hero-search .btn{width:100%;height:54px;font-size:15px}
   .toolbar{padding:14px}
   .searchbox .input{font-size:14px}
   .mapzone{grid-template-rows:auto minmax(0,var(--s1)) 10px minmax(0,var(--s2));height:740px}
@@ -670,11 +674,26 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
   .legend{display:none}
   .drawer{width:100%}
   .vrow{grid-template-columns:minmax(0,1fr);gap:3px}
-  .table-scroll,.tbl-wrap{overflow-x:auto}
+  .table-scroll,.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  /* 표 — 390px에서 주소·조례명이 오른쪽으로 삐져나가지 않게 줄바꿈을 허용하고 여백을 줄인다 */
+  .tbl{font-size:11.8px}
+  .tbl th,.tbl td{padding:9px 6px;word-break:keep-all}
+  .tbl th{white-space:normal}
+  .tbl td.nw,.tbl th.nw{white-space:normal}
+  .tbl .cell2{min-width:126px}
+  .tbl .cell2 small{white-space:normal;overflow:visible;max-width:none;text-overflow:clip;word-break:keep-all;overflow-wrap:anywhere}
+  .tbl .cell2 b{overflow-wrap:anywhere}
+  #history-body .tbl td:nth-child(3),#fav-body .tbl td:nth-child(3){min-width:58px}
+  /* 즐겨찾기 주소 열 — 한 글자씩 세로로 꺾이지 않게 최소 폭(넘치면 카드 안에서 옆으로 스크롤) */
+  #fav-body .tbl td:nth-child(2){min-width:132px}
+  /* 조례 표 — 기준 점포 수·완화 조건이 한 글자씩 세로로 꺾이지 않게 최소 폭을 준다 */
+  #rules-body .tbl td:nth-child(3),#rules-body .tbl th:nth-child(3){min-width:66px}
+  #rules-body .tbl td:nth-child(4),#rules-body .tbl th:nth-child(4){min-width:84px}
+  .tbl td .btn.xs{padding:0 8px}
 }
 @media (max-width:520px){
   .tiles{grid-template-columns:minmax(0,1fr)}
-  .kpis{grid-template-columns:minmax(0,1fr)}
+  .kpis,.kpis-4{grid-template-columns:minmax(0,1fr)}
   .store-head .acts .btn{padding:0 10px}
   .pblock .val b{font-size:22px}
 }
@@ -705,6 +724,53 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
 .hintline{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:10px 20px 0;padding:10px 12px;background:var(--bg-soft);border-radius:12px;font-size:11.5px;color:var(--text-secondary);line-height:1.6}
 .hintline b{color:var(--text-primary)}
 .hintline .btn{flex:none}
+/* ---- 쉬운 말 요약 · 지금 내가 할 일 ---- */
+.easy{margin:12px 16px;border:1px solid var(--border);border-radius:14px;padding:12px 13px;background:#fff}
+.easy-title{font-size:13px;font-weight:800;margin-bottom:7px}
+.easy-title .faint{font-weight:600;font-size:11px}
+.easy-head{display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;margin-bottom:8px}
+.easy-badge{font-size:11.5px;font-weight:800;padding:4px 9px;border-radius:999px;white-space:nowrap}
+.easy-lead{font-size:12.5px;line-height:1.6;color:var(--text-secondary);flex:1;min-width:180px}
+.easy-store{display:flex;gap:8px;align-items:baseline;flex-wrap:wrap;font-size:13px;margin:0 0 8px}
+.easy-store span{font-size:11.5px;color:var(--text-tertiary)}
+.easy-why{list-style:none;margin:0;padding:0;display:grid;gap:5px}
+.easy-why li{display:flex;gap:7px;font-size:12px;line-height:1.6;color:var(--text-secondary)}
+.easy-why li>b{flex:none;width:64px;color:var(--text-primary);font-size:11.5px}
+.easy-todo{margin-top:10px;padding:10px 11px;background:var(--bg-soft);border-radius:12px}
+.easy-todo-h{font-weight:800;font-size:13px;margin-bottom:6px}
+.easy-step{display:flex;gap:8px;margin:8px 0}
+.easy-step-n{flex:none;width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;font-size:11.5px;font-weight:800;display:flex;align-items:center;justify-content:center}
+.easy-step-b{flex:1;min-width:0;font-size:12px;line-height:1.6;color:var(--text-secondary)}
+.easy-step-b>b{color:var(--text-primary)}
+.easy-step-b ul{margin:3px 0 0;padding-left:16px}
+.easy-org{font-size:11.5px;color:var(--text-secondary);margin:2px 0 3px}
+.easy-q{margin:3px 0 0;padding-left:16px}
+.easy-q li{margin:1px 0}
+.easy-map{margin-top:10px}
+.easy-map-svg{display:block;border-radius:10px;max-width:100%;height:auto}
+.easy-map-cap{font-size:10.5px;color:var(--text-tertiary);line-height:1.55;margin-top:5px}
+.easy-links{display:flex;gap:10px;flex-wrap:wrap;font-size:11.5px;margin-top:5px}
+.easy-links a{color:var(--accent);text-decoration:none;font-weight:700}
+.sheet .easy-links a{color:#1B4F9C;text-decoration:underline}
+.easy-coord{font-size:10px;color:var(--text-tertiary);word-break:break-all;margin-top:3px}
+.easy-foot{font-size:10.5px;color:var(--text-tertiary);line-height:1.55;margin-top:8px}
+/* A4 리포트 안에서의 쉬운 말 블록 */
+.sheet .easy-block{border:1px solid #D7DEE8;border-radius:6px;padding:6px 8px;margin:5px 0}
+.sheet .easy-badge{font-size:9px;padding:2px 6px}
+.sheet .easy-lead{font-size:10px}
+.sheet .easy-store{font-size:11px;margin-bottom:4px}
+.sheet .easy-why{gap:2px}
+.sheet .easy-why li{font-size:9.6px;line-height:1.5}
+.sheet .easy-why li>b{width:52px;font-size:9.2px}
+.sheet .easy-todo{margin-top:5px;padding:6px 7px;background:#F7FAFC;border-radius:5px}
+.sheet .easy-todo-h{font-size:10.5px;margin-bottom:3px}
+.sheet .easy-step{margin:4px 0}
+.sheet .easy-step-n{width:13px;height:13px;font-size:8px}
+.sheet .easy-step-b{font-size:9.6px;line-height:1.5}
+.sheet .easy-q li{margin:0}
+.sheet .easy-map-svg{max-width:110mm}
+.sheet .easy-map-cap,.sheet .easy-coord,.sheet .easy-links{font-size:8px}
+.sheet .easy-foot{font-size:8px}
 .report-bar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:11px 12px;background:var(--accent-50);border-radius:12px;font-size:12px;color:var(--text-secondary);line-height:1.5}
 .report-bar b{color:var(--text-primary)}
 /* 한 장 리포트(A4) */
@@ -763,6 +829,12 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
   body.report-open .sheet .box{font-size:7.2pt;padding:3pt 5pt;margin:3pt 0}
   body.report-open .sheet .foot,body.report-open .sheet .stamp{font-size:6.8pt;margin-top:4pt;padding-top:3pt}
   body.report-open .sheet h2,body.report-open .sheet .road li,body.report-open .sheet .stamp{break-inside:avoid;page-break-inside:avoid}
+  body.report-open .sheet .easy-badge{font-size:7.4pt}
+  body.report-open .sheet .easy-lead,body.report-open .sheet .easy-why li,body.report-open .sheet .easy-step-b{font-size:7.6pt}
+  body.report-open .sheet .easy-why li>b{font-size:7.4pt}
+  body.report-open .sheet .easy-todo{padding:3pt 4pt}
+  body.report-open .sheet .easy-map-svg{max-width:78mm}
+  body.report-open .sheet .easy-block{break-inside:avoid;page-break-inside:avoid}
   body.report-open .sheet table,body.report-open .sheet .box{break-inside:avoid;page-break-inside:avoid}
   body.report-open .sheet a{color:inherit;text-decoration:none}
   body.report-open .sheet .tblwrap{overflow:visible!important}
@@ -783,9 +855,9 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
       <div><b>온누리 레이더</b><small>골목형상점가 분석 시스템</small></div>
     </div>
 
-    <button class="nav-item" data-view="home" aria-selected="false"><span data-i="home"></span>홈</button>
+    <button class="nav-item" data-view="home" aria-selected="true"><span data-i="home"></span>홈</button>
     <div class="side-label">점포·상권 분석</div>
-    <button class="nav-item" data-view="check" aria-selected="true"><span data-i="pin"></span>점포 적격 판별</button>
+    <button class="nav-item" data-view="check" aria-selected="false"><span data-i="pin"></span>점포 적격 판별</button>
     <button class="nav-item" data-view="discover" aria-selected="false"><span data-i="search"></span>전국 잠재 점포 발굴</button>
     <button class="nav-item" data-view="db" aria-selected="false"><span data-i="layers"></span>가맹점 &amp; 상권 DB</button>
     <div class="side-label">내 분석 기록</div>
@@ -805,8 +877,8 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
     <header class="topbar">
       <button class="icon-btn" id="side-toggle" aria-label="메뉴 접기/펴기" title="메뉴 접기/펴기"><span data-i="menu"></span></button>
       <div class="tb-title">
-        <h1 id="pg-title">점포 적격 판별</h1>
-        <p id="pg-desc">특정 점포의 골목형상점가 지정 가능성을 빠르게 분석합니다.</p>
+        <h1 id="pg-title">홈</h1>
+        <p id="pg-desc">오늘의 온누리 적격 판별 현황을 한눈에 확인합니다.</p>
       </div>
       <div class="tb-right">
         <span class="statusline" id="h-sync"><i class="dot warn"></i>DB 연결 중…</span>
@@ -837,7 +909,7 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
       <div class="boot" id="boot"><div class="state"><div class="spin"></div><b>실데이터 로딩 중…</b><span>GS25 전국 점포 18,198 · 골목형상점가 264 · 온누리 가맹점 22.5만 · 상가(상권)정보</span></div></div>
 
       <!-- ============================ HOME ============================ -->
-      <section class="view" id="view-home" role="tabpanel">
+      <section class="view active" id="view-home" role="tabpanel">
         <div class="home">
           <div class="hero">
             <div class="hero-txt">
@@ -872,12 +944,12 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
       </section>
 
       <!-- ============================ TAB 1 ============================ -->
-      <section class="view active" id="view-check" role="tabpanel">
+      <section class="view" id="view-check" role="tabpanel">
         <div class="t1-wrap">
           <div class="kpis" id="t1-kpis">
             <div class="kpi"><span class="ic" data-i="store"></span><div><b id="k-total">—</b><span>분석 대상 점포</span></div></div>
             <div class="kpi"><span class="ic s" data-i="target"></span><div><b id="k-cand">—</b><span>지정 가능 후보</span></div></div>
-            <div class="kpi"><span class="ic w" data-i="clip"></span><div><b id="k-review">—</b><span>현장 확인 필요</span></div></div>
+            <div class="kpi"><span class="ic w" data-i="clip"></span><div><b id="k-review">—</b><span id="k-review-l">현장 확인 필요(조건부)</span><span class="faint" id="k-review-sub">조건부 판정만 · 탭 3 '현장 확인 대상'은 적합+조건부 합계</span></div></div>
             <div class="kpi"><span class="ic z" data-i="refresh"></span><div><b class="sm" id="k-db">—</b><span id="k-db-sub">DB 최신화 상태</span></div></div>
           </div>
 
@@ -998,7 +1070,7 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
             <div class="field"><label for="f-fresh">데이터 갱신일</label><select class="select" id="f-fresh"><option value="">전체</option><option value="fresh">최신(90일 이내)</option><option value="stale">갱신 대기</option></select></div>
             <div class="acts"><button class="btn ghost" id="f-reset">초기화</button><button class="btn" id="f-csv"><span data-i="down"></span>CSV 다운로드</button></div>
           </div>
-          <div class="kpis" style="grid-template-columns:repeat(4,1fr)" id="t2-kpis"></div>
+          <div class="kpis kpis-4" id="t2-kpis"></div>
           <div class="t2-body">
             <div class="card">
               <div class="card-h">
@@ -1044,7 +1116,7 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
             <div class="field"><label for="d-area">검토 면적</label><select class="select" id="d-area"></select></div>
             <div class="acts"><button class="btn ghost" id="d-reset">초기화</button><button class="btn" id="d-csv"><span data-i="down"></span>CSV 다운로드</button></div>
           </div>
-          <div class="kpis" style="grid-template-columns:repeat(4,1fr)" id="t3-kpis"></div>
+          <div class="kpis kpis-4" id="t3-kpis"></div>
           <div class="t3-body">
             <div class="card">
               <div class="card-h"><h3>우선순위 후보 리스트</h3><span class="sub" id="t3-count"></span>
@@ -1315,8 +1387,8 @@ async function loadNearby(sido) {
   if (!DB.nearbyLoading[sido]) {
     DB.nearbyState[sido] = 'loading';
     DB.nearbyLoading[sido] = fetchJSONTimeout(`./data/nearby/${encodeURIComponent(sido)}.json`, 30000)
-      .then(d => { DB.nearby[sido] = d && typeof d === 'object' ? d : {}; DB.nearbyState[sido] = 'ready'; return DB.nearby[sido]; })
-      .catch(() => { DB.nearbyState[sido] = 'error'; delete DB.nearbyLoading[sido]; return undefined; });
+      .then(d => { DB.nearby[sido] = d && typeof d === 'object' ? d : {}; DB.nearbyState[sido] = 'ready'; nearbyKPIChanged(); return DB.nearby[sido]; })
+      .catch(() => { DB.nearbyState[sido] = 'error'; delete DB.nearbyLoading[sido]; nearbyKPIChanged(); return undefined; });
   }
   return await DB.nearbyLoading[sido];
 }
@@ -1412,6 +1484,9 @@ async function loadMemberIndex() {
         DB.memberIdx = buildMemberIndex(Array.isArray(rows) ? rows : []);
         DB.memberMatched = applyMemberMatch(DB.stores, DB.memberIdx);
         DB.memberLoaded = true;
+        /* 가맹점 색인이 늦게 도착하면 '미가맹' 모집단이 달라진다 — KPI·탭 3 숫자를 다시 맞춘다 */
+        invalidateKPI(); T3.dirty = true;
+        setTimeout(() => { updateNavKPI(); if (APPX.view === 'discover') t3Render(); else if (APPX.view === 'home') renderHome(); }, 0);
         return DB.memberIdx;
       })
       .catch(() => { DB.memberIdx = null; delete DB.memberLoading; return null; });
@@ -1534,6 +1609,31 @@ function countsFor(p, areaM2) {
   return { all: Math.round(nl * k), small: Math.round((sl ?? nl) * k), est: true };
 }
 
+/* 구역 좌표 격자 — 구역이 779곳(추정 포함)으로 늘어 18,198개 점포마다 전 구역을 도는 비용이 커졌다.
+   점포 주변 1.5km 안의 구역만 꺼내 쓰되, 반경·중첩·최근접(900m 배점)에 쓰이는 범위는 모두 포함한다.
+   (구역 반경 최대 400m + 최근접 배점 900m = 1.3km < 1.5km, 격자 한 칸 약 1.1km) */
+const ZG = { sig: '', map: null, cell: 0.01 };
+function zoneGrid() {
+  const sig = DB.zones.length + '|' + (DB.zones[0] || {}).id + '|' + (DB.zones[DB.zones.length - 1] || {}).id;
+  if (ZG.sig === sig && ZG.map) return ZG.map;
+  const m = new Map();
+  DB.zones.forEach(z => {
+    const k = Math.floor(z.lat / ZG.cell) + ':' + Math.floor(z.lng / ZG.cell);
+    let a = m.get(k); if (!a) m.set(k, a = []); a.push(z);
+  });
+  ZG.sig = sig; ZG.map = m;
+  return m;
+}
+function zonesNear(pos, meters) {
+  const m = zoneGrid(), out = [];
+  const RADD = Math.PI / 180;   /* 이 구간은 단위 테스트가 법적 코어만 떼어 실행하므로 상수도 지역에 둔다 */
+  const dLat = meters / 110540, dLng = meters / (111320 * (Math.cos(pos.lat * RADD) || 1));
+  const i0 = Math.floor((pos.lat - dLat) / ZG.cell), i1 = Math.floor((pos.lat + dLat) / ZG.cell);
+  const j0 = Math.floor((pos.lng - dLng) / ZG.cell), j1 = Math.floor((pos.lng + dLng) / ZG.cell);
+  for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) { const a = m.get(i + ':' + j); if (a) for (let k = 0; k < a.length; k++) out.push(a[k]); }
+  return out;
+}
+
 /** 핵심 판정 함수 — 좌표 기반 실측 점포수 × 조례 기준 */
 function evaluate(p, areaM2) {
   const r = Math.sqrt(areaM2 / Math.PI);
@@ -1545,7 +1645,7 @@ function evaluate(p, areaM2) {
   /* 핀 보정 좌표가 있으면 거리·구역 중첩·반경 포함 여부를 모두 보정 좌표로 계산한다 */
   const pos = posOf(p);
 
-  const zc = DB.zones.map(z => { const d = dist(pos, z); return { z, d, edge: Math.max(0, d - z.radius), inside: inZone(pos, z), overlap: d < z.radius + r }; }).sort((a, b) => a.edge - b.edge);
+  const zc = zonesNear(pos, Math.max(1500, r + 1400)).map(z => { const d = dist(pos, z); return { z, d, edge: Math.max(0, d - z.radius), inside: inZone(pos, z), overlap: d < z.radius + r }; }).sort((a, b) => a.edge - b.edge);
   const inside = zc.filter(x => x.inside), overlapping = zc.filter(x => !x.inside && x.overlap), nearest = zc[0] || null;
 
   const base = rule.base_area || 2000;
@@ -1558,6 +1658,10 @@ function evaluate(p, areaM2) {
 
   if (!c) {
     v = 'na'; label = pinMoved ? '핀 보정 후 상가 수 재집계 필요' : '상가 데이터 미수집';
+    /* 조례 기준 숫자는 상가 자료와 무관하게 확정된다 — 자료가 없다고 기준까지 없는 것으로 쓰지 않는다. */
+    reqCom = requiredShopsFor(rule, areaM2, thCom);
+    reqNon = requiredShopsFor(rule, areaM2, thNon);
+    required = reqCom ?? reqNon;
     if (pinMoved) {
       reasons.push('핀 위치가 변경되었지만 기존 상가 수는 최초 등록 좌표 중심의 집계치입니다. 보정된 위치에서 재집계할 수 없어 밀집도 판정을 보류합니다.');
       reasons.push('직접 구역을 그리고 현장 점포 수를 확인하거나 실제 좌표가 있는 상가 원본 자료로 재계산하세요.');
@@ -1580,11 +1684,27 @@ function evaluate(p, areaM2) {
       reasons.push(`${rule.ordinance}은(는) 면적당 점포수 기준을 조례 별표에 위임하고 있어 DB에 수치가 없습니다.`);
       reasons.push(`환산 점포수는 ${per.toFixed(1)}개입니다. 법정 기본(2,000㎡당 30개)과 비교하면 ${per >= 30 ? '충족' : '미달'}이지만, 실제 기준은 담당 부서(${rule.dept || '미확인'})에 별표 원문으로 확인해야 합니다.`);
     } else if ((thCom && reqCom == null) || (thNon && reqNon == null)) {
-      v = 'na'; label = '면적 초과 규정 확인 필요';
-      reasons.push(`검토 면적 ${fmt(areaM2)}㎡는 조례 기준면적 ${fmt(base)}㎡를 초과합니다. 해당 지자체의 초과면적 계산식이 검증되지 않아 자동 적합 판정을 보류합니다.`);
+      /* 기준면적 초과 + 초과면적 계산식 미검증. 계산식이 없어도 '최소 기준'(기준면적 기준 점포 수)은 확정이라,
+         그보다 적으면 초과면적 기준과 무관하게 미달이다. 넘으면 기준 확인 필요로 남긴다.
+         단 적용 조례가 없는 지자체는 법정 기본값으로 미달을 단정하지 않는다(배너도 '조례 미확인'으로 남긴다). */
+      const floor = Math.min.apply(null, [thCom, thNon].filter(x => x != null));
+      if (!local) {
+        v = 'na'; label = '조례 미확인 — 기준 확인 필요';
+        reasons.push(`이 지자체 골목형상점가 조례가 DB에 없어 법정 기본값으로만 비교했습니다. 검토 면적 ${fmt(areaM2)}㎡의 실제 기준은 담당 부서에 확인해야 합니다.`);
+      } else if (nSmall < floor) {
+        v = 'fail'; label = '부적합 — 최소 기준 미달';
+        reasons.push(`검토 면적 ${fmt(areaM2)}㎡는 조례 기준면적 ${fmt(base)}㎡를 넘어 초과면적 계산식이 검증되지 않았습니다. 다만 최소 기준(${fmt(base)}㎡당 ${floor}개)보다도 ${floor - nSmall}개 적어, 초과면적 기준을 어떻게 계산해도 요건을 채우기 어렵습니다.`);
+        reasons.push('현장에서 실제 영업 점포를 다시 세고, 초과면적 계산식은 담당 부서에 확인하세요.');
+      } else {
+        v = 'na'; label = '면적 초과 규정 확인 필요';
+        reasons.push(`검토 면적 ${fmt(areaM2)}㎡는 조례 기준면적 ${fmt(base)}㎡를 초과합니다. 해당 지자체의 초과면적 계산식이 검증되지 않아 자동 적합 판정을 보류합니다.`);
+        reasons.push(`다만 최소 기준(${fmt(base)}㎡당 ${floor}개)은 넘었습니다(현재 ${nSmall}개). 초과면적 기준 점포 수는 담당 부서에 확인하세요.`);
+      }
     } else if (inside.length) {
       v = 'cond'; label = '조건부 — 기존 구역 내';
-      reasons.push(`이미 '${inside[0].z.name}'(${inside[0].z.type}) 구역 안에 있습니다. 신규 지정보다 기존 구역 온누리 가맹 등록을 우선 검토하세요.`);
+      const iz = inside[0].z;
+      reasons.push(`이미 '${iz.name}'(${iz.type}) 구역 안에 있습니다. 신규 지정보다 기존 구역 온누리 가맹 등록을 우선 검토하세요.`
+        + (iz.geo === 'est-member' ? ` 이 구역의 위치·반경은 온누리 가맹점(GS25) ${(iz.est && iz.est.anchors) || 1}곳 좌표로 추정한 값입니다 — 실제 경계는 담당 부서 고시 도면으로 확인하세요.` : ''));
     } else if (passCom === true && !overlapping.length) {
       v = 'pass'; label = thNon != null ? '예비 충족 — 양쪽 밀집 기준 만족' : '예비 충족 — 점포 수 기준 만족';
       reasons.push(thNon != null
@@ -1638,6 +1758,32 @@ function evaluate(p, areaM2) {
 /* ---- 평가 캐시 · 우선순위 점수(내부 참고용, 법적 판정과 분리) ---- */
 const EVC = new Map();
 function ev(p, area) { const k = `${p.id}|${area}|${p.lat},${p.lng}|${posOf(p).lat},${posOf(p).lng}`; if (!EVC.has(k)) EVC.set(k, evaluate(p, area)); return EVC.get(k); }
+/* 상단 KPI용 경량 평가 — evaluate()와 같은 법적 입력(조례 매칭·반경 점포 수·필요 점포 수)만 계산한다.
+   지도 구역 기하(zc·inside·overlapping)·우선순위·사유 문장은 탭 1 화면 전용이라
+   18,198개 점포 집계에서는 만들지 않는다(같은 값이지만 수십 배 빠르다).
+   판정 자체는 computeKPI()가 assessmentOf()로 하므로 탭 3과 같은 함수·같은 입력을 쓴다. */
+const EKVC = new Map();
+function evKPI(p, area) {
+  const k = `${p.id}|${area}|${p.lat},${p.lng}|${posOf(p).lat},${posOf(p).lng}`;
+  if (!EKVC.has(k)) EKVC.set(k, evaluateKPI(p, area));
+  return EKVC.get(k);
+}
+function evaluateKPI(p, areaM2) {
+  const rm = ruleMatch(p.sido, p.sigungu, p.address);
+  const local = rm.rule, rule = local || NAT_RULE;
+  const pinMoved = !!pinOf(p);
+  const c = pinMoved ? null : countsFor(p, areaM2);
+  const base = rule.base_area || 2000;
+  const thCom = rule.min_shops || null, thNon = rule.min_shops_non_commercial || null;
+  const reqCom = requiredShopsFor(rule, areaM2, thCom), reqNon = requiredShopsFor(rule, areaM2, thNon);
+  /* 이미 지정 구역 안인 점포는 '신규 지정 후보'가 아니다 — KPI·탭3 모집단에서 빼려면 여기서도 판정해야 한다.
+     (구역 격자 조회만 하고 정렬·중첩 계산은 하지 않아 전수 18,198개에서도 부담이 작다) */
+  const pos = posOf(p);
+  const inside = pinMoved ? [] : zonesNear(pos, 1500).filter(z => inZone(pos, z)).map(z => ({ z }));
+  return { p, pos, rule: local, legacy: rm.legacy, natRule: !local, area: areaM2,
+    r: Math.sqrt(areaM2 / Math.PI), base, th: thCom || thNon, thCom, thNon,
+    reqCom, reqNon, required: reqCom ?? reqNon, nSmall: c ? (c.small ?? c.all) : 0, counts: c, pinMoved, inside };
+}
 /* 항목별 상한 — 상단 기준표(지자체 35 + 밀집도 25 + 기존 구역·가맹 15 + 후보 형성 15 + 신뢰도 10 = 100)와 1:1로 맞춘다.
    계산식이 상한을 넘겨도 여기서 잘라 100점 만점을 넘지 않게 한다(이전에는 구역·가맹이 18점까지 들어가 103/100으로 표기됨). */
 const PRIORITY_MAX = { rule: 35, density: 25, zone: 15, form: 15, trust: 10 };
@@ -3096,6 +3242,9 @@ const HEADLINE_STATUS = {
   COND: { emoji:'🟡', title:'조건부', cls:'cond' },
   COND_LEGAL: { emoji:'🟡', title:'조건부', cls:'cond' },
   BASIS: { emoji:'🟡', title:'조건부', cls:'cond' },
+  /* 이미 지정 구역 안이거나 이미 온누리 가맹인 점포 — 새 판정을 내리기 전에 '이미 끝난 일'을 먼저 보여준다.
+     공개 판정 어휘는 3종(적합·조건부·부적합) 그대로 두고, 제목은 '조건부'에 두되 문구로 상태를 분명히 밝힌다. */
+  MEMBER: { emoji:'🔵', title:'조건부', cls:'cond' },
 };
 function headlineVerdict(o) {
   o = o || {};
@@ -3111,11 +3260,29 @@ function headlineVerdict(o) {
   const res = (k, sub, extra) => Object.assign({ level: k, emoji: HEADLINE_STATUS[k].emoji, title: HEADLINE_STATUS[k].title,
     full: HEADLINE_STATUS[k].emoji + ' ' + HEADLINE_STATUS[k].title, cls: HEADLINE_STATUS[k].cls, sub,
     maxShops, minShops, reqLow, reqHigh }, extra || {});
+  const floor = o.overAreaFloor == null ? null : +o.overAreaFloor;   /* 초과면적 규칙 미검증일 때의 '최소 기준'(기준면적 기준 점포 수) */
+  const am = o.alreadyMember && (o.alreadyMember.zone || o.alreadyMember.year) ? o.alreadyMember : o.alreadyMember ? {} : null;
+  const iz = o.insideZone || null;
 
-  /* 0) 표본·데이터 0건 — 먼저 '무엇을 확인해야 하는지'를 보여준다 */
-  if (pop == null || maxShops == null) return res('NO_DATA', `${o.noDataReason || '상가 데이터 미수집 · 카카오 조회 전'} — 현장 확인 또는 카카오 실시간 조회 필요`);
-  /* 0-1) 기준 자체가 확정되지 않은 경우 — 숫자 비교로 단정하지 않는다 */
+  /* 0) 이미 온누리 가맹 / 이미 지정 구역 안 — 점포 수 비교보다 이 사실이 먼저다.
+     (예전에는 V2963처럼 이미 가맹·구역 내인 점포에 '부적합' 배너가 떠서 '신규 지정 대상 아님' 칩과 모순됐다) */
+  if (am) return res('MEMBER', `${am.zone ? `'${am.zone}' — ` : ''}이미 온누리 가맹 완료${am.year ? ` (${am.year}년 등록)` : ''} · 신규 지정 대상 아닙니다(지금 가맹 유지·상권 중복만 확인)`, { alreadyMember: true });
+  if (iz) return res('MEMBER', iz.est
+    ? `이미 '${iz.name}' ${iz.type || '구역'} 안으로 추정됩니다 — 온누리 가맹점 좌표로 잡은 추정 위치라, 실제 경계는 담당 부서에 확인하세요(신규 지정보다 기존 구역 가맹·경계 조정 문제)`
+    : `이미 '${iz.name}' ${iz.type || '구역'} 안 — 신규 지정 대상이 아니라 기존 구역의 가맹·경계 조정 검토 대상입니다`, { insideZone: true });
+
+  /* 0-2) 표본·데이터 0건 — 먼저 '무엇을 확인해야 하는지'를 보여준다.
+     조례 기준이 확인돼 있으면 기준 숫자를 함께 보여준다(예전에는 상가정보 미수집 지자체에서
+     카카오 조회 직후 '조례 별표 기준 없음'으로 오표시됐다 — 기준은 있는데 자료가 없는 상태다). */
+  if (pop == null || maxShops == null) return res('NO_DATA', `${o.noDataReason || '상가 데이터 미수집 · 카카오 조회 전'}${reqLow != null ? ` — 조례 기준(최소 ${reqLow}개)은 확인돼 있지만 주변 상가 수를 세지 못해 판정하지 않습니다` : ''} · 현장 확인 또는 카카오 실시간 조회 필요`);
+  /* 0-3) 기준 자체가 확정되지 않은 경우 — 숫자 비교로 단정하지 않는다 */
   if (o.basisUnknown) return res('BASIS', `${o.basisUnknown} — 담당 부서·조례 원문 확인 필요`);
+  /* 0-4) 기준면적을 넘는 면적: 초과면적 계산식이 미검증이어도 '최소 기준'(기준면적 기준 점포 수)은 확정이다.
+     최소 기준에도 못 미치면 초과 계산식과 무관하게 부적합이고, 넘으면 기준 확인 필요로 남긴다. */
+  if (floor != null) {
+    if (maxShops < floor) return res('FAIL', `현재 자료 ${maxShops}개 / 최소 기준 ${floor}개에도 ${floor - maxShops}개 부족 — 초과면적 계산식이 확인되지 않았지만, 어떻게 계산해도 요건을 채우기 어렵습니다`, { overAreaFloor: floor });
+    return res('BASIS', `최소 기준 ${floor}개는 넘었습니다(${pop}개) — 다만 검토 면적이 기준면적을 넘어 초과면적 계산식·기준 점포 수를 담당 부서에서 확인해야 합니다`, { overAreaFloor: floor });
+  }
   if (!reqLow) return res('BASIS', '조례 별표의 점포 수 기준이 DB에 없습니다 — 별표 원문 확인 필요');
 
   if (conflict) return res('COND', o.conflictSub || '조례·시행규칙 충돌 — 담당 부서 확인 필요');
@@ -3181,6 +3348,9 @@ function bizStatsOf(e) {
     if (out.population == null) out.population = items.length;
     if (out.src === 'nearby' && out.population <= items.length) out.truncated = false;
   }
+  /* 상가 상세목록(시도 단위 파일)을 아직 내려받는 중이라 표본이 없는 경우는
+     '표본 없음'이 아니라 '불러오는 중'이다 — 아직 오지 않은 것을 없다고 쓰지 않는다. */
+  out.loading = !items && e.p.cov && ['loading', 'idle'].includes(nearbyState(e.p.sido));
   out.assess = densityAssess({
     rule: e.rule, area: e.area, population: out.population,
     thCom: e.thCom, thNon: e.thNon,
@@ -3214,6 +3384,70 @@ function xcCore(s) {                       // 지점 표기(…점)를 뗀 몸�
   while (t.length > 3 && /점$/.test(t)) t = t.slice(0, -1);
   return t;
 }
+/* 같은 매장인데도 상호 앞뒤에 붙는 지명·업종 꼬리말 탓에 다르게 보인다.
+     공단 CSV '대전피자스쿨'        ↔ 카카오 '피자스쿨 대전노은역점'
+     공단 CSV '꿈닮리드인독서논술학원' ↔ 카카오 '꿈닮리드인 대전'
+   지명 접두와 업종·형태 꼬리말을 한 겹씩 벗긴 '핵심 몸통'을 후보로 두고,
+   두 쪽 후보가 같거나 한쪽이 다른 쪽으로 시작할 때만 같은 점포로 본다.
+   오매칭 방지: 벗기고 남은 몸통이 3글자 미만이면 후보로 쓰지 않고('중앙학원'↔'중앙의원' 방지),
+   접두 일치는 4글자 이상만 인정하며, 최종 판단은 xcMatch의 거리 게이트가 다시 좁힌다. */
+const XC_PLACE = ['서울', '부산', '대구', '인천', '광주', '대전', '울산', '세종', '경기', '강원', '충북', '충남', '전북', '전남', '경북', '경남', '제주',
+  '수원', '성남', '고양', '용인', '부천', '안산', '안양', '남양주', '화성', '평택', '의정부', '시흥', '파주', '김포', '군포', '하남', '오산', '이천', '안성', '광명', '구리', '과천', '포천', '여주',
+  '청주', '천안', '아산', '전주', '익산', '군산', '목포', '순천', '여수', '창원', '김해', '진주', '양산', '포항', '경주', '구미', '원주', '춘천', '강릉', '서귀포'];
+const XC_BIZ_TAIL = ['독서논술학원', '보습학원', '일반교습학원', '교습소', '학원', '치과의원', '한의원', '의원', '치과', '약국', '편의점',
+  '미용실', '네일', '피부과', '안과', '내과', '정형외과', '동물병원', '공인중개사', '부동산', '어린이집', '태권도', '노래방', '세탁소', '식당', '분식', '호프', '통닭', '베이커리', '커피'];
+const XC_BRAND_MIN = 4;                    /* 지명·업종을 벗긴 몸통의 최소 길이 — '부산세공사'↔'서울세공사' 같은 3글자 상호 오매칭 방지 */
+const XC_BRAND_CACHE = new Map();
+/* 지명(접두)·업종 꼬리말(접미)을 한 겹만 벗긴 핵심 몸통.
+   지명을 접미에서도 벗기거나 두 겹을 벗기면 'GS25고양본점'·'GS25대전성남점'이 모두 'GS25'·'GS25대전'으로
+   줄어 다른 지점끼리 붙는다 — 접두 지명과 접미 업종만, 한 겹만 벗긴다. */
+function xcBrands(name) {
+  const hit = XC_BRAND_CACHE.get(name);
+  if (hit) return hit;
+  const core = xcCore(name), out = [{ t: core, kind: 'core' }], seen = new Set([core]);
+  const add = (t, kind) => { if (t.length >= XC_BRAND_MIN && !seen.has(t)) { seen.add(t); out.push({ t, kind }); } };
+  XC_PLACE.forEach(p => { if (core.startsWith(p)) add(core.slice(p.length), 'place'); });
+  XC_BIZ_TAIL.forEach(b => { if (core.endsWith(b)) add(core.slice(0, -b.length), 'biz'); });
+  if (XC_BRAND_CACHE.size > 20000) XC_BRAND_CACHE.clear();
+  XC_BRAND_CACHE.set(name, out);
+  return out;
+}
+/* 한쪽 상호에만 더 붙은 꼬리가 지명·'…점/역' 같은 잡음뿐인지 본다.
+   '피자스쿨' + '대전노은역'은 잡음뿐이라 같은 매장이지만, '크로앙스' + '미피'는 상호라 다른 매장이다. */
+function xcNoiseOnly(rest) {
+  let t = rest;
+  for (let guard = 0; guard < 4; guard++) { const p = XC_PLACE.find(x => t.startsWith(x) && t.length >= x.length); if (!p) break; t = t.slice(p.length); }
+  for (let guard = 0; guard < 4; guard++) { const b = XC_BIZ_TAIL.find(x => t.length >= x.length && t.endsWith(x)); if (!b) break; t = t.slice(0, -b.length); }
+  if (/점$/.test(t)) t = t.slice(0, -1);
+  if (!t) return true;
+  return t.length <= 4 && /역$/.test(t);          /* '노은역' 같은 역명 지점 */
+}
+const XC_BIZTAIL_CACHE = new Map();
+function xcHasBizTail(name) {
+  const hit = XC_BIZTAIL_CACHE.get(name);
+  if (hit != null) return hit;
+  const core = xcCore(name), out = XC_BIZ_TAIL.some(b => core.endsWith(b));
+  if (XC_BIZTAIL_CACHE.size > 20000) XC_BIZTAIL_CACHE.clear();
+  XC_BIZTAIL_CACHE.set(name, out);
+  return out;
+}
+function xcBrandScore(a, b) {
+  const A = xcBrands(a), B = xcBrands(b);
+  const aBiz = xcHasBizTail(a), bBiz = xcHasBizTail(b);
+  let best = 0;
+  for (let i = 0; i < A.length; i++) for (let j = 0; j < B.length; j++) {
+    const x = A[i], y = B[j];
+    /* 업종 꼬리를 벗긴 후보는 상대가 업종을 달고 있지 않을 때만 쓴다.
+       '꿈닮리드인독서논술학원'↔'꿈닮리드인 대전'은 같은 매장이지만
+       '굿모닝내과의원'↔'굿모닝치과'·'맑은아침공인중개사'↔'맑은아침세탁소'는 같은 건물의 다른 매장이다. */
+    if (x.kind === 'biz' && bBiz) continue;
+    if (y.kind === 'biz' && aBiz) continue;
+    if (x.t === y.t) { if (best < .9) best = .9; continue; }
+    const s = x.t.length <= y.t.length ? x.t : y.t, l = x.t.length <= y.t.length ? y.t : x.t;
+    if (s.length >= 4 && l.startsWith(s) && xcNoiseOnly(l.slice(s.length)) && best < .8) best = .8;
+  }
+  return best;
+}
 function xcDice(a, b) {                    // 두 글자 묶음 중복도 — 브랜드 한글/영문 표기 차이(엠지씨 ↔ MGC)를 흡수
   if (!a || !b) return 0;
   const A = new Map(), B = new Map();
@@ -3234,12 +3468,41 @@ function xcPairScore(a, b) {
   if (s1.length >= 3 && l1.includes(s1)) return .85;
   const s2 = ca.length <= cb.length ? ca : cb, l2 = ca.length <= cb.length ? cb : ca;
   if (s2.length >= 4 && l2.includes(s2)) return .8;
+  /* 지명·업종 꼬리말만 다른 같은 매장 — '대전피자스쿨' ↔ '피자스쿨 대전노은역점' */
+  const brand = xcBrandScore(a, b);
+  if (brand) return brand;
+  /* 짧은 상호(2~3글자) + 지점명 — '소담' ↔ '소담 교대점', '놀숲' ↔ '놀숲 교대점'
+     두 글자 상호는 위 규칙(핵심 몸통 3글자 이상)에 걸리지 않아 같은 점포가 '미확인'과 '신규 후보'에 동시에 나왔다. */
+  const short = xcShortCore(a, b);
+  if (short) return short.score;
   if (na.length >= 5 && Math.abs(na.length - nb.length) <= 4) {
     const d = xcDice(na, nb);
     if (d >= .78) return .6 + d * .2;
   }
   return 0;
 }
+/* ── 2~3글자 상호 + 지점명 매칭 ─────────────────────────────────────────────
+   '소담'(공단) ↔ '소담 교대점'(카카오)은 같은 가게인데, 상호가 2글자라 기존 규칙
+   (핵심 몸통 3·4글자 이상)에 걸리지 않았다. 오매칭을 막기 위해 아래를 모두 만족할 때만 인정한다.
+     ① 짧은 쪽이 2~3글자이고, 긴 쪽이 그 글자로 시작한다
+     ② 긴 쪽이 '…점' 지점 표기를 달고 있다 — 지점명이 붙은 이름이라는 명시적 증거
+     ③ 지점명 부분이 1~6글자이고 업종 꼬리말이 아니다 ('중앙'↔'중앙식당'·'중앙'↔'중앙학원' 차단)
+     ④ (xcMatch) 두 점포의 중심까지 거리 차이 — 2글자는 15m, 3글자는 30m 이내
+   ④의 거리 게이트는 xcMatch가 xcShortSpan()으로 건다. */
+function xcShortCore(a, b) {
+  const A = xcNorm(a), B = xcNorm(b);
+  if (!A || !B || A === B) return null;
+  const s = A.length <= B.length ? A : B, l = A.length <= B.length ? B : A;
+  if (s.length < 2 || s.length > 3 || !l.startsWith(s)) return null;            // ①
+  if (!/(점|지점|분점)$/.test(l)) return null;                                    // ② 지점 표기가 있는 이름만
+  let rest = l.slice(s.length).replace(/(지점|분점|직영점|가맹점|본점|매장|호점)$/, '').replace(/점$/, '');
+  if (!rest || rest.length > 6) return null;                                      // ③ 지점명 길이
+  if (XC_BIZ_TAIL.some(t => rest === t)) return null;                             // ③ 업종 꼬리말이면 다른 가게
+  if (/^[0-9]+$/.test(rest)) return null;                                         // 호점 번호만 남는 경우 제외
+  return { score: s.length === 2 ? .72 : .76, span: s.length === 2 ? 15 : 30, len: s.length, rest };
+}
+/* 짧은 상호 매칭에 허용하는 거리 차이(미터) — 짧은 상호 매칭이 아니면 0 */
+function xcShortSpan(a, b) { const h = xcShortCore(a, b); return h ? h.span : 0; }
 /* 반경 내 점포(공단) ↔ 카카오 장소를 점수 높은 순으로 1:1 배정한다 */
 function xcMatch(rows, places) {
   const key = p => p.id || ('x' + p.name + p.d);
@@ -3248,7 +3511,9 @@ function xcMatch(rows, places) {
     const sc = xcPairScore(r.s.name, p.name);
     if (!sc) return;
     const dd = Math.abs((r.d || 0) - (p.d || 0));
-    if (dd > (sc >= .9 ? 80 : 30)) return;          // 같은 점포라면 중심까지 거리가 거의 같아야 한다
+    /* 같은 점포라면 중심까지 거리가 거의 같아야 한다. 2~3글자 상호 매칭은 더 좁게(15m/30m) 건다. */
+    const span = xcShortSpan(r.s.name, p.name) || 30;
+    if (dd > (sc >= .9 ? 80 : span)) return;
     pairs.push({ r, p, sc: sc - Math.min(dd, 80) / 1000 });
   }));
   pairs.sort((a, b) => b.sc - a.sc);
@@ -3265,7 +3530,7 @@ function xcCompute(e) {
   /* 반경 안 카카오 결과가 하나도 없으면 교차 대조가 성립하지 않는다(키·한도·업종 문제일 수 있음)
      — 이때 공단 리스트 전체를 '폐업 의심'으로 칠하면 실무자가 통째로 오해한다. */
   if (!L.places.some(p => p.d <= e.r)) return null;
-  const sig = [L.state, L.places.length, rows.length, e.p.id, e.area].join('|');
+  const sig = [L.state, L.places.length, rows.length, e.p.id, e.area, (L.capped || []).length, (L.sweep && L.sweep.added) || 0].join('|');
   if (L.xc && L.xc.sig === sig) return L.xc.data;
   const { matched, byPlace, key } = xcMatch(rows, places);
   const byId = {};
@@ -3283,7 +3548,8 @@ function xcCompute(e) {
   /* 분석 대상 점포 자신(예: GS25 망포센트럴점)은 상가 후보가 아니므로 신규 후보에서 뺀다 */
   const selfKeys = new Set(places.filter(p => xcPairScore(e.p.name, p.name) >= .9).map(p => key(p)));
   const fresh = places.filter(p => !byPlace.has(key(p)) && !selfKeys.has(key(p)) && !XC_NONSHOP.includes(p.cat)).sort((a, b) => a.d - b.d);
-  const data = { byId, suspect, dups, fresh, both: matched, all: L.places, inR: L.places.filter(p => p.d <= e.r).length, rowTotal: rows.length, selfKeys, key };
+  const data = { byId, suspect, dups, fresh, both: matched, all: L.places, inR: L.places.filter(p => p.d <= e.r).length, rowTotal: rows.length, selfKeys, key,
+    capped: L.capped || [], sweep: L.sweep || null };
   L.xc = { sig, data };
   return data;
 }
@@ -3321,20 +3587,23 @@ function xcSummaryHTML(e, xc) {
   const est = xcEstimate(e, xc);
   const loc = xcLocHint(e.p);          // 폐업 의심 표의 '네이버 확인'에 붙일 지역 단서
   const nBoth = xc.both.length + xc.dups.length, nSus = xc.suspect.length, nNew = xc.fresh.length;
+  const cap = (xc.capped && xc.capped.length) ? `<div class="xc-sub" style="color:var(--warning)">${ic('warn', 13)} 카카오 45건 상한에 닿은 업종 ${xc.capped.length}개(${esc(xc.capped.slice(0, 4).join('·'))}${xc.capped.length > 4 ? ' 외' : ''})
+      ${xc.sweep ? `— 격자 분할 조회 ${xc.sweep.calls}회를 더해 <b>${xc.sweep.added}건</b>을 더 찾았습니다(중심에서 ${xc.sweep.offset}m 이동·반경 ${xc.sweep.radius}m)` : '— 분할 조회를 하지 못했습니다. 해당 업종은 일부 점포가 목록에서 빠졌을 수 있으니 현장·지도로 확인하세요.'}</div>` : '';
   return `<div class="xc-top">
       <span class="chip s">영업 확실 ${nBoth}</span><span class="chip d">폐업 의심 ${nSus}</span><span class="chip a">신규 후보 ${nNew}</span>
       <span class="faint" style="font-size:11px">공단 리스트 ${xc.rowTotal}건 ↔ 카카오 ${xc.inR}건 대조</span></div>
+    ${cap}
     ${est ? `<div class="xc-est">${xcEstCell(est.cur, false)}${xcEstCell(est.ex, false)}${xcEstCell(est.add, false)}${xcEstCell(est.net, true)}</div>
       <div class="xc-sub">${ic('info', 13)} 폐업 의심 제외 / 신규 후보 반영 시 실질 예상 <span class="faint">(기준 ${est.th ?? '—'}개 / ${fmt(est.base)}㎡ · 참고치)</span></div>` : `<div class="xc-hint">상가정보 CSV가 없는 시도라 실질 충족률은 계산하지 않습니다. 카카오 조회 결과로만 확인하세요.</div>`}
     ${nSus ? `<div class="xc-sub" style="color:var(--danger)">${ic('warn', 13)} 폐업·미확인 의심 ${nSus}건 <span class="faint" style="font-weight:500">— 공단 CSV에만 있고 카카오 조회에서 안 잡힌 점포</span></div>
       <div class="tbl-wrap"><table class="tbl num"><thead><tr><th>상호(공단)</th><th>업종</th><th>거리</th><th>확인</th></tr></thead><tbody>
       ${xc.suspect.slice(0, 12).map(r => `<tr><td><b>${esc(r.s.name)}</b></td><td>${esc(r.s.category)}</td><td>${Math.round(r.d)}m${r.inc === '경계' ? ' <span class="chip o">경계</span>' : ''}</td><td>${xcRowLink(r.s.name, loc)}</td></tr>`).join('')}</tbody></table></div>
-      ${nSus > 12 ? `<div class="faint" style="font-size:11px">외 ${nSus - 12}건 — 아래 C구역 리스트의 '카카오 미확인' 필터로 전체를 볼 수 있습니다.</div>` : ''}` : ''}
+      ${nSus > 12 ? `<div class="faint" style="font-size:11px">외 ${nSus - 12}건 — 위 C구역 리스트의 '카카오 미확인' 필터로 전체를 볼 수 있습니다.</div>` : ''}` : ''}
     ${nNew ? `<div class="xc-sub" style="color:var(--accent)">${ic('pass', 13)} 신규·누락 후보 ${nNew}건 <span class="faint" style="font-weight:500">— 카카오에서는 영업 중이나 공단 CSV에 없는 점포</span></div>
       <div class="tbl-wrap"><table class="tbl num"><thead><tr><th>상호(카카오)</th><th>업종</th><th>거리</th><th>주소</th></tr></thead><tbody>
       ${xc.fresh.slice(0, 12).map(p => `<tr><td><b>${esc(p.name)}</b></td><td>${esc(p.cat)}</td><td>${Math.round(p.d)}m</td><td class="faint">${esc(p.addr || '')} ${xcRowLink(p.name, p.addr)}</td></tr>`).join('')}</tbody></table></div>
       ${nNew > 12 ? `<div class="faint" style="font-size:11px">외 ${nNew - 12}건</div>` : ''}` : ''}
-    <div class="xc-hint">${ic('info', 12)} 교차 검증은 <b>상호 정규화(공백·특수문자·지점명·브랜드 표기) + 거리</b>로 자동 대조합니다. 카카오 로컬 API는 업종당 최대 45건까지만 반환하므로 밀집 상가에서는 영업 중인 점포도 '미확인'으로 남을 수 있습니다 — 폐업 단정이 아니라 <b>현장·네이버 지도 확인 대상</b>입니다. 실질 추정은 폐업 의심을 모두 소상공인으로, 신규 후보는 소상공인 성격 업종만 계산한 값입니다. 상가(상권)정보와 카카오는 업종 분류·집계 기준도 달라 개수가 다릅니다.</div>`;
+    <div class="xc-hint">${ic('info', 12)} 교차 검증은 <b>상호 정규화(공백·특수문자·지점명·브랜드 표기) + 거리</b>로 자동 대조합니다. 카카오 로컬 API는 업종당 최대 45건(15건×3페이지)까지만 반환하므로, 45건을 넘는 밀집 상가는 상한 업종의 중심을 4방향으로 옮긴 격자 조회로 더 받아옵니다. 그래도 남는 점포가 있으니 '미확인'은 폐업 단정이 아니라 <b>현장·네이버 지도 확인 대상</b>입니다. 실질 추정은 폐업 의심을 모두 소상공인으로, 신규 후보는 소상공인 성격 업종만 계산한 값입니다. 상가(상권)정보와 카카오는 업종 분류·집계 기준도 달라 개수가 다릅니다.</div>`;
 }
 function liveBlock(e) {
   const L = APP.live;
@@ -3348,6 +3617,7 @@ function liveBlock(e) {
   return `<div class="card-b" style="border-top:1px solid var(--border)">
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;flex-wrap:wrap"><b>실시간 카카오 조회 · 교차 검증</b>
       <span class="chip o">${L.state === 'loading' ? '조회 중…' : `반경 ${Math.round(e.r)}m 내 ${L.places.filter(p => p.d <= e.r).length}건 · 주변 ${rows.length}건`}</span>
+      ${(L.capped || []).length ? `<span class="chip w" title="카카오 업종당 45건 상한 — 격자 분할 조회로 보완">45건 상한 업종 ${L.capped.length}</span>` : ''}
       <button class="btn xs" id="live-go">${L.state === 'loading' ? '조회 중…' : '다시 조회'}</button></div>
     ${body}
     ${xc && xc.all.length ? `<details class="xc-all"><summary>카카오 조회 전체 ${xc.all.length}건 보기</summary><div class="tbl-wrap"><table class="tbl num"><thead><tr><th>상호</th><th>업종</th><th>거리</th><th>공단 CSV</th><th>주소</th></tr></thead><tbody>
@@ -3357,37 +3627,83 @@ function liveBlock(e) {
 
 
 let liveRequestSequence = 0;
+/* 카카오 로컬 API 제약(2026-11 확인): 업종(카테고리)당 15건 × 3페이지 = 최대 45건만 제공되고
+   그 이상은 페이지를 더 불러도 같은 값이 돌아온다(개발자 문서·카카오 데브톡). 45건을 넘는 밀집 상가에서는
+   '중심에서 먼 쪽'이 통째로 잘리므로, 상한에 닿은 업종만 중심을 4방향으로 옮겨 격자로 다시 조회한다. */
+const KAKAO_MAX_PAGES = 3;
+const KAKAO_CAP = 45;
+const KAKAO_SWEEP_DIRS = [[0, 1], [1, 0], [0, -1], [-1, 0]];   /* 북·동·남·서 */
+const KAKAO_SWEEP_MAXCATS = 3;                                 /* 호출 한도 보호 — 상한 업종 중 3개까지 */
 async function t1Live(e) {
   const request = ++liveRequestSequence;
   const current = () => request === liveRequestSequence && T1.ev === e;
-  APP.live = { key: e.p.id, places: [], state: 'loading' };
+  APP.live = { key: e.p.id, places: [], state: 'loading', capped: [], sweep: null };
   renderShops(e);
   if (!KMap.ready || !kakao.maps.services) { APP.live.state = 'error'; renderShops(e); return; }
   const ps = new kakao.maps.services.Places();
-  const center = new kakao.maps.LatLng((e.pos || posOf(e.p)).lat, (e.pos || posOf(e.p)).lng);
+  const home = e.pos || posOf(e.p);
+  const center = new kakao.maps.LatLng(home.lat, home.lng);
   /* 조회 반경 — 원형 교차검증은 e.r 기준으로 거르므로 결과가 그대로고(C구역 수치 불변),
      직접 그린 다각형 시뮬레이션용 주변 상가 좌표를 max(150m, e.r×2.5)까지 넓게 모은다 */
   const radius = Math.max(150, Math.round(e.r * 2.5));
   const seen = new Map();
-  const jobs = KAKAO_GROUPS.map(([code, label]) => new Promise(res => {
+  const sweepHits = new Set();
+  const hav = (a, b) => {
+    const p = Math.PI / 180, dLat = (b.lat - a.lat) * p, dLng = (b.lng - a.lng) * p;
+    const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * p) * Math.cos(b.lat * p) * Math.sin(dLng / 2) ** 2;
+    return 2 * 6371000 * Math.asin(Math.sqrt(h));
+  };
+  /* 모든 조회 결과를 한 곳에 모은다. 거리는 '조회 중심'이 아니라 점포 좌표에서 다시 계산한다(격자 조회 대응) */
+  const put = (d, label, via) => {
+    if (!d || !d.id || seen.has(d.id)) return;
+    const lat = +d.y, lng = +d.x;
+    const dd = Number.isFinite(lat) && Number.isFinite(lng) ? Math.round(hav(home, { lat, lng })) : (+d.distance || 0);
+    seen.set(d.id, { name: d.place_name, cat: (d.category_name || '').split('>').pop().trim() || label,
+      d: dd, addr: d.road_address_name || d.address_name, lat, lng, via: via || 'cat' });
+    if (via === 'sweep') sweepHits.add(d.id);
+  };
+  const search = (code, label, opt, maxPages, via) => new Promise(res => {
+    let pages = 0;
     const collect = (data, status, pagination) => {
-      if (status === kakao.maps.services.Status.OK) {
-        data.forEach(d => {
-          if (!seen.has(d.id)) seen.set(d.id, { name: d.place_name, cat: (d.category_name || '').split('>').pop().trim() || label, d: +d.distance || 0, addr: d.road_address_name || d.address_name, lat: +d.y, lng: +d.x });
-        });
-        if (pagination && pagination.hasNextPage && (pagination.current || 0) < 3) { try { pagination.nextPage(); return; } catch (_) {} }
-      }
-      res();
+      pages++;
+      if (status === kakao.maps.services.Status.OK) data.forEach(d => put(d, label, via));
+      const more = !!(pagination && pagination.hasNextPage) && pages < maxPages;
+      if (more) { try { pagination.nextPage(); return; } catch (_) {} }
+      /* 남은 페이지가 있거나 총 건수가 45건이면 이 업종은 반경 안에서 잘렸을 수 있다 */
+      const total = pagination && pagination.totalCount != null ? +pagination.totalCount : 0;
+      res({ code, label, truncated: !!(pagination && pagination.hasNextPage) || total >= KAKAO_CAP });
     };
-    try { ps.categorySearch(code, collect, { location: center, radius, sort: kakao.maps.services.SortBy.DISTANCE }); } catch (_) { res(); }
-  }));
-  await Promise.all(jobs);
+    try { ps.categorySearch(code, collect, opt); } catch (_) { res({ code, label, truncated: false }); }
+  });
+  const first = await Promise.all(KAKAO_GROUPS.map(([code, label]) =>
+    search(code, label, { location: center, radius, sort: kakao.maps.services.SortBy.DISTANCE }, KAKAO_MAX_PAGES, 'cat')));
+  if (!current()) return;
+  const capped = first.filter(r => r && r.truncated);
+  /* 상한에 닿은 업종만 중심을 4방향으로 옮겨 격자 조회(각 1페이지) — 잘린 바깥 영역을 회수한다 */
+  let sweep = null;
+  if (capped.length) {
+    const targets = capped.slice(0, KAKAO_SWEEP_MAXCATS);
+    const off = Math.max(40, Math.round(radius * 0.55));
+    const r2 = Math.max(40, Math.round(radius * 0.6));
+    const cos = Math.cos(home.lat * Math.PI / 180);
+    const before = seen.size;
+    await Promise.all(targets.map(c => Promise.all(KAKAO_SWEEP_DIRS.map(([dx, dy]) => {
+      const lat = home.lat + dy * off / 110540;
+      const lng = home.lng + dx * off / (111320 * (cos || 1));
+      return search(c.code, c.label, { location: new kakao.maps.LatLng(lat, lng), radius: r2, sort: kakao.maps.services.SortBy.DISTANCE }, 1, 'sweep');
+    }))));
+    if (!current()) return;
+    sweep = { cats: targets.map(c => c.label), calls: targets.length * KAKAO_SWEEP_DIRS.length,
+      added: seen.size - before, offset: off, radius: r2 };
+  }
   if (!current()) return;
   const list = [...seen.values()].sort((a, b) => a.d - b.d);
-  APP.live = { key: e.p.id, places: list, state: list.length ? 'ok' : 'empty' };
+  APP.live = { key: e.p.id, places: list, state: list.length ? 'ok' : 'empty',
+    capped: capped.map(c => c.label), sweep, sweepHits: [...sweepHits] };
   renderShops(e); renderMap1(e); renderVerdict(e); T3.dirty = true;
   if (T1.poly.on || T1.poly.pts.length) { renderPolyCard(); syncDrawBar(); }
-  toast(`실시간 조회 ${list.length}건`);
+  const capNote = capped.length ? ` · 45건 상한 업종 ${capped.length}개${sweep ? ` (분할 조회 +${sweep.added}건)` : ''}` : '';
+  toast(`실시간 조회 ${list.length}건${capNote}`);
 }
 
 
@@ -3479,15 +3795,18 @@ function legalAxisHTML(e, bs) {
   const polChip = `<span class="chip ${policy === 'NONE' ? 's' : policy === 'ALL_RESTRICTED' ? 'a' : policy === 'PARTIAL' ? 'a' : 'o'}">${esc((DENSITY_POLICIES[policy] || DENSITY_POLICIES.UNKNOWN).label)}</span>`;
   const need = a.required == null ? '—' : a.required;
   const eff = a.effective == null ? null : a.effective;
-  const range = (a.status === 'LEGAL_UNVERIFIED' && a.rangeLo != null && a.rangeHi != null && a.rangeLo !== a.rangeHi)
-    ? `${a.rangeLo}~${a.rangeHi}<small>개</small>` : (eff == null ? '—' : `${eff}<small>개</small>`);
+  const range = bs.loading ? '—'
+    : (a.status === 'LEGAL_UNVERIFIED' && a.rangeLo != null && a.rangeHi != null && a.rangeLo !== a.rangeHi)
+      ? `${a.rangeLo}~${a.rangeHi}<small>개</small>` : (eff == null ? '—' : `${eff}<small>개</small>`);
   const exCell = policy === 'UNKNOWN'
-    ? `<div class="v" style="color:var(--text-tertiary)">미확인</div><div class="r">가맹 제한 의심 ${bs.nEx || 0}건 · 자동 차감 안 함</div>`
+    ? `<div class="v" style="color:var(--text-tertiary)">미확인</div><div class="r">${bs.loading ? '가맹 제한 의심은 상세목록 도착 후 집계합니다' : `가맹 제한 의심 ${bs.nEx || 0}건 · 자동 차감 안 함`}</div>`
     : policy === 'NONE'
-      ? `<div class="v" style="color:var(--text-secondary)">0<small>건</small></div><div class="r">조례상 업종 제외 없음 — 가맹 제한 의심 ${bs.nEx || 0}건도 포함</div>`
+      ? `<div class="v" style="color:var(--text-secondary)">0<small>건</small></div><div class="r">조례상 업종 제외 없음${bs.loading ? ' — 가맹 제한 의심은 상세목록 도착 후 집계' : ` — 가맹 제한 의심 ${bs.nEx || 0}건도 포함`}</div>`
       : (a.excludedSample ? `<div class="v" style="color:var(--warning)">−${a.excludedSample}<small>건</small></div><div class="r">표본 ${bs.n || 0}건 중 확인분${bs.nNonSmall ? ` · 비소상공인 ${bs.nNonSmall}` : ''}</div>`
+        : bs.loading ? `<div class="v" style="color:var(--text-tertiary)">…</div><div class="r">상가 상세목록 불러오는 중…</div>`
         : `<div class="v" style="color:var(--text-tertiary)">0<small>건</small></div><div class="r">${bs.n ? `표본 ${bs.n}건 중 제외 대상 없음` : '표본 없음 — 현장 확인 필요'}</div>`);
-  const srcTxt = bs.src === 'nearby' ? '공단 CSV(표본)' : bs.src === 'kakao' ? '카카오 대조(표본)' : '표본 없음';
+  const srcTxt = bs.src === 'nearby' ? '공단 CSV(표본)' : bs.src === 'kakao' ? '카카오 대조(표본)' : bs.loading ? '상가 상세목록 불러오는 중' : '표본 없음';
+  const statusTxt = bs.loading ? '상가 상세목록 확인 중' : (a.statusLabel || '추가 확인 필요');
   const aNotes = [`적용 면적 기준: <b>${esc(a.areaBasisLabel || AREA_BASIS.UNKNOWN)}</b> — 도면·반경 면적은 ${(a.areaBasis === 'SUM_OF_SHOP_AREA' || a.areaBasis === 'CHECK_REQUIRED') ? '그대로 대입할 수 없습니다' : '조례 표현과 대조 필요'}`];
   if (a.status === 'LEGAL_UNVERIFIED') aNotes.push('맨 위 배너는 점포 수 상한·하한의 <b>수학적 판정</b>입니다 — 조문 확인 결과는 이 A축 카드와 한 장 리포트 기준입니다.');
   if (a.truncated) aNotes.push(`표본 상한 도달(${bs.n}건) — <b>표본 밖 점포는 확정할 수 없습니다</b>`);
@@ -3498,7 +3817,9 @@ function legalAxisHTML(e, bs) {
   const gChk = bs.nChk || 0, gEx = bs.nEx || 0, gOk = bs.nOk || 0, gNon = bs.nNonSmall || 0;
   const bNote = bs.ok
     ? `반경 ${Math.round(e.r)}m ${srcTxt} ${bs.n}건 기준입니다. 별표 1 33종(2026-06-17 시행)으로 분류했습니다.`
-    : '상가 상세목록·카카오 조회 결과가 없어 가맹 업종 집계를 하지 못했습니다(현장 확인 필요).';
+    : bs.loading
+      ? `반경 상가 상세목록을 내려받는 중입니다 — 도착하면 이 칸과 A축 판정을 자동으로 다시 그립니다.`
+      : '상가 상세목록·카카오 조회 결과가 없어 가맹 업종 집계를 하지 못했습니다(현장 확인 필요).';
 
   const c = r || {};
   const ratio = c.required_consent_ratio || (c.consent_note && /2분의\s*1|1\/2/.test(c.consent_note) ? '1/2' : null);
@@ -3514,7 +3835,7 @@ function legalAxisHTML(e, bs) {
       <div class="cell"><div class="k">조례상 밀집도 제외</div><div class="v" style="font-size:13px">${esc((DENSITY_POLICIES[policy] || DENSITY_POLICIES.UNKNOWN).label)}</div><div class="r">${c.exclusion_effective_date ? esc(c.exclusion_effective_date) + ' 시행' : '시행일 미기재'}</div></div>
       <div class="cell"><div class="k">조례상 제외 점포</div>${exCell}</div>
       <div class="cell on"><div class="k">밀집도 인정 점포 / 필요</div><div class="v" style="color:${a.statusColor || 'var(--text-tertiary)'}">${range}<span class="faint" style="font-size:11px"> / ${need}개</span></div><div class="r">${a.requiredNon != null && a.requiredCom != null ? `상업 ${a.requiredCom} · 비상업 ${a.requiredNon}개` : `${fmt(e.base)}㎡ 기준`}</div></div>
-      <div class="cell"><div class="k">법적 근거 확인 상태</div><div class="v" style="font-size:13px;color:${a.statusColor || 'var(--text-tertiary)'}">${esc(a.statusLabel || '추가 확인 필요')}</div><div class="r">${esc(srcTxt)} · 실측 아님</div></div>
+      <div class="cell"><div class="k">법적 근거 확인 상태</div><div class="v" style="font-size:13px;color:${bs.loading ? 'var(--text-tertiary)' : (a.statusColor || 'var(--text-tertiary)')}">${esc(statusTxt)}</div><div class="r">${esc(srcTxt)} · 실측 아님</div></div>
     </div>
     <div class="note">${aNotes.map(x => '· ' + x).join('<br>')}${a.basis ? `<br>· 판정 근거: ${esc(a.basis)}` : ''}</div>
   </div>
@@ -3522,7 +3843,7 @@ function legalAxisHTML(e, bs) {
     <div class="ch"><b>B. 온누리상품권 가맹 적격성</b><span class="chip o">참고 · 밀집도와 별개</span><span class="chip s">별표 1 33종</span></div>
     <div class="grid">
       <div class="cell"><div class="k">가맹 가능 업종</div><div class="v" style="color:${bs.ok ? 'var(--success)' : 'var(--text-tertiary)'}">${bs.ok ? gOk : '—'}<small>${bs.ok ? `건 / ${bs.n}` : ''}</small></div><div class="r">약국·의약품 소매 포함</div></div>
-      <div class="cell"><div class="k">가맹 제한 의심</div><div class="v" style="color:${bs.ok ? 'var(--warning)' : 'var(--text-tertiary)'}">${bs.ok ? gEx : '—'}<small>${bs.ok ? '건' : ''}</small></div><div class="r">${bs.ok ? esc((bs.exTop || []).slice(0, 3).map(([k, v]) => `${k} ${v}`).join(' · ') || '없음') : '집계 불가'}</div></div>
+      <div class="cell"><div class="k">가맹 제한 의심</div><div class="v" style="color:${bs.ok ? 'var(--warning)' : 'var(--text-tertiary)'}">${bs.ok ? gEx : '—'}<small>${bs.ok ? '건' : ''}</small></div><div class="r">${bs.ok ? esc((bs.exTop || []).slice(0, 3).map(([k, v]) => `${k} ${v}`).join(' · ') || '없음') : bs.loading ? '상가 상세목록 불러오는 중…' : '집계 불가'}</div></div>
       <div class="cell"><div class="k">조건부(주점 등)</div><div class="v">${bs.ok ? gChk : '—'}<small>${bs.ok ? '건' : ''}</small></div><div class="r">별표 1의2 소득기준 이하 예외 가능</div></div>
       <div class="cell"><div class="k">소상공인 아님</div><div class="v">${bs.ok ? gNon : '—'}<small>${bs.ok ? '건' : ''}</small></div><div class="r">보건소·학교·공공기관 등</div></div>
     </div>
@@ -3548,9 +3869,23 @@ function bizBoxHTML(e, bs) {
   return legalAxisHTML(e, bs);
 }
 
-function circleHintHTML() {
+/* 반경 경계 바로 밖 점포 — 같은 건물(층·호)이거나 좌표·거리 반올림 오차로 잘린 경우가 많다.
+   판정 숫자에는 넣지 않고(법적 판정은 공단 집계 그대로) '얼마나 더 있을 수 있는지'만 보여준다. */
+function nearbyEdgeStats(e) {
+  const rows = e && nearbyList(e.p.id);
+  if (!rows || !rows.length) return null;
+  const inc = rows.filter(x => x[0] <= e.r).length;
+  const justOut = rows.filter(x => x[0] > e.r && x[0] <= e.r + 5).length;
+  const outer = rows.filter(x => x[0] > e.r + 5 && x[0] <= e.r + 20).length;
+  return { inc, justOut, outer };
+}
+function circleHintHTML(e) {
+  const st = e ? nearbyEdgeStats(e) : null;
+  const tol = st && st.justOut
+    ? ` 지금도 반경 경계 5m 바로 밖에 <b>${st.justOut}곳</b>이 잡혀 있어요(같은 건물의 다른 층·호이거나 좌표 오차).`
+    : '';
   return `<div class="hintline">${ic('info', 15)}
-    <span>원형 반경은 <b>대로 건너편·블록 밖 상가</b>까지 포함될 수 있고, 동일 점포가 중복 등록되어 있을 수 있습니다. 실제 심사 구역처럼 도면으로 확인하려면 <b>구역 직접 그리기</b>를 쓰세요.</span>
+    <span><b>원형 반경의 한계</b> — 2,000㎡를 원(반경 25m)으로 바꾸면 <b>도로를 따라 길게 이어진 골목 상권</b>은 길이 방향을 다 보지 못해 점포 수가 적게 잡힙니다(과소집계). 반대로 원 안에 들어온 <b>대로 건너편·다른 블록</b> 상가가 함께 잡히거나, 같은 건물의 여러 호실이 중복 집계되기도 합니다.${tol} 실제 심사 구역처럼 도면으로 확인하려면 <b>구역 직접 그리기</b>를 쓰세요.</span>
     <button class="btn sm" id="v-draw-go">${ic('pin', 13)}구역 직접 그리기</button></div>`;
 }
 
@@ -3562,14 +3897,17 @@ function storeTypeRuleHTML() {
 /* 메인 배너 입력값 — 공단 집계 점포 수(상한)와 조례 제외를 최대한 반영한 하한을 넘긴다 */
 function headlineOf(e, legal) {
   legal = legal || {};
-  const pop = e.counts ? e.nSmall : (legal.population == null ? null : +legal.population);
+  /* 상한은 공단 집계 점포 수만 쓴다. 카카오 조회 건수(legal.population)는 표본이므로 상한으로 쓰지 않는다
+     — 1건 조회를 '현재 자료 1개'로 읽어 '부적합'을 내면 안 된다. */
+  const pop = e.counts ? e.nSmall : null;
   const maxShops = pop;
   const minShops = legal.rangeLo == null ? pop : Math.min(+legal.rangeLo, pop == null ? +legal.rangeLo : pop);
   const baseArea = +(e.rule && e.rule.base_area || 2000);
   let basisUnknown = null;
   if (!e.rule) basisUnknown = '적용 조례 미확인 — 법정 기본값으로 단정하지 않음';
   else if (!e.th && e.thNon == null) basisUnknown = '조례 별표의 점포 수 기준 미등록';
-  else if (e.area > baseArea && e.rule.over_area_verified !== true) basisUnknown = `검토 면적 ${fmt(e.area)}㎡ 초과면적 계산식 미검증`;
+  /* 검토 면적이 기준면적을 넘는 경우는 basisUnknown(기준 없음)이 아니라 overAreaFloor(최소 기준)로 넘긴다
+     — 5,000·10,000㎡ 프리셋이 전부 '판정 불가'로 죽어 있던 원인을 없앤다. */
   let conflictSub = null;
   if (e.rule && e.rule.rule_conflict_flag) {
     const cm = /시행규칙[^()]*\((\d+)\s*개/.exec(e.rule.rule_conflict_note || '');
@@ -3581,6 +3919,12 @@ function headlineOf(e, legal) {
     conflictSub, basisUnknown,
     evidenceLimited: !!e.counts?.est || !!legal.truncated || legal.status === 'NEEDS_CHECK',
     noDataReason: e.counts ? null : (pinOf(e.p) ? '핀 보정 좌표 기준 상가 수 재집계 필요' : `${e.p.sido} 상가(상권)정보 CSV 미수집`),
+    /* 신규 판정보다 먼저 보여줄 '이미 끝난 일' */
+    alreadyMember: e.p.onnuri_member ? { zone: (e.p.member || {}).zone || '', year: (e.p.member || {}).year || '' } : null,
+    insideZone: Array.isArray(e.inside) && e.inside.length ? { name: e.inside[0].z.name, type: e.inside[0].z.type, est: e.inside[0].z.geo === 'est-member' } : null,
+    /* 기준면적 초과 + 초과면적 계산식 미검증 → '최소 기준'으로만 먼저 비교한다 */
+    overAreaFloor: (e.rule && e.area > baseArea && e.rule.over_area_verified !== true && (e.thCom != null || e.thNon != null))
+      ? Math.min.apply(null, [e.thCom, e.thNon].filter(x => x != null)) : null,
   });
 }
 
@@ -3655,6 +3999,7 @@ function renderVerdict(e) {
       <div class="vb-t"><b>${esc(hv.title)}</b><span>${esc(hv.sub)}</span></div>
       ${hvLegalChip}
     </div>
+    ${easySummaryHTML(e)}
     <div class="callout" style="margin:12px 16px"><b>점포 위치: ${gis?.status === 'ok' ? esc(gisType) + ' · ' + esc((gis.names || []).join(' · ')) : '용도지역 확인 필요'}</b><br>신청 구역 전체: 별도 확인 필요 — 점포 한 필지의 조회 결과를 구역 전체에 적용하지 않습니다.${zoneKind && gis?.status === 'ok' && zoneKind !== gis.kind ? '<br><b>수동 기록과 자동조회 결과가 다릅니다. 원문을 확인해 주세요.</b>' : ''}</div>
     <div class="callout" style="margin:12px 16px"><b>현장 방문 전 확인할 사항</b><ul>${fieldNextSteps(e).map(x => `<li>${esc(x)}</li>`).join('')}</ul>이 결과는 실사 후보 선별을 위한 사전검토입니다. 지정 승인이나 온누리 가맹을 확정하지 않습니다.</div>
     <div style="padding:8px 16px"><button class="btn ghost sm" data-view="feedback">이 결과가 이상한가요? 오류 제보 ↗</button></div>
@@ -3695,7 +4040,7 @@ function renderVerdict(e) {
       <div><div class="k">${ic('pin', 12)}기존 구역 거리</div><div class="v num">${e.nearest ? fmtD(e.nearest.edge) : '—'}</div><div class="s">${e.nearest ? esc(e.nearest.z.name) : '주변 구역 없음'}</div></div>
       <div><div class="k">${ic('clip', 12)}중복 여부</div><div class="v">${esc(rel[0])}</div><div class="s">${esc(rel[2] || '—')}</div></div>
     </div>
-    ${circleHintHTML()}
+    ${circleHintHTML(e)}
     <div class="kvline"><span class="k">조례 완화 조건</span><span class="v">${ruleBadges(e.rule)}</span></div>
     <div class="kvline"><span class="k">점포 운영 형태</span><span class="v"><span class="stype">
         <select class="select" id="v-stype" aria-label="점포 운영 형태">${Object.keys(STORE_TYPE).map(k => `<option value="${esc(k)}" ${st === k ? 'selected' : ''}>${esc(STORE_TYPE[k])}</option>`).join('')}</select>
@@ -3762,6 +4107,252 @@ function t1CopySummary() {
 }
 
 
+/* @easy-core:start */
+/* ---- 4e-2. 쉬운 말 요약 · 지금 내가 할 일 ----------------------------------
+   처음 보는 사람(영업 담당자·점주·동료)이 한 화면에서 이해할 수 있도록,
+   위 판정(headlineVerdict·assessmentOf)과 **같은 값**을 전문용어 없이 풀어 쓴 해설 레이어다.
+   판정을 새로 만들지 않는다 — 숫자·조례·용도지역·구역·가맹 상태는 모두 위 판정과 같은 입력을 읽는다.
+   법적 판정 3축(A·B·C)과 3종 어휘(적합·조건부·부적합)는 그대로 두고, 그 위에 말로 풀어 얹기만 한다. */
+const EASY_MOOD = {
+  MEMBER: { label: '이미 지정·가맹 완료', color: '#1B4F9C', bg: '#EEF5FF' },
+  PASS: { label: '가능성 높음', color: '#0E7A5F', bg: '#EAF7F1' },
+  COND: { label: '가능성 있음 · 확인 필요', color: '#8A5A0B', bg: '#FFF8EC' },
+  COND_LEGAL: { label: '가능성 있음 · 조문 확인 필요', color: '#8A5A0B', bg: '#FFF8EC' },
+  BASIS: { label: '기준 확인이 먼저', color: '#8A5A0B', bg: '#FFF8EC' },
+  NO_DATA: { label: '자료 부족 · 직접 확인', color: '#5A6472', bg: '#F2F4F7' },
+  FAIL: { label: '지금 자료로는 어려움', color: '#B43A45', bg: '#FDECEE' },
+};
+function easyMoodOf(hv) { return EASY_MOOD[hv && hv.level] || EASY_MOOD.COND; }
+/* 판정에 쓰인 숫자를 한곳에 모은다(표현만 쉬울 뿐 값은 판정과 동일) */
+function easyFacts(e, hv, bs, xc) {
+  const r = e.rule, base = e.base || 2000;
+  const ths = [e.thCom, e.thNon].filter(x => x != null);
+  const n = e.counts ? e.nSmall : null;
+  const lowReq = ths.length ? Math.min.apply(null, ths) : null;      /* 가장 낮은 기준(비상업) */
+  const highReq = ths.length ? Math.max.apply(null, ths) : null;     /* 가장 높은 기준(상업) */
+  const gis = ZONE_GIS.get(e.p);
+  const zr = typeof zoneRel === 'function' ? zoneRel(e) : ['', '', ''];
+  return {
+    r, base, n, lowReq, highReq, gis, zr,
+    shortLow: n != null && lowReq != null ? lowReq - n : null,        /* +면 부족, -면 남음 */
+    shortHigh: n != null && highReq != null ? highReq - n : null,
+    per: e.per != null ? e.per : null,
+    policy: densityPolicyOf(r),
+  };
+}
+/* '왜 이 판정인가'를 사람 말로 — [항목, 문장] 목록 */
+function easyWhy(e, hv, bs, xc) {
+  const F = easyFacts(e, hv, bs, xc), r = e.rule, p = e.p, out = [];
+  const gis = F.gis, gisOk = gis && gis.status === 'ok';
+  /* ① 주변 상가 수 */
+  if (F.n == null) {
+    out.push(['주변 상가', `${p.sido}는 아직 공단 상가(상권)정보를 받지 못해 반경 안 가게 수를 세지 못했어요.`
+      + (F.lowReq != null ? ` 조례 기준(최소 ${F.lowReq}곳)은 확인돼 있지만, 가게 수를 모르면 적합·부적합을 단정하지 않아요.` : '')]);
+  } else {
+    const cmp = [];
+    const relTxt = (n, req) => n > req ? `${n - req}곳 넘었어요` : n === req ? '딱 맞아요' : `${req - n}곳 모자라요`;
+    if (e.thNon != null) cmp.push(`비상업지역 기준 ${e.thNon}곳은 ${relTxt(F.n, e.thNon)}`);
+    if (e.thCom != null) cmp.push(`상업지역 기준 ${e.thCom}곳은 ${relTxt(F.n, e.thCom)}`);
+    out.push(['주변 상가', `반경 ${Math.round(e.r)}m(약 ${fmt(e.area)}㎡) 안에서 소상공인 가게 <b>${F.n}곳</b>이 잡혔어요. `
+      + (cmp.length ? cmp.join(', ') + '.' : `조례 기준은 ${F.lowReq != null ? F.lowReq + '곳' : '별표 확인 필요'}이에요.`)]);
+  }
+  /* ② 조례 기준과 원문 확인 상태 */
+  if (!r) {
+    out.push(['조례', `${p.sido} ${p.sigungu} 조례가 아직 DB에 없어서 법정 기본값(2,000㎡당 30곳)으로만 비교했어요. 실제 기준은 담당 부서에 확인해야 해요.`]);
+  } else {
+    const thTxt = e.thNon != null ? `${fmt(F.base)}㎡당 상업 ${e.thCom}곳·비상업 ${e.thNon}곳` : e.th ? `${fmt(F.base)}㎡당 ${e.th}곳` : '조례 별표에 위임(수치 미확인)';
+    let s = `${esc(r.ordinance)} 기준은 ${thTxt}이에요.`;
+    if (F.policy === 'UNKNOWN') s += ` 다만 점포 수를 셀 때 <b>빠지는 업종(학원·주점 등)</b>이 조례에 적혀 있는지 원문 확인이 안 돼서, 보수적으로(조건부로) 봤어요.`;
+    else if (F.policy === 'NONE') s += ` 업종을 이유로 빼는 규정은 없는 것으로 확인됐어요.`;
+    else s += ` 제한 업종은 빼고 세는 조례예요(확인됨).`;
+    out.push(['조례', s]);
+    if (r.updated && daysSince(r.updated) > UI.STALE_DAYS) out.push(['조례 기준일', `조례 확인일이 ${fmtDate(r.updated)}라 ${Math.round(daysSince(r.updated) / 30)}개월 지났어요 — 그사이 개정됐는지 확인이 필요해요.`]);
+    if (r.rule_conflict_flag) out.push(['조례·시행규칙', `조례와 시행규칙에 적힌 기준이 서로 달라요(${esc(r.rule_conflict_note || '유권해석 필요')}). 어느 쪽이 적용되는지 담당 부서 확인이 필요해요.`]);
+  }
+  /* ③ 용도지역 — 상업/비상업에 따라 기준이 달라진다 */
+  if (e.thNon != null && e.thCom != null) {
+    out.push(['용도지역', gisOk
+      ? `이 점포 필지는 <b>${gis.kind === 'commercial' ? '상업지역' : '비상업지역'}</b>으로 조회됐어요(토지이음·브이월드). 그러면 ${gis.kind === 'commercial' ? `상업 기준 ${e.thCom}곳` : `비상업 기준 ${e.thNon}곳`}이 적용될 수 있어요. 신청 구역 전체 면적의 용도지역은 따로 확인해야 해요.`
+      : `필지 용도지역은 아직 확인 전이에요. 상업지역이면 기준이 ${e.thCom}곳, 비상업지역이면 ${e.thNon}곳이라 결과가 갈릴 수 있어요.`]);
+  }
+  /* ④ 기존 구역·가맹 */
+  if (p.onnuri_member) {
+    const m = p.member || {};
+    out.push(['온누리 가맹', `이미 온누리상품권 가맹점이에요${m.zone ? ` (${esc(m.zone)}${m.year ? ` · ${m.year}년 등록` : ''})` : ''}. 새로 지정받을 필요 없이 지금 가맹을 유지하면 돼요.`]);
+  } else if (e.inside && e.inside.length) {
+    const iz = e.inside[0].z;
+    out.push(['기존 구역', `이미 <b>${esc(iz.name)}</b> 구역 안에 있어요 — 신규 지정 대상이 아니라 기존 구역의 가맹·경계 조정 문제예요.`
+      + (iz.geo === 'est-member' ? ' 이 구역 위치는 온누리 가맹점 좌표로 추정한 값이라 실제 경계와 다를 수 있어요.' : '')]);
+  } else if (e.overlapping && e.overlapping.length) {
+    out.push(['기존 구역', `검토 반경이 <b>${esc(e.overlapping[0].z.name)}</b> 구역과 겹쳐요. 구역 경계를 조정해야 할 수 있어요.`]);
+  } else if (e.nearest) {
+    out.push(['기존 구역', `가장 가까운 온누리 구역은 <b>${esc(e.nearest.z.name)}</b>이고 경계까지 ${fmtD(e.nearest.edge)} 떨어져 있어요.`]);
+  }
+  /* ⑤ 카카오 실시간 대조 */
+  if (xc) {
+    const nb = xc.both.length + xc.dups.length;
+    let s = `공단 목록 ${xc.rowTotal}곳 중 ${nb}곳은 카카오에서도 확인됐고, ${xc.suspect.length}곳은 카카오에 안 잡혔어요(폐업 단정 아님 — 업종·45건 상한 때문일 수 있어요)`;
+    if (xc.fresh.length) s += `. 반대로 카카오에서만 잡힌 가게가 ${xc.fresh.length}곳 있어요(공단 자료 누락)`;
+    out.push(['카카오 확인', s + '.']);
+    if (xc.capped && xc.capped.length) out.push(['45건 상한', `카카오는 업종당 45곳까지만 돌려줘서 ${esc(xc.capped.slice(0, 3).join('·'))}${xc.capped.length > 3 ? ' 외' : ''} 업종은 일부가 빠졌어요${xc.sweep ? ` — 반경 분할 조회로 ${xc.sweep.added}곳을 더 찾았어요` : ''}. 밀집 상가는 현장에서 한 번 더 세어 보세요.`]);
+  }
+  /* ⑥ 특수입지 */
+  const ss = ssOf(p);
+  if (ss.stage === 1) out.push(['입지', `${esc(ss.type)} 안에 있는 매장이면 지정 대상에서 빠질 수 있어요(${esc(ss.ex)}).`]);
+  else if (ss.stage === 2) out.push(['입지', `${esc(ss.type)}는 건물 안(구내)이면 지정이 어렵고, 도로변(로드샵)이면 문제없어요.`]);
+  return out;
+}
+/* '지금 내가 할 일' — ① 전화 ② 현장 ③ 점주·점포 */
+function easyTodo(e, hv, bs, xc) {
+  const r = e.rule, p = e.p, F = easyFacts(e, hv, bs, xc);
+  const qs = [];
+  if (!r) {
+    qs.push('이 지역에 골목형상점가 조례가 있는지, 점포 수 기준이 몇 곳인지');
+    qs.push('골목형상점가 지정 신청을 지금 받고 있는지, 다음 신청 일정이 언제인지');
+  } else {
+    if (!r.min_shops && !r.min_shops_non_commercial) qs.push('조례 별표에 적힌 점포 수 기준이 정확히 몇 곳인지');
+    if (F.policy === 'UNKNOWN') qs.push('점포 수를 셀 때 제외되는 업종(예: 일반교습학원·유흥주점)이 있는지, 있다면 어떤 업종인지');
+    if (r.excludes_road_parking !== false) qs.push('구역 면적을 잴 때 도로·주차장 같은 공용면적을 빼고 계산할 수 있는지');
+    if (e.area > F.base || r.over_area_verified !== true) qs.push(`${fmt(F.base)}㎡를 넘는 구역은 점포 수 기준이 어떻게 올라가는지(초과면적 계산식)`);
+    if (r.owner_consent_waived !== true) qs.push('상인 동의는 몇 % 이상인지, 토지·건축물 소유자 동의도 필요한지');
+    if (r.rule_conflict_flag) qs.push('조례와 시행규칙 기준이 다르게 적혀 있는데 어느 쪽을 적용하는지');
+    if (!r.updated || daysSince(r.updated) > UI.STALE_DAYS) qs.push('조례가 최근에 개정된 게 있는지(지금 보고 있는 기준이 맞는지)');
+    qs.push('이 점포 주변에서 골목형상점가 지정 신청을 받고 있는지, 다음 신청 일정이 언제인지');
+  }
+  const call = {
+    org: r ? `${esc(r.sido)} ${esc(r.sigungu)} ${esc(r.dept || '소상공인 담당 부서')}${r.team ? ' ' + esc(r.team) : ''}` : `${esc(p.sido)} ${esc(p.sigungu)} 소상공인 담당 부서(대표번호 문의)`,
+    phone: r && r.phone ? esc(r.phone) : '',
+    manager: r && r.manager ? esc(r.manager) : '',
+    questions: qs,
+  };
+  const field = [];
+  if (F.n != null && F.shortHigh != null && F.shortHigh > 0) {
+    field.push(`지금 잡힌 가게는 <b>${F.n}곳</b>이고 기준은 <b>${F.lowReq}곳${F.highReq !== F.lowReq ? `(상업지역이면 ${F.highReq}곳)` : ''}</b>이에요. ${F.highReq !== F.lowReq ? `상업 기준까지는 ${F.shortHigh}곳이 더 필요해요 — ` : ''}옆 블록·골목 안쪽까지 합치면 그만큼 더 나오는지 직접 세어 보세요(빠진 가게가 많을수록 결과가 좋아져요).`);
+  } else if (F.n != null && F.lowReq != null) {
+    field.push(`지금 잡힌 가게 ${F.n}곳이 실제로 영업 중인지, 폐업·공실·간판만 있는 곳은 없는지 눈으로 확인하세요(숫자가 줄면 결과가 나빠져요).`);
+  } else {
+    field.push('이 골목 가게를 한 집씩 보면서 상호·업종을 적어 보세요 — 그 목록이 곧 심사 자료가 돼요.');
+  }
+  field.push(`구역 경계(어느 골목 입구에서 어디까지)를 도면에 그려 보세요. 원형 반경 ${Math.round(e.r)}m는 편의상 계산한 값이라 도로 건너편까지 포함될 수 있어요.`);
+  if (xc && xc.suspect.length) field.push(`카카오에서 안 잡힌 ${xc.suspect.length}곳은 폐업이 아닐 수 있어요 — 명단을 들고 현장에서 간판·영업 여부를 확인하세요.`);
+  if (xc && xc.fresh.length) field.push(`공단 자료에 없는 새 가게 ${xc.fresh.length}곳도 확인해 두면 점포 수를 더 채울 수 있어요.`);
+  if (F.gis && F.gis.status !== 'ok') field.push('점포 필지 용도지역(상업/비상업)을 토지이음에서 확인해 두세요 — 상업지역이면 기준이 더 높아요.');
+  const store = [];
+  store.push(`사업자등록번호 가운데 2자리 확인 — <b>85면 본사 직영점</b>이라 소상공인이 아니어서 온누리 가맹이 안 돼요(01~79 개인, 81·86·87·88 법인).`);
+  store.push('직전 연도 매출(환전액)이 <b>30억 원(하루 약 822만 원)</b>을 넘으면 지정돼도 가맹이 안 돼요(2026.06 시행령).');
+  store.push(`상인회(상인 조직)를 만들 의사가 있는지, 동의서를 받을 수 있는 점주가 몇 명인지 확인 — 동의 요건은 ${r ? (r.owner_consent_waived === true ? '상인 동의만(소유자 동의 면제)' : r.owner_consent_waived === false ? '토지·건축물 소유자 각 1/2 이상 동의 필요' : '조례에 적힌 비율 확인 필요') : '조례 확인 필요'}예요.`);
+  if (p.onnuri_member) store.push('이미 가맹된 점포예요 — 새 신청 대신 기존 가맹 유지와 상권 중복 여부만 확인하면 돼요.');
+  return { call, field, store };
+}
+/* 위치 스케치 — 좌표로 직접 그리는 SVG. 인쇄·PDF에서도 그대로 보이고 네트워크가 필요 없다. */
+function easyMapSVG(e) {
+  const p = e.pos || posOf(e.p);
+  const W = 360, H = 200, cx = W / 2, cy = H / 2 + 2;
+  const half = Math.max(150, Math.min(500, Math.round((e.r || 25) * 5)));   /* 가로 절반이 몇 m인지 */
+  const mpp = half / (W / 2);
+  const cosLat = Math.cos(p.lat * Math.PI / 180) || 1;
+  const xy = q => [cx + (q.lng - p.lng) * 111320 * cosLat / mpp, cy - (q.lat - p.lat) * 110540 / mpp];
+  const ring = m => `<circle cx="${cx}" cy="${cy}" r="${(m / mpp).toFixed(1)}" fill="none" stroke="#D7DEE8" stroke-width="1" stroke-dasharray="3 3"/>`;
+  const rings = [50, 100, 200, 300, 500].filter(m => m <= half * 0.96).map(m => ring(m)
+    + `<text x="${cx + 3}" y="${Math.max(31, cy - m / mpp + 9).toFixed(1)}" font-size="7.5" fill="#9AA5B1">${m}m</text>`).join('');
+  const near = (DB.zones || []).map(z => ({ z, d: dist(p, z) })).sort((a, b) => a.d - b.d).slice(0, 4);
+  const zc = near.map(({ z, d }) => {
+    const [x, y] = xy(z);
+    if (x < -80 || x > W + 80 || y < -80 || y > H + 80) return '';
+    const rr = Math.max(3, Math.min(70, (z.radius || 150) / mpp));
+    return `<g><title>${esc(z.name)} (${fmtD(d)})</title><circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${rr.toFixed(1)}" fill="#7357C9" fill-opacity=".07" stroke="#7357C9" stroke-opacity=".55" stroke-width="1" stroke-dasharray="4 3"/>`
+      + (d < half * 0.8 ? `<text x="${(x + 3).toFixed(1)}" y="${(y + 10).toFixed(1)}" font-size="7.5" fill="#5B49A0">${esc(z.name.replace(/ ?골목형상점가/, ''))}</text>` : '') + `</g>`;
+  }).join('');
+  const rPx = Math.max(5, Math.min(120, (e.r || 25) / mpp));
+  const barM = half >= 300 ? 200 : half >= 150 ? 100 : 50;
+  const barPx = barM / mpp;
+  return `<svg class="easy-map-svg" viewBox="0 0 ${W} ${H}" width="100%" role="img" aria-label="${esc(e.p.name)} 위치 스케치 — 반경 ${Math.round(e.r)}m">
+  <title>${esc(e.p.name)} 위치 스케치 · 반경 ${Math.round(e.r)}m · 주변 온누리 구역 ${near.length}곳</title>
+  <rect x="0" y="0" width="${W}" height="${H}" fill="#F7FAFC" stroke="#D7DEE8"/>
+  ${rings}${zc}
+  <circle cx="${cx}" cy="${cy}" r="${rPx.toFixed(1)}" fill="#315F95" fill-opacity=".13" stroke="#315F95" stroke-width="1.4"/>
+  <path d="M${cx - 7} ${cy}h14M${cx} ${cy - 7}v14" stroke="#1B4F9C" stroke-width="1.2" opacity=".7"/>
+  <circle cx="${cx}" cy="${cy}" r="4" fill="#1B4F9C" stroke="#fff" stroke-width="1.6"/>
+  <text x="${cx < W * 0.62 ? cx + 9 : cx - 9}" y="${cy - 7}" text-anchor="${cx < W * 0.62 ? 'start' : 'end'}" font-size="8.5" font-weight="700" fill="#F7FAFC" stroke="#F7FAFC" stroke-width="2.6">${esc(e.p.name)}</text>
+  <text x="${cx < W * 0.62 ? cx + 9 : cx - 9}" y="${cy - 7}" text-anchor="${cx < W * 0.62 ? 'start' : 'end'}" font-size="8.5" font-weight="700" fill="#1B4F9C">${esc(e.p.name)}</text>
+  <rect x="0" y="0" width="${W}" height="18" fill="#F7FAFC" fill-opacity=".92"/>
+  <path d="M0 18h${W}" stroke="#E3E8EF" stroke-width="1"/>
+  <text x="8" y="12.5" font-size="8.5" font-weight="700" fill="#4B5563">${esc(e.p.name)}</text>
+  <text x="${W - 8}" y="12.5" text-anchor="end" font-size="8" fill="#6B7480">${esc(e.p.sido)} ${esc(e.p.sigungu || '')} · 반경 ${Math.round(e.r)}m</text>
+  <g transform="translate(12,${H - 24})"><path d="M0 0v-12" stroke="#6B7480" stroke-width="1"/><path d="M0 -12l-3 5h6z" fill="#6B7480"/><text x="4" y="-3" font-size="7.5" fill="#6B7480">N</text></g>
+  <g transform="translate(12,${H - 40})" font-size="7" fill="#6B7480">
+    <circle cx="3" cy="0" r="3" fill="#1B4F9C"/><text x="10" y="2.5">점포</text>
+    <circle cx="40" cy="0" r="4" fill="#315F95" fill-opacity=".13" stroke="#315F95"/><text x="48" y="2.5">검토 반경</text>
+    <circle cx="96" cy="0" r="4" fill="#7357C9" fill-opacity=".07" stroke="#7357C9" stroke-opacity=".55" stroke-dasharray="2 1.5"/><text x="104" y="2.5">주변 온누리 구역</text>
+  </g>
+  <g transform="translate(${W - barPx - 14},${H - 12})"><path d="M0 0h${barPx.toFixed(1)}" stroke="#6B7480" stroke-width="1.5"/><path d="M0 -3v3M${barPx.toFixed(1)} -3v3" stroke="#6B7480" stroke-width="1.2"/><text x="0" y="-5" font-size="7.5" fill="#6B7480">${barM}m</text></g>
+</svg>`;
+}
+/* 지도·로드뷰 링크 — 인쇄본에서도 주소를 그대로 눌러 확인할 수 있게 URL을 함께 적는다 */
+function easyMapLinks(e) {
+  const p = e.pos || posOf(e.p);
+  const map = `https://map.kakao.com/link/map/${encodeURIComponent(e.p.name)},${p.lat},${p.lng}`;
+  const rv = kakaoRvLink(p);
+  const nv = naverMapLink((e.p.address || '') + ' ' + e.p.name);
+  const eum = `https://www.eum.go.kr/web/ar/lu/luLandDetailPop.do?searchType=2`;
+  return { map, rv, nv, eum };
+}
+function easyLinksHTML(e, mode) {
+  const L = easyMapLinks(e);
+  const a = (href, txt) => mode === 'sheet'
+    ? `<a href="${esc(href)}" target="_blank" rel="noopener">${txt}</a>`
+    : `<a href="${esc(href)}" target="_blank" rel="noopener">${txt}</a>`;
+  return `<div class="easy-links">${a(L.map, '카카오맵에서 보기 ↗')}${a(L.rv, '로드뷰 ↗')}${a(L.nv, '네이버 지도 ↗')}${a('https://www.eum.go.kr/', '토지이음(용도지역) ↗')}</div>
+    <div class="easy-coord">좌표 ${p2s(e.pos || posOf(e.p))} · 카카오맵 링크: ${mode === 'sheet' ? esc(L.map) : `<span class="faint">${esc(L.map)}</span>`}</div>`;
+}
+function p2s(q) { return `${(+q.lat).toFixed(6)}, ${(+q.lng).toFixed(6)}`; }
+/* 쉬운 말 요약 카드(화면) — mode='sheet' 이면 A4 리포트 안에 들어갈 축약형 */
+function easySummaryHTML(e, mode) {
+  const sheet = mode === 'sheet';
+  const hv = headlineOf(e, bizStatsOf(e).assess);
+  const bs = bizStatsOf(e), xc = xcCompute(e);
+  const mood = easyMoodOf(hv), why = easyWhy(e, hv, bs, xc), todo = easyTodo(e, hv, bs, xc);
+  const lead = hv.level === 'MEMBER' ? hv.sub
+    : hv.level === 'PASS' ? '지금 자료로는 지정 요건을 채울 가능성이 높아 보여요. 실제 지정은 현장 확인과 담당 부서 심사로 정해집니다.'
+    : hv.level === 'FAIL' ? '지금 자료로는 주변 가게 수가 기준에 모자라 보여요. 실제로 더 있는지 현장에서 세어 보면 결과가 달라질 수 있어요.'
+    : hv.level === 'NO_DATA' ? '주변 상가 자료가 없어 판정을 보류했어요. 현장에서 직접 세거나 카카오 실시간 조회로 확인해야 해요.'
+    : hv.level === 'BASIS' ? '기준(조례 별표·초과면적) 확인이 먼저라 판정을 보류했어요. 담당 부서에 한 번만 물어보면 정리됩니다.'
+    : '가능성은 있지만 확인할 것이 남아 있어 조건부로 표시했어요. 아래 할 일만 처리하면 판단이 서요.';
+  const li = ([k, t]) => `<li><b>${esc(k)}</b><span>${t}</span></li>`;
+  const qList = todo.call.questions.map((q, i) => `<li>“${esc(q)}”</li>`).join('');
+  const numList = arr => arr.map(x => `<li>${x}</li>`).join('');
+  const body = `
+  ${sheet ? '' : '<div class="easy-title">💬 쉬운 말 요약 <span class="faint">— 같은 판정을 어려운 말 없이 풀었습니다</span></div>'}
+  <div class="easy-head">
+    <span class="easy-badge" style="color:${mood.color};background:${mood.bg}">${esc(mood.label)}</span>
+    <div class="easy-lead">${esc(lead)}</div>
+  </div>
+  <div class="easy-store"><b>${esc(e.p.name)}</b><span>${esc(e.p.address || '주소 미기재')}</span></div>
+  <ul class="easy-why">${why.map(li).join('')}</ul>
+  <div class="easy-todo">
+    <div class="easy-todo-h">👉 지금 내가 할 일</div>
+    <div class="easy-step"><div class="easy-step-n">1</div><div class="easy-step-b">
+      <b>전화해서 물어보기</b>
+      <div class="easy-org">${todo.call.org}${todo.call.phone ? ` · <b class="num">${todo.call.phone}</b>` : ' <span class="faint">(대표번호로 연결)</span>'}${todo.call.manager ? ` · 담당 ${todo.call.manager}` : ''}</div>
+      <ul class="easy-q">${qList}</ul>
+    </div></div>
+    <div class="easy-step"><div class="easy-step-n">2</div><div class="easy-step-b">
+      <b>현장에서 눈으로 확인</b><ul>${numList(todo.field)}</ul>
+    </div></div>
+    <div class="easy-step"><div class="easy-step-n">3</div><div class="easy-step-b">
+      <b>점주·점포 확인</b><ul>${numList(todo.store)}</ul>
+    </div></div>
+  </div>
+  <div class="easy-map">
+    ${easyMapSVG(e)}
+    <div class="easy-map-cap">가운데 점이 이 점포, 파란 원이 검토 반경 ${Math.round(e.r)}m, 보라 점선 원이 주변 온누리 구역이에요. 지도는 좌표로 그린 스케치라 인쇄·PDF에서도 그대로 보입니다.</div>
+    ${easyLinksHTML(e, sheet ? 'sheet' : '')}
+  </div>
+  ${sheet ? '' : `<div class="easy-foot">이 요약은 위 공식 판정(배너·A축 카드·한 장 리포트)을 쉽게 풀어 쓴 것이고, 판정 기준과 숫자는 같습니다. 쉬운 말이라고 해서 기준을 낮추거나 결론을 바꾸지 않습니다.</div>`}`;
+  return sheet ? body : `<div class="easy" id="v-easy">${body}</div>`;
+}
+
+/* @easy-core:end */
 /* ---- 4f. 한 장 리포트(A4) — 점주·공무원 결용 ----
    현장에서 동의서를 받기 전에 담당 공무원과 같은 숫자로 이야기하기 위한 1장 요약이다.
    개인정보 없이 점포·구역 정보만 담아 누구에게 보여줘도 되는 공용 포맷으로 만든다. */
@@ -3840,6 +4431,8 @@ function buildReportHTML(e) {
   return `
   <h1>골목형상점가 지정 사전검토 리포트</h1>
   <div class="sub">${esc(p.name)} · ${esc(p.address)} · 분석 기준일 ${today} · 온누리 레이더</div>
+  <h2>0. 한눈에 보기 — 쉬운 말 요약</h2>
+  <div class="easy-block">${easySummaryHTML(e, 'sheet')}</div>
   <div class="box"><b>다음 확인</b><ul>${fieldNextSteps(e).map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>
   <div class="box"><b>${esc(hv.full)}</b> — ${esc(hv.sub)}<br><span class="faint">자료 기준 참고 범위: 최대 ${hv.maxShops == null ? '미수집' : hv.maxShops + '개'}(업종 제외 0건) · 하한 ${hv.minShops == null ? '미수집' : hv.minShops + '개'}(미확인 사항 포함 시 인정 수 확정 불가) · 기준 ${hv.reqLow == null ? '미상' : hv.reqLow === hv.reqHigh ? hv.reqLow + '개' : hv.reqLow + '~' + hv.reqHigh + '개'}. A축 카드의 조문 확인 결과와 함께 읽으세요.</span></div>
   <h2>1. 기본 현황</h2>
@@ -4780,6 +5373,7 @@ function t2Detail(id) {
       <span class="k">지정 점포 수</span><span>${z.stores ? fmt(z.stores) + '개 (소상공인시장진흥공단 기준)' : '미집계'}</span>
       <span class="k">온누리 가맹점</span><span>${fmt(r.members || 0)}개 (상권명 매칭)</span>
       <span class="k">반경</span><span>${Math.round(z.radius)}m ${z.radius_est ? '(주소 중심점 기준 추정 — 실제 경계 미확인)' : ''}</span>
+      ${z.geo === 'est-member' ? `<span class="k">위치 정확도</span><span>추정 — 온누리 가맹점(GS25) ${(z.est && z.est.anchors) || 1}곳 좌표 기준(실제 경계 미확인)<br><span class="faint">출처: ${esc(z.source || '온누리 가맹점 DB')} · 기준일 ${esc(z.asof || '—')}</span></span>` : ''}
       <span class="k">기준일</span><span>${esc(z.asof || '—')}</span>
       <span class="k">관할 기준</span><span>${rule ? `${esc(rule.ordinance)} · ${rule.min_shops_non_commercial != null ? `${fmt(rule.base_area)}㎡당 상업 ${rule.min_shops}개·비상업 ${rule.min_shops_non_commercial}개` : rule.min_shops ? `${fmt(rule.base_area)}㎡당 ${rule.min_shops}개` : '기준 점포수 별표 위임'}` : esc(NAT_RULE.ordinance) + ' (조례 미확인)'}</span>
       <span class="k">완화 조건</span><span>${rule ? (rule.excludes_road_parking === true ? '도로·주차장 면적 제외 가능' : rule.excludes_road_parking === false ? '도로 면적 포함' : '면적 제외 규정 없음') + ' · ' + (rule.owner_consent_waived === true ? '소유자 동의 불요' : rule.owner_consent_waived === false ? '소유자 동의 필요' : '동의 요건 미기재') : '—'}</span>
@@ -4829,13 +5423,16 @@ function t3Render() {
   const sido = $('#d-sido').value;
   fillSelect($('#d-sgg'), uniq(base.filter(s => !sido || s.sido === sido).map(s => sggTop(s.sigungu))));
   const sgg = $('#d-sgg').value, area = +$('#d-area').value;
-  const regional = base.filter(s => (!sido || s.sido === sido) && (!sgg || sggTop(s.sigungu) === sgg)).map(s => { const e = ev(s, area); return { e, verdict: assessmentOf(e), pr: priority(e), rel: zoneRel(e), field: fieldState(s.id) }; });
+  const regional = base.filter(s => (!sido || s.sido === sido) && (!sgg || sggTop(s.sigungu) === sgg)).map(s => { const e = ev(s, area); return { e, verdict: assessmentOf(e), pr: priority(e), rel: zoneRel(e), field: fieldState(s.id) }; })
+    .filter(r => !(r.e.inside && r.e.inside.length));   /* 이미 지정 구역 안인 점포는 '신규 발굴' 후보가 아니다 */
   const ok = r => ['pass', 'cond'].includes(r.verdict.cls);
-  const unmember = DB.stores.filter(s => !s.onnuri_member && (!sido || s.sido === sido) && (!sgg || sggTop(s.sigungu) === sgg)).length;
+  const inSido = DB.stores.filter(s => !s.onnuri_member && (!sido || s.sido === sido) && (!sgg || sggTop(s.sigungu) === sgg));
+  const unmember = inSido.length;
+  const nInZone = Math.max(0, unmember - regional.length);
   $('#t3-kpis').innerHTML = [
     ['', 'store', unmember, '미가맹 GS25 수'],
     ['', 'target', regional.filter(r => ok(r) && r.pr.total >= 70).length, '우선 검토 대상 (70점↑)'],
-    ['w', 'clip', regional.filter(r => ok(r) && r.field !== '완료').length, '현장 확인 필요'],
+    ['w', 'clip', regional.filter(r => ok(r) && r.field !== '완료').length, '현장 확인 대상(적합+조건부)'],
     ['s', 'check', regional.filter(r => r.verdict.cls === 'pass').length, '자료 기준 적합 후보'],
   ].map(([c, i, v, l]) => `<div class="kpi"><span class="ic ${c}">${ic(i, 20)}</span><div><b>${fmt(v)}<small>개</small></b><span>${l}</span></div></div>`).join('');
 
@@ -4854,7 +5451,7 @@ function t3Render() {
   T3.rows = rows;
   const size = UI.PAGE.disc, pages = Math.max(1, Math.ceil(rows.length / size)); T3.page = Math.min(T3.page, pages - 1);
   const slice = rows.slice(T3.page * size, (T3.page + 1) * size);
-  $('#t3-count').textContent = `${rows.length}개 후보 · 검토 면적 ${fmt(area)}㎡${spF === 'ex1' ? ` · 특수입지 1단계 ${nSp1}곳 제외` : spF === 'only1' ? ' · 특수입지 1단계만 보는 중' : ' · 특수입지 포함'}`;
+  $('#t3-count').textContent = `${rows.length}개 후보 · 검토 면적 ${fmt(area)}㎡${nInZone ? ` · 이미 지정 구역 내 ${fmt(nInZone)}곳 제외` : ''}${spF === 'ex1' ? ` · 특수입지 1단계 ${nSp1}곳 제외` : spF === 'only1' ? ' · 특수입지 1단계만 보는 중' : ' · 특수입지 포함'}`;
   const st = T3.sort;
   const CROWN = ['#D4A017', '#9AA5B1', '#B87333'];
   const SEG = [['rule', '#315F95', '지자체 기준'], ['density', '#6E9BD1', '밀집도'], ['zone', '#7357C9', '기존 구역·가맹'], ['form', '#25866B', '후보 형성 용이성'], ['trust', '#A3AFBF', '데이터 신뢰도']];
@@ -4903,7 +5500,7 @@ const VIEW_META = {
   feedback: ['오류 제보·문의', '조회 오류, 데이터 수정, 사용 문의와 개선 의견을 전달합니다.'],
   data: ['데이터 다운로드', '분석에 쓰는 실데이터셋을 내려받습니다.'],
 };
-const APPX = { view: 'check', k: null };
+const APPX = { view: 'home', k: null };
 const HIST_MAX = 30;
 
 /* ---------- 히스토리 · 즐겨찾기 ---------- */
@@ -4953,50 +5550,148 @@ function refreshBadges() {
 }
 
 /* ---------- KPI / 헤더 ---------- */
+let KPI_CACHE = { sig: '', k: null };
+let nearbyVersion = 0;                 /* 상가 상세목록 로드·실패 때 증가 — KPI 캐시 서명에 들어간다 */
+/* 시도별 상가 상세목록(data/nearby/*.json) 선행 로딩 상태.
+   이 목록이 없으면 densityAssess()가 '표본 없음'으로 보고 모든 점포를 조건부로 세기 때문에
+   첫 화면 KPI가 '0 / 2,283'으로 보였다. 부트 직후 17개 시도를 동시 5개로 미리 받는다. */
+const NEARBY = { started: false, finished: false, total: 0, done: 0, failed: 0, concurrency: 5, timer: null };
+function nearbyPending() { return !!DB.stores.length && !NEARBY.finished; }
+function nearbyStatusText() { return NEARBY.total ? `${NEARBY.done}/${NEARBY.total}개 시도` : ''; }
+function kpiSignature() { return [DB.loadedAt ? +DB.loadedAt : 0, CONFIG.DEFAULT_AREA, nearbyVersion, NEARBY.done, NEARBY.finished ? 1 : 0, DB.stores.length, DB.memberLoaded ? 1 : 0].join('|'); }
+function invalidateKPI() { KPI_CACHE = { sig: '', k: null }; APPX.k = null; }
+/* 상가 상세목록이 도착(또는 실패)하면 표본 기반 판정 근거가 달라진다 — KPI 캐시를 버리고 화면 숫자를 다시 맞춘다.
+   탭 3의 후보 목록도 같은 판정(assessmentOf)을 쓰므로 같이 다시 그려야 홈·탭 3 숫자가 어긋나지 않는다. */
+function nearbyKPIChanged() {
+  nearbyVersion++;
+  invalidateKPI();
+  if (!DB.stores || !DB.stores.length) return;
+  T3.dirty = true;
+  scheduleKpiRefresh();
+}
+/* 상가 목록이 한 파일씩 도착할 때마다 1.8만 점포 KPI를 다시 계산하지 않도록 묶어서 갱신한다 */
+function scheduleKpiRefresh() {
+  clearTimeout(NEARBY.timer);
+  NEARBY.timer = setTimeout(() => {
+    updateNavKPI();
+    if (APPX.view === 'home') renderHome();
+    else if (APPX.view === 'discover' && !nearbyPending()) t3Render();
+  }, 400);
+}
+/* 모든 시도 상가 상세목록 백그라운드 프리페치 — 동시 5개, 끝나면 KPI·홈을 다시 그린다 */
+async function prefetchNearbyAll() {
+  if (NEARBY.started || !DB.stores.length) return NEARBY.finished;
+  const sidos = uniq(DB.stores.filter(s => s.cov).map(s => s.sido));
+  NEARBY.started = true; NEARBY.total = sidos.length; NEARBY.done = 0; NEARBY.failed = 0;
+  invalidateKPI(); updateNavKPI();
+  if (APPX.view === 'home') renderHome();
+  let next = 0;
+  const worker = async () => {
+    while (next < sidos.length) {
+      const sido = sidos[next++];
+      const before = nearbyState(sido);
+      try { await loadNearby(sido); } catch (e) { /* 실패해도 진행 — 점포별로는 '자료 없음'으로 남는다 */ }
+      if (before !== 'ready' && nearbyState(sido) !== 'ready') NEARBY.failed++;
+      NEARBY.done++;
+    }
+  };
+  try {
+    await Promise.all(Array.from({ length: Math.min(NEARBY.concurrency, sidos.length) }, worker));
+  } finally {
+    NEARBY.finished = true;
+    clearTimeout(NEARBY.timer);
+    invalidateKPI(); updateNavKPI();
+    if (APPX.view === 'home') renderHome();
+    else if (APPX.view === 'discover') t3Render();
+  }
+  return true;
+}
+/* 상단 KPI — 탭 3(t3Render)과 같은 3종 판정(assessmentOf → headlineVerdict)으로 집계한다.
+   예전에는 구식 단순 산식(countsFor × 비례환산 ≥ 조례 기준)이라 홈 '지정 가능 후보 1,115'와
+   탭 3 '자료 기준 적합 후보 27'이 서로 다른 말을 했다. 이제 cand = 판정 '적합',
+   rev = 판정 '조건부'(상가 미수집·표본 보류 포함)로 같은 판정 함수에서 센다.
+   18,198개를 매번 다시 계산하지 않도록 evKPI()(지도·사유 문장 제외)로 평가하고 결과를 캐시한다.
+   상가 상세목록 프리페치가 끝나기 전에는 cand/rev 를 0으로 단정하지 않고 null + pending 으로 돌려
+   화면이 '계산 중'을 표시하게 한다(판정 자체는 목록이 도착해야 확정된다). */
 function computeKPI() {
-  let cand = 0, rev = 0;
-  DB.stores.forEach(s => {
-    const c = countsFor(s, CONFIG.DEFAULT_AREA);
-    if (!c) { rev++; return; }
-    const rule = findRule(s.sido, s.sigungu) || NAT_RULE;
-    const per = c.small * rule.base_area / CONFIG.DEFAULT_AREA;
-    const th = rule.min_shops || rule.min_shops_non_commercial || NAT_RULE.min_shops;
-    if (per >= th) cand++;
-    else if (per >= th * CONFIG.COND_RATIO) rev++;
-  });
+  const sig = kpiSignature();
+  if (KPI_CACHE.sig === sig && KPI_CACHE.k) return KPI_CACHE.k;
   const m = DB.meta || {};
   const src = (m.sources || []).find(x => x.name === '상가(상권)정보') || {};
   const covered = m.stores_with_shop_data || 0;
-  return {
-    total: DB.stores.length, cand, rev, covered, noData: Math.max(0, DB.stores.length - covered),
-    asof: src.asof || '', zones: DB.zones.length, rules: DB.rules.length, merchants: m.merchants || 0,
+  /* 시도별 상가 기준일 — 대부분 2026-09-30, 추가 9개 시도는 2025-06-30(meta.sources.asof_by_sido) */
+  const asofBy = src.asof_by_sido || {};
+  const asofOldList = [...new Set(Object.values(asofBy).filter(v => v && v !== (src.asof || '')))].sort();
+  const asofOldN = Object.values(asofBy).filter(v => v && v !== (src.asof || '')).length;
+  const base = {
+    total: DB.stores.length, covered, noData: Math.max(0, DB.stores.length - covered),
+    asof: src.asof || '', asofBy, asofOldN, asofOld: asofOldList.join(' · '),
+    asofNote: src.asof ? (asofOldN ? `${src.asof} (${asofOldN}개 시도 ${asofOldList.join(' · ')})` : src.asof) : '',
+    zones: DB.zones.length, zonesEst: DB.zones.filter(z => z.geo === 'est-member').length,
+    rules: DB.rules.length, merchants: m.merchants || 0,
   };
+  if (nearbyPending()) {
+    const k = { ...base, cand: null, rev: null, inZone: null, pending: true };
+    KPI_CACHE = { sig, k };
+    return k;
+  }
+  let cand = 0, rev = 0, inZoneN = 0;
+  const area = CONFIG.DEFAULT_AREA;
+  DB.stores.forEach(s => {
+    if (s.onnuri_member) return;               /* 이미 온누리 가맹인 점포는 지정 후보가 아니다 — 탭 3 기본 필터(미가맹)와 같은 모집단 */
+    const e = evKPI(s, area);
+    if (e.inside && e.inside.length) { inZoneN++; return; }   /* 이미 지정 구역 안 — 신규 후보가 아니다(탭 3과 같은 제외) */
+    const v = assessmentOf(e);
+    if (v.cls === 'pass') cand++;
+    else if (v.cls === 'cond') rev++;          /* 상가 미수집·조건부 = 현장 확인 필요 */
+  });
+  const k = { ...base, cand, rev, inZone: inZoneN, pending: false };
+  KPI_CACHE = { sig, k };
+  return k;
 }
 function updateNavKPI() {
   const k = computeKPI(); APPX.k = k;
   const set = (id, v) => { const el = $('#' + id); if (el) el.textContent = fmt(v); };
-  set('k-total', k.total); set('k-cand', k.cand); set('k-review', k.rev);
+  /* 프리페치 전에는 0으로 단정하지 않고 '계산 중' — 값은 상가 목록이 도착하고 채워진다 */
+  const pend = !!k.pending;
+  const setNum = (id, v) => {
+    const el = $('#' + id); if (!el) return;
+    el.textContent = pend ? '계산 중' : fmt(v);
+    el.classList.toggle('sm', pend);
+    el.title = pend ? `상가 상세목록 불러오는 중 ${nearbyStatusText()} — 끝나면 자동으로 채워집니다` : '';
+  };
+  set('k-total', k.total); setNum('k-cand', k.cand); setNum('k-review', k.rev);
+  const rl = $('#k-review-l'), rs = $('#k-review-sub');
+  if (rl) rl.textContent = pend ? `현장 확인 필요(조건부) · 계산 중 ${nearbyStatusText()}` : '현장 확인 필요(조건부)';
+  if (rs) rs.textContent = pend ? '상가 상세목록을 불러와 집계 중입니다' : "조건부 판정만 · 탭 3 '현장 확인 대상'은 적합+조건부 합계";
   const db = $('#k-db'), sub = $('#k-db-sub');
-  if (db) db.textContent = k.asof ? fmtDate(k.asof) : '—';
-  if (sub) sub.textContent = `상가정보 기준 · 조례 ${fmt(k.rules)}곳`;
+  if (db) { db.textContent = k.asof ? fmtDate(k.asof) : '—'; db.title = `상가(상권)정보 기준일 ${k.asofNote || '—'}`; }
+  if (sub) sub.textContent = (k.asofOldN ? `${k.asofOldN}개 시도 ${k.asofOld.replace(/-/g, '.')} 기준 · ` : '상가정보 기준 · ') + `조례 ${fmt(k.rules)}곳`;
   refreshBadges();
 }
 function updateHeader() {
+  const k = APPX.k && APPX.k.asofNote !== undefined ? APPX.k : computeKPI();
   const m = DB.meta || {};
   const src = (m.sources || []).find(x => x.name === '상가(상권)정보') || {};
   const s = $('#h-sync');
   if (s) {
     s.innerHTML = '<i class="dot ok"></i>실데이터 연동';
-    s.title = `점포 ${fmt(DB.stores.length)} · 상가 반경계산 ${fmt(m.stores_with_shop_data || 0)}개 점포 · 구역 ${fmt(DB.zones.length)} · 조례 ${fmt(DB.rules.length)} · 가맹점 ${fmt(m.merchants || 0)} · 가맹 매칭 ${fmt(DB.memberMatched || 0)}개 점포`;
+    s.title = `점포 ${fmt(DB.stores.length)} · 상가 반경계산 ${fmt(m.stores_with_shop_data || 0)}개 점포 · 구역 ${fmt(DB.zones.length)}(추정 ${fmt(DB.zones.filter(z => z.geo === 'est-member').length)}) · 조례 ${fmt(DB.rules.length)} · 가맹점 ${fmt(m.merchants || 0)} · 가맹 매칭 ${fmt(DB.memberMatched || 0)}개 점포`;
   }
   const d = $('#h-date');
-  if (d) { d.textContent = `기준 ${src.asof || '—'}`; d.title = `데이터 로드 ${fmtDT(DB.loadedAt)}`; }
+  if (d) {
+    /* 2026-09-30 단일 표기가 아니라 시도별 기준일(9개 시도 2025-06-30)을 함께 보여준다 */
+    d.textContent = `기준 ${k.asofNote || src.asof || '—'}`;
+    const by = k.asofBy || {};
+    const byLine = Object.keys(by).length ? Object.entries(by).map(([sido, v]) => `${sido} ${v}`).join(' · ') : '';
+    d.title = `${byLine ? '시도별 상가 기준일 — ' + byLine + '\n' : ''}데이터 로드 ${fmtDT(DB.loadedAt)}`;
+  }
 }
 function bootErrorHeader() { const s = $('#h-sync'); if (s) s.innerHTML = '<i class="dot err"></i>DB 동기화 오류'; }
 
 /* ---------- 라우팅 ---------- */
 function switchView(v) {
-  if (!VIEWS.includes(v)) v = 'check';
+  if (!VIEWS.includes(v)) v = 'home';   /* 빈 해시·알 수 없는 해시는 홈으로 (기본 첫 화면 = 홈) */
   APPX.view = v;
   $$('.nav-item[data-view]').forEach(t => t.setAttribute('aria-selected', t.dataset.view === v));
   $$('.view').forEach(s => s.classList.toggle('active', s.id === 'view-' + v));
@@ -5030,11 +5725,13 @@ function renderHome() {
   const k = APPX.k || computeKPI(); APPX.k = k;
   const hist = histList(), fav = favList();
   const hk = $('#home-kpis');
+  const pend = !!k.pending;
+  const kv = v => pend ? '계산 중' : fmt(v);
   if (hk) hk.innerHTML = [
     kpiCard('store', '', fmt(k.total), '', '분석 대상 점포', `상가 반경계산 ${fmt(k.covered)}곳`),
-    kpiCard('target', 's', fmt(k.cand), '', '지정 가능 후보', '2,000㎡·조례 기준 적합'),
-    kpiCard('clip', 'w', fmt(k.rev), '', '현장 확인 필요', '상가미수집·조건부 포함'),
-    kpiCard('book', 'z', fmt(k.rules), '곳', '조례 DB 등록', k.asof ? `상가정보 ${fmtDate(k.asof)}` : ''),
+    kpiCard('target', 's', kv(k.cand), '', '지정 가능 후보', pend ? `상가 상세목록 불러오는 중 ${nearbyStatusText()}` : `2,000㎡·조례 기준 적합${k.inZone ? ` · 구역 내 ${fmt(k.inZone)}곳 제외` : ''}`),
+    kpiCard('clip', 'w', kv(k.rev), '', '현장 확인 필요(조건부)', pend ? '상가 상세목록을 불러와 집계 중입니다' : '상가 미수집·표본 부족만 — 적합은 제외'),
+    kpiCard('book', 'z', fmt(k.rules), '곳', '조례 DB 등록', k.asof ? `상가정보 ${fmtDate(k.asof)}${k.asofOldN ? ` <span class="faint">(${k.asofOldN}개 시도 ${k.asofOld.replace(/-/g, '.')})</span>` : ''}` : ''),
   ].join('');
   const hr = $('#home-recent');
   if (hr) hr.innerHTML = hist.length ? hist.slice(0, 6).map(h => `
@@ -5414,9 +6111,11 @@ function hRun() {
 }
 
 function rebuild() {
-  buildDB(RAW); EVC.clear(); t2Build();
+  buildDB(RAW); EVC.clear(); EKVC.clear(); invalidateKPI(); t2Build();
   if (DB.memberIdx) DB.memberMatched = applyMemberMatch(DB.stores, DB.memberIdx);
   updateHeader(); updateNavKPI();
+  /* 홈이 기본 화면이므로, 가맹 색인 로딩을 기다리는 동안에도 KPI 카드를 먼저 그려 둔다(계산 중 표시) */
+  if (APPX.view === 'home') renderHome();
   if (T1.sel && T1.sel.kind === 'store') { const s = DB.stores.find(x => x.id === T1.sel.id); T1.sel = s ? { kind: 'store', ...s } : null; }
   T1.sel ? t1Run() : t1RenderEmpty();
   T3.dirty = true;
@@ -5440,7 +6139,9 @@ async function start() {
     // 첫 방문은 검색 대기 상태. 점포는 사용자가 명시적으로 선택한다.
     if (!T1.sel) t1RenderEmpty();
     refreshBadges(); renderRecent();
-    switchView(location.hash.slice(1) || 'check');
+    switchView(location.hash.slice(1) || 'home');
+    /* 첫 화면 KPI가 '0'으로 보이지 않도록 시도별 상가 상세목록을 백그라운드로 미리 받는다 */
+    prefetchNearbyAll();
   } catch (err) { bootError(err.message || String(err)); }
 }
 
