@@ -3672,11 +3672,11 @@ function buildReportHTML(e) {
     <tr><td>적용 조례</td><td colspan="3">${r ? esc(r.ordinance) + ` (기준일 ${esc(r.updated || '—')})` : esc(NAT_RULE.ordinance) + ' — 조례 미확인, 법정 기본 기준으로 단정하지 않음'}</td></tr>
     <tr><td><b>A. 골목형상점가 지정 적격성</b><br>(밀집도)</td>
       <td>${thTxt}<br>면적 기준: ${esc(assess.areaBasisLabel)}<br>${esc((DENSITY_POLICIES[assess.policy] || DENSITY_POLICIES.UNKNOWN).label)}${r && r.exclusion_legal_basis ? `<br><span class="faint">${esc(r.exclusion_legal_basis)}</span>` : ''}</td>
-      <td>확인 점포 ${e.counts ? fmt(e.nSmall) : '미수집'}개 / 필요 ${need}${pct != null ? ` (${pct}%)` : ''}<br>조례상 제외 확인 ${assess.excludedSample != null ? assess.excludedSample : '—'}건 (표본 ${bs.n || 0}건)</td>
+      <td>${e.counts ? `확인 점포 ${fmt(e.nSmall)}개` : '확인 점포 미수집'} / 필요 ${need}${pct != null ? ` (${pct}%)` : ''}<br>조례상 제외 확인 ${assess.excludedSample != null ? assess.excludedSample : '—'}건 (표본 ${bs.n || 0}건)</td>
       <td><b>${esc(assess.statusLabel)}</b><br><span class="faint">${esc(assess.basis || '')}</span><br><span class="faint">출처: ${bs.src === 'nearby' ? '공단 CSV(표본)' : bs.src === 'kakao' ? '카카오 대조(표본)' : '표본 없음'} · 실측 아님</span></td></tr>
     <tr><td><b>B. 온누리상품권 가맹 적격성</b><br>(참고)</td>
       <td>시행령 별표 1 등록 제한업종 33종(2026-06-17 시행)<br>소상공인 도소매 50억 / 가맹 상한 30억 원<br>시행 전 등록 가맹점은 최초 갱신 전까지 유예</td>
-      <td>가맹 가능 ${bs.ok ? bs.nOk : '—'}건 · 제한 의심 ${bs.ok ? bs.nEx : '—'}건 · 조건부 ${bs.ok ? bs.nChk : '—'}건 · 소상공인 아님 ${bs.ok ? bs.nNonSmall : '—'}건</td>
+      <td>${bs.ok ? `가맹 가능 ${bs.nOk}건 · 제한 의심 ${bs.nEx}건 · 조건부 ${bs.nChk}건 · 소상공인 아님 ${bs.nNonSmall}건` : '상가 상세목록·카카오 조회 결과 없음 — 집계 불가(현장 확인 필요)'}</td>
       <td>참고 — 밀집도와 법적 근거가 다름<br><span class="faint">직영(사업자번호 85)·매출 30억 초과는 지정돼도 가맹 불가</span></td></tr>
     <tr><td><b>C. 상인조직·지정 신청 준비도</b></td>
       <td>상인 동의 ${esc(g.consentRatio || '—')} 이상<br>동의 분모: ${esc(g.denomLabel)}</td>
