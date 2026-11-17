@@ -1,0 +1,14 @@
+name: Radar validation
+on:
+  pull_request:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: node tests/test_legal_criteria.mjs
+      - run: node tests/test_ui_contract.mjs
