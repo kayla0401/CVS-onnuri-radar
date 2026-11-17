@@ -671,7 +671,7 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
   .store-head{flex-wrap:wrap}
   .pblock .val b{font-size:22px}
 }
-/* --- 특수입지 · 제한업종(공무원 기준) · 한 장 리포트 --- */
+/* --- 특수입지 · 법적 판정 3축(A 지정·B 가맹·C 신청준비) · 한 장 리포트 --- */
 .ssite{display:flex;gap:10px;align-items:flex-start;margin:12px 20px 0;padding:12px 14px;border-radius:14px;font-size:12.5px;line-height:1.5}
 .ssite.s1{background:var(--warning-bg);border:1px solid #F2DCA6;color:#8A5A0B}
 .ssite.s2{background:var(--primary-light);border:1px solid #CFE2FF;color:#1B4F9C}
@@ -1493,7 +1493,7 @@ function evaluate(p, areaM2) {
   const base = rule.base_area || 2000;
   const thCom = rule.min_shops || null;
   const thNon = rule.min_shops_non_commercial || null;
-  const th = thCom || thNon;            // 보수적 기본값(상업지역 기준)
+  const th = thCom || thNon;            // 상업지역 기준을 기본으로 표시(비상업 기준은 따로 병기)
   let v = 'na', label = '기준 미등록', reasons = [];
   let per = null, ratio = null, required = null, nAll = 0, nSmall = 0, nOther = 0;
   let reqCom = null, reqNon = null, passCom = null, passNon = null;
@@ -2696,7 +2696,7 @@ function t1Run() {
   renderVerdict(e); renderShops(e); renderAction(e); renderMap1(e);
   renderPolyCard(); syncPolyUI();
   if (e.p.kind === 'store' && e.p.cov && !DB.nearby[e.p.sido]) {
-    /* 상가 상세목록이 도착하면 C구역 리스트뿐 아니라 B구역의 [공무원 기준 보수적 추정] 박스도 다시 그린다 */
+    /* 상가 상세목록이 도착하면 C구역 리스트뿐 아니라 B구역의 법적 판정 3축 패널도 다시 그린다 */
     const refresh = () => { if (T1.ev === e) { renderShops(e); renderVerdict(e); } };
     loadNearby(e.p.sido).then(refresh, refresh);
   }
@@ -2755,72 +2755,293 @@ function ssOf(p) {
   return SSC.get(k);
 }
 
-/* ---- 4e. 제한업종 분류 — 전통시장법 시행령 별표1(공무원 심사 기준)
-   소상공인 상가(상권)정보의 업종명 75종을 실제로 전수 확인해 만든 분류다. 주의할 점 두 가지:
-   · '의약·화장품 소매'(약국·화장품점)는 2026.10부터 허용 업종이므로 절대 빼지 않는다.
-   · '주점'은 일반 호프·술집과 유흥주점이 섞여 있어 제외 확정 대신 '유흥주점 여부 확인'으로 따로 센다. */
-const BIZ_EXCLUDE = {
-  '의원':'병·의원', '병원':'병·의원', '치과':'병·의원', '한의원':'병·의원', '보건소':'병·의원',
-  '동물병원':'동물병원', '수의':'동물병원',
-  '일반 교육':'일반교육(학원)', '일반교육':'일반교육(학원)', '학원':'일반교육(학원)',
-  '부동산 서비스':'부동산업', '부동산':'부동산업', '부동산중개':'부동산업',
-  '유원지·오락':'유원지·오락업', '유원지':'유원지·오락업',
-  '법무관련':'법무·전문직', '법무':'법무·전문직', '변호사':'법무·전문직', '법무사':'법무·전문직',
-  '회계·세무':'회계·세무', '회계':'회계·세무', '세무':'회계·세무', '세무사':'회계·세무',
-  '금융':'금융·보험업', '보험':'금융·보험업', '은행':'금융·보험업', '증권':'금융·보험업',
-  '저축은행':'금융·보험업', '새마을금고':'금융·보험업', '신협':'금융·보험업', '우체국':'금융·보험업',
+/* ---- 4e. 업종 분류 · 법적 판정 코어 (3축 분리)
+   골목형상점가 지정(밀집도)과 온누리상품권 가맹은 법적 근거가 다르다.
+     · 지정 요건 — 법 제2조제2호의2·시행령 제2조의2 + 시·군·구 조례 제3조(밀집 기준)
+     · 가맹 제한 — 법 제26조의4·시행령 제9조의16·[별표 1](등록 제한업종 33종, 2026-06-17 시행)
+   그래서 업종 분류를 두 갈래로 나눈다: 밀집도용(classifyDensityExclusion) / 가맹용(classifyOnnuriEligibility).
+   2026-06-17 시행령 개정으로 보건업·수의업·법무·회계세무·사행시설이 추가되어 33종이 됐고, 직전 사업연도
+   매출액 또는 온누리 환전액 30억 원 초과 점포도 가맹 제한이다(부칙: 시행 전 등록 가맹점은 최초 갱신 전까지 유예).
+   약국(의약품 소매)은 2026-10 중기부 안내로 가맹 허용이 유지된다.
+   @legal-core:start ~ @legal-core:end 구간은 DOM에 의존하지 않는다(tests/test_legal_criteria.mjs가 그대로 실행). */
+/* @legal-core:start */
+
+/* 시행령 [별표 1] 등록 제한업종 33종 (2026-06-17 시행, 대통령령 제36415호) — 표준산업분류 코드와 표기 그대로 */
+const ONNURI_RESTRICTED = [
+  { c:'46107', label:'골동품·귀금속 중개업', t:/골동품/ },
+  { c:'46331', label:'주류 도매업', t:/주류/ },
+  { c:'46463', label:'도박기계·사행성 오락기구 도매업', t:/(도박|사행|불건전).*(도매)/ },
+  { c:'46492', label:'귀금속 도매업', t:/귀금속/ },
+  { c:'46722', label:'귀금속광물 도매업', t:/귀금속광물/ },
+  { c:'47231', label:'주류 소매업', t:/주류/ },
+  { c:'47640', label:'도박기계·사행성 오락기구 소매업', t:/(도박|사행|불건전).*(소매|판매)/ },
+  { c:'47859', label:'성인용품 판매점', t:/성인용품/ },
+  { c:'47911', label:'사행성·성인용품 전자상거래 소매업', t:/(전자상거래|인터넷|온라인).*(성인|사행|도박)/ },
+  { c:'47993', label:'다단계 방문판매', t:/다단계|방문판매/ },
+  { c:'5621', label:'주점업', t:/주점|호프|술집|이자카야|포차|소주방|맥주/ },
+  { c:'58122', label:'경마·경륜·경정 관련 잡지 발행업', t:/(경마|경륜|경정).*(잡지|발행)/ },
+  { c:'5821', label:'도박·사행성 게임 S/W 개발·공급업', t:/(도박|사행).*(게임|소프트|S\/W)/i },
+  { c:'63999', label:'온라인게임 아이템 중개업', t:/아이템.*중개|게임.*아이템/ },
+  { c:'64', label:'금융업', t:/금융|은행|저축은행|신협|새마을금고|신용협동|대부업|캐피탈/ },
+  { c:'65', label:'보험업', t:/보험/ },
+  { c:'66', label:'금융·보험관련 서비스업', t:/펀드|자산관리|보험대리|보험중개|금융.*서비스/ },
+  { c:'68', label:'부동산업', t:/부동산/ },
+  { c:'711', label:'법무관련 서비스업', t:/법무|변호|법률|특허|공증/ },
+  { c:'712', label:'회계·세무관련 서비스업', t:/회계|세무|관세/ },
+  { c:'71531', label:'부동산 컨설팅 서비스', t:/부동산.*컨설팅|컨설팅.*부동산/ },
+  { c:'731', label:'수의업', t:/동물병원|수의/ },
+  { c:'75993', label:'신용조사·추심대행업', t:/신용조사|추심/ },
+  { c:'75999', label:'경품용 상품권 발행·판매업', t:/상품권/ },
+  { c:'76390', label:'도박기계·사행성 오락기구 임대업', t:/(도박|사행|오락기).*(임대)/ },
+  { c:'8462', label:'연금업', t:/연금/ },
+  { c:'855', label:'일반교습학원', t:/일반\s*교육|일반교습|보습|입시|교과/ },
+  { c:'86', label:'보건업', t:/병원|의원|치과|한의원|요양|보건소|의료원/ },
+  { c:'91113', label:'경주장·동물 경기장 운영업', t:/경주장|동물경기/ },
+  { c:'91221', label:'성인용 게임장·오락실·PC방·전화방', t:/성인.*(pc|피시|게임|오락)|오락실|전화방/ },
+  { c:'9124', label:'사행시설 관리·운영업', t:/사행시설|카지노|경마장|경륜장|복권/ },
+  { c:'9612', label:'증기탕·안마시술소', t:/증기탕|안마시술|안마방/ },
+  { c:'96999', label:'휴게텔·키스방·대화방', t:/휴게텔|키스방|대화방/ },
+];
+/* 별표 1의2 — 가맹 제한업종의 예외(중기부 고시 소득기준 이하: 최근 3개월 평균 건보료 부과액 기준).
+   생맥주 전문점·기타 주점업만 해당하고 유흥·단란주점은 예외가 없다. */
+const ONNURI_EXCEPTION_NOTE = '별표 1의2: 생맥주 전문점·기타 주점업은 중기부 고시 소득기준(최근 3개월 평균 건강보험료 기준) 이하면 가맹 가능';
+
+/* 소상공인 대상이 아닌 시설 — 가맹 제한업종이 아니라 '집계 대상 아님'으로 따로 표시한다 */
+const NON_SMALL_BIZ = /(보건소|주민센터|행정복지센터|시청|구청|군청|도청|학교|대학교|대학|공공기관|도서관|소방서|경찰서|법원|우체국\s*$|대형마트|백화점|하나로마트)/;
+
+/* 밀집도 제외 정책 4종 — DB 기본값은 UNKNOWN(임의 NONE 금지) */
+const DENSITY_POLICIES = {
+  NONE:           { label:'업종 이유 제외 없음', short:'NONE', desc:'조례·시행규칙·별표까지 확인해 별도 업종 제외 규정이 없음을 확인' },
+  ALL_RESTRICTED: { label:'별표 1 제한업종 전체 제외', short:'ALL_RESTRICTED', desc:'조례가 시행령 별표 1 등록 제한업종을 밀집도에서 제외' },
+  PARTIAL:        { label:'일부 업종만 제외', short:'PARTIAL', desc:'조례·시행규칙이 특정 업종만 열거해 제외' },
+  UNKNOWN:        { label:'조문 미확인', short:'UNKNOWN', desc:'조문 전수 미검증 또는 조례·시행규칙 충돌로 행정 해석 필요' },
 };
-function classifyShopBiz(cat, name) {
-  const c = String(cat || '').trim();
-  if (/소매|도매/.test(c)) return { k:'ok', label:/약국|의약/.test(c) ? '약국·의약품 소매(2026.10 허용)' : '' };
-  if (BIZ_EXCLUDE[c]) return { k:'ex', label:BIZ_EXCLUDE[c] };
-  if (/주점|호프|유흥|단란|술집/.test(c)) return { k:'check', label:'주점(유흥주점 여부 확인)' };
-  if (/(의원|병원|치과|한의원|동물병원|보건소)/.test(c)) return { k:'ex', label:'병·의원' };
-  if (/교육/.test(c) && /일반/.test(c)) return { k:'ex', label:'일반교육(학원)' };
-  if (/부동산/.test(c)) return { k:'ex', label:'부동산업' };
-  if (/(법무|변호|회계|세무)/.test(c)) return { k:'ex', label:'법무·회계·세무' };
-  if (/(금융|보험|은행|증권|저축|신협|금고)/.test(c)) return { k:'ex', label:'금융·보험업' };
-  if (/(유원지|오락)/.test(c)) return { k:'ex', label:'유원지·오락업' };
-  return { k:'ok', label:'' };
+const AREA_BASIS = {
+  ZONE_GROSS:            '구역(부지) 면적',
+  ZONE_NET_EXCL_PUBLIC:  '구역 면적 − 도로·주차장 등 공용면적',
+  SUM_OF_SHOP_AREA:      '입점 점포 면적의 합',
+  CHECK_REQUIRED:        '산정 기준 확인 필요(조례·시행규칙 표현 상충)',
+  UNKNOWN:               '산정 기준 미확인',
+};
+const DENSITY_STATUS = {
+  EST_PASS:        { label:'기준 충족 추정', color:'var(--success)' },
+  EST_FAIL:        { label:'기준 미달 추정', color:'var(--danger)' },
+  NEEDS_CHECK:     { label:'추가 확인 필요', color:'var(--warning)' },
+  LEGAL_UNVERIFIED:{ label:'법적 기준 미확인', color:'var(--text-tertiary)' },
+};
+const CONSENT_BASIS = {
+  ALL_SHOPS:          '구역 내 영업 상인 전체(1점포 1인)',
+  ELIGIBLE_SHOPS_ONLY:'가맹 가능 업종 점포만',
+  CHECK_LOCAL_GOV:    '지자체 확인 필요',
+  UNKNOWN:            '동의 분모 조문 미확인',
+};
+
+function densityPolicyOf(rule) {
+  const p = rule && rule.density_exclusion_policy;
+  return DENSITY_POLICIES[p] ? p : 'UNKNOWN';
 }
-/* 반경(검토 구역 포함) 내 상가에서 제한업종을 갈라 센다 — 공단 상세목록(nearby) 우선,
-   없으면 카카오 실시간 조회 결과로 같은 계산을 한다. */
+
+/* 온누리상품권 가맹 적격성 — 시행령 별표 1(33종) 전체 기준 */
+function classifyOnnuriEligibility(name, cat, ksic) {
+  const c = String(cat == null ? '' : cat).trim();
+  const n = String(name == null ? '' : name).trim();
+  const generic = !c || /^(기타|소매|도매|음식|음식점|서비스|생활서비스)$/.test(c);
+  const s = generic ? (n || c) : c;      /* 업종명이 비어 있거나 뭉뚱그려진 경우에만 상호로 보조 판정 */
+  const out = (status, label, code, extra) => Object.assign({ status, label, ksic: code || null, nonSmallBiz: false }, extra || {});
+
+  /* 약국·의약품 소매는 2026-10 중기부 안내로 가맹 허용 유지 — 보건업(86)보다 먼저 본다 */
+  if (/약국|한약국|의약품/.test(s)) return out('ALLOW', '약국·의약품 소매(2026-10 가맹 허용 유지)', null);
+  /* 공공기관·학교·대형마트 등은 소상공인 대상이 아니다(가맹 제한업종과 별개) */
+  if (NON_SMALL_BIZ.test(s) || NON_SMALL_BIZ.test(n)) return out('ALLOW', '공공기관·비소상공인(소상공인 대상 아님)', null, { nonSmallBiz: true });
+  /* 주점업(5621) — 유흥·단란은 제한, 생맥주·기타 주점은 별표 1의2 소득기준 예외 가능 */
+  if (/유흥주점|단란주점|나이트클럽|나이트\b|클럽/.test(s)) return out('RESTRICTED', '주점업 — 유흥·단란주점(별표 1의2 예외 없음)', '5621');
+  if (/주점|호프|술집|이자카야|포차|소주방|맥주/.test(s)) return out('CONDITIONAL_REVIEW', '주점업 — 생맥주 전문점·기타 주점업은 소득기준 이하 예외 가능(별표 1의2)', '5621');
+  /* 주류 — 도매(46331)·소매(47231) 모두 제한. 종전 '소매|도매' 무조건 통과 버그를 없앤 지점 */
+  if (/주류/.test(s)) return /도매/.test(s)
+    ? out('RESTRICTED', '주류 도매업', '46331')
+    : out('RESTRICTED', '주류 소매업', '47231');
+  /* 귀금속 — 별표 1은 도매(46492·46722)·중개(46107)만 제한, 소매는 코드 확인 */
+  if (/귀금속|골동품/.test(s)) {
+    if (/도매/.test(s)) return out('RESTRICTED', '귀금속 도매업', '46492');
+    if (/광물/.test(s)) return out('RESTRICTED', '귀금속광물 도매업', '46722');
+    if (/중개/.test(s)) return out('RESTRICTED', '골동품·귀금속 중개업', '46107');
+    if (/소매/.test(s)) return out('CONDITIONAL_REVIEW', '귀금속 소매 — 별표 1은 도매·중개만 제한(세부 업종코드 확인)', '478');
+    return out('RESTRICTED', '귀금속 도매·중개업(업종코드 확인)', '46492');
+  }
+  /* 학원 — 일반교습학원(855)은 제한, 예체능 등 다른 분류는 코드 확인 */
+  if (/일반\s*교육|일반교습|보습|입시|교과/.test(s)) return out('RESTRICTED', '일반교습학원', '855');
+  if (/학원|교습/.test(s)) return out('CONDITIONAL_REVIEW', '학원 — 일반교습학원(855)이면 가맹 제한, 그 외 분류는 코드 확인', '855');
+  for (const r of ONNURI_RESTRICTED) {
+    if (r.t.test(s)) return out('RESTRICTED', r.label, r.c);
+  }
+  return out('ALLOW', '', null);
+}
+
+/* 호환 래퍼 — 기존 호출부(k:'ok'|'ex'|'check')를 그대로 쓸 수 있게 유지한다 */
+function classifyShopBiz(cat, name) {
+  const r = classifyOnnuriEligibility(name, cat);
+  return { k: r.status === 'RESTRICTED' ? 'ex' : r.status === 'CONDITIONAL_REVIEW' ? 'check' : 'ok',
+    label: r.label, status: r.status, ksic: r.ksic, nonSmallBiz: r.nonSmallBiz,
+    reason: r.status === 'RESTRICTED' ? '온누리 가맹 제한업종(별표 1)' : r.status === 'CONDITIONAL_REVIEW' ? '조건부 확인(별표 1의2)' : '' };
+}
+
+/* 밀집도 제외 판정 — 조례의 density_exclusion_policy 에만 따른다(전국 일괄 차감 금지) */
+function classifyDensityExclusion(shop, rule) {
+  const pol = densityPolicyOf(rule);
+  const cls = classifyOnnuriEligibility(shop && shop.name, shop && shop.cat);
+  const res = { exclude: false, reason: '', status: cls.status, label: cls.label, ksic: cls.ksic,
+    nonSmallBiz: !!cls.nonSmallBiz, policy: pol, unknownPossibleExclude: false };
+  if (cls.nonSmallBiz) {                      /* 비소상공인은 업종과 무관하게 집계 대상 아님 */
+    res.exclude = true; res.reason = 'non_small_biz'; return res;
+  }
+  if (pol === 'NONE') { res.reason = 'policy_none'; return res; }
+  if (pol === 'ALL_RESTRICTED') {
+    res.exclude = cls.status === 'RESTRICTED';
+    res.reason = res.exclude ? 'policy_all_restricted' : 'not_restricted';
+    return res;
+  }
+  if (pol === 'PARTIAL') {
+    const list = Array.isArray(rule && rule.density_excluded_industries) ? rule.density_excluded_industries : [];
+    const hit = cls.status === 'RESTRICTED' && list.some(x => {
+      const s = String(x == null ? '' : x);
+      return /별표\s*1|전체/.test(s) || (cls.label && (s.includes(cls.label) || cls.label.includes(s)));
+    });
+    res.exclude = !!hit; res.reason = hit ? 'policy_partial' : 'not_listed';
+    return res;
+  }
+  res.reason = 'policy_unknown';
+  res.unknownPossibleExclude = cls.status === 'RESTRICTED';   /* 자동 차감은 절대 하지 않는다 */
+  return res;
+}
+
+/* 필요 점포 수 — 조례에 검증된 계산식만 쓴다.
+   2,000㎡ 이하: 최소 기준 고정(비례 축소 금지) / 초과: over_area_verified===true 인 식만 적용 */
+function requiredShopsFor(rule, area, baseCount) {
+  if (!Number.isFinite(+area) || area <= 0 || !Number.isFinite(+baseCount) || +baseCount <= 0) return null;
+  const baseArea = +(rule && rule.base_area || 2000);
+  if (area <= baseArea) return +baseCount;
+  if (!rule || rule.over_area_verified !== true) return null;
+  const step = +rule.over_area_step_m2, shops = +rule.over_area_shops;
+  if (!(step > 0) || !(shops > 0)) return null;
+  const type = rule.over_area_rule_type || 'PROPORTIONAL_CEIL';
+  if (type === 'PROPORTIONAL_CEIL') return Math.ceil(area / step * shops);              /* 2,000㎡당 15개 비율(올림) → 3,000㎡ 23개 */
+  if (type === 'STEP_CEIL') return +baseCount + Math.ceil((area - baseArea) / step) * shops;
+  if (type === 'STEP_FLOOR') return +baseCount + Math.floor((area - baseArea) / step) * shops;
+  return null;
+}
+
+/* 밀집도 판정 — 확인된 개별 점포 수만 쓰고 표본 비율을 모집단에 곱하지 않는다.
+   sample: { n, nEx, nChk, nNonSmall, truncated, src }, population: 공단 집계 소상공인 점포 수 */
+function densityAssess(o) {
+  o = o || {};
+  const rule = o.rule || null, area = +o.area, population = o.population == null ? null : +o.population;
+  const sample = o.sample || { n:0, nEx:0, nChk:0, nNonSmall:0, truncated:false, src:'' };
+  const policy = densityPolicyOf(rule);
+  const thCom = o.thCom == null ? null : +o.thCom, thNon = o.thNon == null ? null : +o.thNon;
+  const baseArea = +(rule && rule.base_area || 2000);
+  const reqCom = rule ? requiredShopsFor(rule, area, thCom) : null;
+  const reqNon = thNon != null && rule ? requiredShopsFor(rule, area, thNon) : null;
+  const reqMain = reqCom != null ? reqCom : reqNon;
+  const notes = [];
+  const out = {
+    policy, policyLabel: DENSITY_POLICIES[policy].label, policyDesc: DENSITY_POLICIES[policy].desc,
+    areaBasis: rule && rule.area_measurement_basis ? rule.area_measurement_basis : 'UNKNOWN',
+    areaBasisLabel: AREA_BASIS[(rule && rule.area_measurement_basis) || 'UNKNOWN'] || AREA_BASIS.UNKNOWN,
+    population, sampleN: sample.n, sampleEx: sample.nEx, sampleChk: sample.nChk, sampleNonSmall: sample.nNonSmall,
+    truncated: !!sample.truncated, src: sample.src || '', required: reqMain, requiredCom: reqCom, requiredNon: reqNon,
+    excludedSample: 0, effective: population, rangeLo: population, rangeHi: population,
+    status: 'NEEDS_CHECK', statusLabel: DENSITY_STATUS.NEEDS_CHECK.label, statusColor: DENSITY_STATUS.NEEDS_CHECK.color,
+    conflict: !!(rule && rule.rule_conflict_flag), conflictNote: (rule && rule.rule_conflict_note) || null,
+    blocksVerdict: false, basis: '', legalBasis: (rule && rule.exclusion_legal_basis) || null,
+    exclusionDate: (rule && rule.exclusion_effective_date) || null, notes,
+  };
+  const setStatus = (s, basis) => { out.status = s; out.statusLabel = DENSITY_STATUS[s].label; out.statusColor = DENSITY_STATUS[s].color; out.blocksVerdict = (s === 'LEGAL_UNVERIFIED' || s === 'NEEDS_CHECK'); out.basis = basis || out.basis; };
+  if (out.conflict) notes.push(`조례·시행규칙 문언 충돌 — ${out.conflictNote || '유권해석 필요'}`);
+  if (policy === 'UNKNOWN') notes.push(DENSITY_POLICIES.UNKNOWN.desc);
+  if (!rule) notes.push('이 지자체 조례가 DB에 없습니다 — 법정 기본값으로 단정하지 않습니다.');
+  if (rule && area > baseArea && rule.over_area_verified !== true) notes.push(`검토 면적 ${Math.round(area)}㎡가 기준면적 ${baseArea}㎡를 넘지만 초과면적 계산식이 검증되지 않았습니다.`);
+
+  /* 조례상 제외 점포 수 — 확인된 표본 안에서만 센다(비율 외삽 금지) */
+  const byPolicy = policy === 'ALL_RESTRICTED' || policy === 'PARTIAL';
+  out.excludedSample = (byPolicy ? sample.nEx : 0) + (sample.nNonSmall || 0);
+  const shrunk = population == null ? null : Math.max(0, population - out.excludedSample);
+  out.effective = shrunk;
+
+  if (population == null) { setStatus('NEEDS_CHECK', '상가 데이터 미수집 — 밀집도 판정 보류'); return out; }
+  if (!rule) { setStatus('LEGAL_UNVERIFIED', '조례 미확인'); return out; }
+  if (policy === 'UNKNOWN') {
+    /* 조문 미확인 — 조례가 별표 1 전체를 제외한다고 가정한 하한과, 전혀 빼지 않은 상한을 함께 보여준다 */
+    out.rangeLo = Math.max(0, population - (sample.nEx || 0) - (sample.nNonSmall || 0));
+    out.rangeHi = population;
+    setStatus('LEGAL_UNVERIFIED', `조례상 제외 업종을 확인하지 못해 ${out.rangeLo}~${out.rangeHi}개 범위로만 제시`);
+    return out;
+  }
+  if (area > baseArea && rule.over_area_verified !== true) { setStatus('LEGAL_UNVERIFIED', '초과면적 계산식 미검증'); return out; }
+  if (reqMain == null) { setStatus('LEGAL_UNVERIFIED', '조례 별표 기준(점포 수) 미등록'); return out; }
+  if (out.conflict) { setStatus('LEGAL_UNVERIFIED', '조례 기준으로 계산했으나 시행규칙과 충돌 — 유권해석 전 확정 불가'); return out; }
+
+  const need = reqNon != null ? Math.min(reqCom != null ? reqCom : reqNon, reqNon) : reqMain;
+  out.effective = shrunk;
+  if (policy !== 'NONE' && out.truncated) {
+    out.rangeLo = shrunk; out.rangeHi = population;
+    setStatus('NEEDS_CHECK', `표본(${sample.n}건) 상한 도달 — 표본 밖 제외 점포를 확정할 수 없어 ${shrunk}~${population}개 범위`);
+    return out;
+  }
+  if (policy !== 'NONE' && sample.nChk) { out.rangeLo = Math.max(0, shrunk - sample.nChk); out.rangeHi = shrunk; }
+  if (shrunk >= (reqNon != null ? reqNon : reqMain)) {
+    const vsCom = reqCom != null && shrunk < reqCom;
+    setStatus('EST_PASS', vsCom
+      ? `비상업 기준 ${reqNon}개는 충족, 상업 기준 ${reqCom}개에는 ${reqCom - shrunk}개 부족 — 용도지역 확인 필요`
+      : `필요 ${reqMain}개 이상 확인`);
+  } else {
+    setStatus('EST_FAIL', `필요 ${need}개에 ${need - shrunk}개 부족(확인된 점포 기준)`);
+  }
+  return out;
+}
+/* @legal-core:end */
+
+/* 반경(검토 구역 포함) 내 상가에서 업종을 갈라 센다 — 공단 상세목록(nearby) 우선,
+   없으면 카카오 실시간 조회 결과로 같은 계산을 한다. 표본 비율을 모집단에 곱하지 않는다. */
 function bizStatsOf(e) {
-  const out = { ok: false, src: '', n: 0, nEx: 0, nChk: 0, exTop: [], sample: 0 };
+  const out = { ok: false, src: '', n: 0, nEx: 0, nChk: 0, nOk: 0, nNonSmall: 0, exTop: [], chkTop: [],
+    population: e.counts ? e.nSmall : null, truncated: false, policy: densityPolicyOf(e.rule), assess: null };
   const rows = nearbyList(e.p.id).filter(x => x[0] <= e.r);
+  let items = null;
   if (rows.length) {
-    out.ok = true; out.src = 'nearby'; out.n = rows.length;
-    const cnt = {};
-    rows.forEach(x => { const b = classifyShopBiz(x[2], x[1]);
-      if (b.k === 'ex') { out.nEx++; cnt[b.label] = (cnt[b.label] || 0) + 1; }
-      else if (b.k === 'check') out.nChk++; });
-    out.exTop = Object.keys(cnt).map(k => [k, cnt[k]]).sort((a, b) => b[1] - a[1]);
+    out.src = 'nearby';
+    items = rows.map(x => ({ name: x[1], cat: x[2] }));
+    out.truncated = rows.length >= 150;               /* 공단 상세목록은 가까운 150건 상한 */
   } else if (APP.live.key === e.p.id && APP.live.state === 'ok') {
     const pls = APP.live.places.filter(p => p.d <= e.r);
     const real = pls.filter(p => !XC_NOT_SMALL.includes(p.cat) && xcPairScore(e.p.name, p.name) < .9);
     if (real.length) {
-      out.ok = true; out.src = 'kakao'; out.n = real.length;
-      const cnt = {};
-      real.forEach(p => { const b = classifyShopBiz(p.cat, p.name);
-        if (b.k === 'ex') { out.nEx++; cnt[b.label] = (cnt[b.label] || 0) + 1; }
-        else if (b.k === 'check') out.nChk++; });
-      out.exTop = Object.keys(cnt).map(k => [k, cnt[k]]).sort((a, b) => b[1] - a[1]);
+      out.src = 'kakao';
+      items = real.map(p => ({ name: p.name, cat: p.cat }));
+      out.truncated = true;                            /* 카카오는 업종당 45건 상한 — 항상 표본 */
     }
   }
-  if (out.ok && out.n) {
-    const rate = out.nEx / out.n;
-    const n0 = e.counts ? e.nSmall : out.n;
-    out.base = n0;
-    out.rate = rate;
-    out.eff = Math.max(0, Math.round(n0 * (1 - rate)));
-    out.effMin = Math.max(0, out.eff - Math.round(n0 * (out.nChk / out.n)));
-    out.per = out.eff * e.base / e.area;
-    out.ratio = e.th ? out.per / e.th : null;
-    out.required = e.th ? Math.ceil(e.th * e.area / e.base) : null;
+  if (items && items.length) {
+    out.ok = true; out.n = items.length;
+    const ex = {}, chk = {};
+    items.forEach(it => {
+      const cls = classifyOnnuriEligibility(it.name, it.cat);
+      if (cls.nonSmallBiz) out.nNonSmall++;
+      else if (cls.status === 'RESTRICTED') { out.nEx++; ex[cls.label] = (ex[cls.label] || 0) + 1; }
+      else if (cls.status === 'CONDITIONAL_REVIEW') { out.nChk++; chk[cls.label] = (chk[cls.label] || 0) + 1; }
+      else out.nOk++;
+    });
+    out.exTop = Object.keys(ex).map(k => [k, ex[k]]).sort((a, b) => b[1] - a[1]);
+    out.chkTop = Object.keys(chk).map(k => [k, chk[k]]).sort((a, b) => b[1] - a[1]);
+    if (out.population == null) out.population = items.length;
+    if (out.population <= items.length) out.truncated = false;
   }
+  out.assess = densityAssess({
+    rule: e.rule, area: e.area, population: out.population,
+    thCom: e.thCom, thNon: e.thNon,
+    sample: { n: out.n, nEx: out.nEx, nChk: out.nChk, nNonSmall: out.nNonSmall, truncated: out.truncated, src: out.src },
+  });
   return out;
 }
-
 
 /* ---- 4c. 교차 검증 — 공단 상가(상권)정보(CSV) ↔ 카카오 실시간 조회 ----
    공단 CSV는 정기 스냅샷이라 오래전에 폐업한 점포가 그대로 남고(예: 홍루이젠),
@@ -3098,43 +3319,81 @@ function specialSiteHTML(ss, e) {
     <span class="sx"><b>${esc(ss.type)}</b> — ${esc(ss.why)} (<b>${esc(ss.ex)}</b>)</span></div></div>`;
 }
 
-/* [공무원 기준 보수적 추정] 박스 — 제한업종을 갈라 낸 유효 상가 수 */
-function bizBoxHTML(e, bs) {
-  const head = `<div class="ch"><b>공무원 기준 보수적 추정</b><span class="chip o">제한업종 분리 집계</span></div>`;
-  if (!bs.ok) {
-    const st = nearbyState(e.p.sido);
-    const why = !e.p.cov ? `${esc(e.p.sido)}는 상가(상권)정보 상세목록이 없습니다`
-      : st === 'loading' ? '상가 상세목록을 불러오는 중입니다(수 MB)'
-      : st === 'error' ? '상가 상세목록을 받지 못했습니다'
-      : st === 'idle' ? '상가 상세목록을 아직 불러오지 않았습니다'
-      : '반경 내 상세 상가 목록이 없습니다';
-    return `<div class="conservative">${head}
-      <div style="font-size:11.5px;color:var(--text-secondary);line-height:1.6">${why}. C구역의 <b>실시간 카카오 조회</b>를 실행하면 카카오 업종 기준으로 제한업종을 갈라 같은 보수적 추정치를 계산합니다.</div></div>`;
-  }
-  const n = bs.n, ex = bs.nEx, chk = bs.nChk, pct = bs.ratio != null ? Math.round(bs.ratio * 100) : null;
-  const col = bs.ratio == null ? 'var(--text-tertiary)' : bs.ratio >= 1 ? 'var(--success)' : bs.ratio >= CONFIG.COND_RATIO ? 'var(--warning)' : 'var(--danger)';
-  const srcTxt = bs.src === 'nearby' ? '공단 상가 상세목록' : '카카오 실시간 조회';
-  const exLine = bs.exTop.slice(0, 5).map(([k, v]) => `${k} ${v}`).join(' · ') || '없음';
-  const capped = bs.src === 'nearby' && bs.n < (e.nSmall || 0);
-  const cap = bs.src === 'nearby'
-    ? (capped
-      ? `반경 내 ${srcTxt} ${n}건 중 제외 ${ex}건(${Math.round(ex / n * 100)}%) — 목록은 가까운 150건까지만 담겨 밀집 상가에서는 표본이 되므로, 이 <b>제외율을 공단 집계 ${fmt(e.nSmall)}개에 적용</b>해 보수적 유효 상가를 계산했습니다.`
-      : `반경 내 ${srcTxt} ${n}건이 공단 집계와 같은 범위입니다. 제외 ${ex}건(${Math.round(ex / n * 100)}%)을 그대로 뺐습니다.`)
-    : `카카오 반경 ${Math.round(e.r)}m 조회 ${n}건 기준 — 카카오는 업종당 최대 45건까지만 반환하므로 표본 제외율(${Math.round(ex / n * 100)}%)을 공단 집계 ${fmt(e.nSmall)}개에 적용했습니다.`;
-  return `<div class="conservative">${head}
+/* 3축 법적 판정 패널
+   A. 골목형상점가 지정 적격성(밀집도) — 조례 근거·면적 기준·제외 점포 수·판정 4종·데이터 출처
+   B. 온누리상품권 가맹 적격성(참고) — 별표 1 33종 기준. 밀집도와 법적 근거가 다르므로 섞지 않는다
+   C. 상인조직·지정 신청 준비도 — 동의율·동의 분모·조례/시행규칙 충돌·담당 부서 */
+function legalAxisHTML(e, bs) {
+  const a = bs.assess || {}, r = e.rule;
+  const policy = a.policy || 'UNKNOWN';
+  const polChip = `<span class="chip ${policy === 'NONE' ? 's' : policy === 'ALL_RESTRICTED' ? 'a' : policy === 'PARTIAL' ? 'a' : 'o'}">${esc((DENSITY_POLICIES[policy] || DENSITY_POLICIES.UNKNOWN).label)}</span>`;
+  const need = a.required == null ? '—' : a.required;
+  const eff = a.effective == null ? null : a.effective;
+  const range = (a.status === 'LEGAL_UNVERIFIED' && a.rangeLo != null && a.rangeHi != null && a.rangeLo !== a.rangeHi)
+    ? `${a.rangeLo}~${a.rangeHi}<small>개</small>` : (eff == null ? '—' : `${eff}<small>개</small>`);
+  const exCell = policy === 'UNKNOWN'
+    ? `<div class="v" style="color:var(--text-tertiary)">미확인</div><div class="r">확인된 표본 ${bs.nEx || 0}건 · 자동 차감 안 함</div>`
+    : `<div class="v" style="color:var(--warning)">−${a.excludedSample == null ? 0 : a.excludedSample}<small>건</small></div><div class="r">표본 ${bs.n || 0}건 중 확인분${bs.nNonSmall ? ` · 비소상공인 ${bs.nNonSmall}` : ''}</div>`;
+  const srcTxt = bs.src === 'nearby' ? '공단 CSV(표본)' : bs.src === 'kakao' ? '카카오 대조(표본)' : '표본 없음';
+  const aNotes = [`적용 면적 기준: <b>${esc(a.areaBasisLabel || AREA_BASIS.UNKNOWN)}</b> — 도면·반경 면적은 ${(a.areaBasis === 'SUM_OF_SHOP_AREA' || a.areaBasis === 'CHECK_REQUIRED') ? '그대로 대입할 수 없습니다' : '조례 표현과 대조 필요'}`];
+  if (a.truncated) aNotes.push(`표본 상한 도달(${bs.n}건) — <b>표본 밖 점포는 확정할 수 없습니다</b>`);
+  if (a.conflict) aNotes.push(`<b style="color:var(--danger)">조례·시행규칙 충돌</b> — ${esc(a.conflictNote || '유권해석 필요')}`);
+  if (r && r.shop_definition_note) aNotes.push(`조례 '점포' 정의 — ${esc(r.shop_definition_note)}`);
+  if (r && r.exclusion_legal_basis) aNotes.push(`근거 — ${esc(r.exclusion_legal_basis)}`);
+
+  const gChk = bs.nChk || 0, gEx = bs.nEx || 0, gOk = bs.nOk || 0, gNon = bs.nNonSmall || 0;
+  const bNote = bs.ok
+    ? `반경 ${Math.round(e.r)}m ${srcTxt} ${bs.n}건 기준입니다. 별표 1 33종(2026-06-17 시행)으로 분류했습니다.`
+    : '상가 상세목록·카카오 조회 결과가 없어 가맹 업종 집계를 하지 못했습니다(현장 확인 필요).';
+
+  const c = r || {};
+  const ratio = c.required_consent_ratio || (c.consent_note && /2분의\s*1|1\/2/.test(c.consent_note) ? '1/2' : null);
+  const denom = c.consent_denominator_rule || 'UNKNOWN';
+  const ownerWaived = c.owner_consent_waived;
+  const cNotes = [];
+  if (denom === 'UNKNOWN') cNotes.push('동의 분모(가맹 제한업종 점포를 포함하는지)는 조문 미확인 — 담당 부서 확인 필요');
+  if (c.rule_conflict_flag) cNotes.push(`<b style="color:var(--danger)">조례·시행규칙 충돌</b> — ${esc(c.rule_conflict_note || '유권해석 필요')}`);
+
+  return `<div class="conservative">
+    <div class="ch"><b>A. 골목형상점가 지정 적격성 — 밀집도</b>${polChip}<span class="chip o">조례 제3조</span></div>
     <div class="grid">
-      <div class="cell"><div class="k">반경 내 소상공인(공단 집계)</div><div class="v">${fmt(e.nSmall)}<small>개</small></div><div class="r">${e.counts && e.counts.est ? '보간 추정' : '실측'} · ${fmt(e.area)}㎡</div></div>
-      <div class="cell"><div class="k">제한업종 제외</div><div class="v" style="color:var(--warning)">−${fmt(ex)}<small>건 / ${n}</small></div><div class="r">${esc(exLine)}</div></div>
-      <div class="cell on"><div class="k">보수적 유효 상가</div><div class="v" style="color:${col}">${fmt(bs.eff)}<small>개</small></div><div class="r">${fmt(e.base)}㎡ 환산 ${bs.per != null ? bs.per.toFixed(1) : '—'}개${pct != null ? ` · 충족률 ${pct}%` : ''}</div></div>
-      <div class="cell"><div class="k">주점 확인 필요</div><div class="v">${fmt(chk)}<small>건</small></div><div class="r">유흥주점이면 추가 제외 → 최저 ${fmt(bs.effMin)}개</div></div>
+      <div class="cell"><div class="k">조례상 밀집도 제외</div><div class="v" style="font-size:13px">${esc((DENSITY_POLICIES[policy] || DENSITY_POLICIES.UNKNOWN).label)}</div><div class="r">${c.exclusion_effective_date ? esc(c.exclusion_effective_date) + ' 시행' : '시행일 미기재'}</div></div>
+      <div class="cell"><div class="k">조례상 제외 점포</div>${exCell}</div>
+      <div class="cell on"><div class="k">밀집도 인정 점포 / 필요</div><div class="v" style="color:${a.statusColor || 'var(--text-tertiary)'}">${range}<span class="faint" style="font-size:11px"> / ${need}개</span></div><div class="r">${a.requiredNon != null && a.requiredCom != null ? `상업 ${a.requiredCom} · 비상업 ${a.requiredNon}개` : `${fmt(e.base)}㎡ 기준`}</div></div>
+      <div class="cell"><div class="k">최종 판정</div><div class="v" style="font-size:13px;color:${a.statusColor || 'var(--text-tertiary)'}">${esc(a.statusLabel || '추가 확인 필요')}</div><div class="r">${esc(srcTxt)} · 실측 아님</div></div>
     </div>
-    <div class="note">${cap}<br>
-      제한업종은 전통시장법 시행령 별표1 기준 — 병·의원, 일반교육(학원), 부동산, 유원지·오락, 법무·회계·세무, 금융·보험, 동물병원만 뺐습니다. <b>약국·의약품 소매는 2026.10 허용 업종이라 포함</b>했고, <b>주점</b>은 일반 호프·술집과 유흥주점이 섞여 있어 빼지 않고 따로 셉니다.
-      ${pct != null ? `<br>보수적 기준으로도 ${bs.ratio >= 1 ? '<b style="color:var(--success)">기준 충족</b>' : bs.ratio >= CONFIG.COND_RATIO ? '<b style="color:var(--warning)">조건부 하한(80%) 이상</b>' : '<b style="color:var(--danger)">기준 미달</b>'}입니다.` : ''}
-    </div></div>`;
+    <div class="note">${aNotes.map(x => '· ' + x).join('<br>')}${a.basis ? `<br>· 판정 근거: ${esc(a.basis)}` : ''}</div>
+  </div>
+  <div class="conservative">
+    <div class="ch"><b>B. 온누리상품권 가맹 적격성</b><span class="chip o">참고 · 밀집도와 별개</span><span class="chip s">별표 1 33종</span></div>
+    <div class="grid">
+      <div class="cell"><div class="k">가맹 가능 업종</div><div class="v" style="color:var(--success)">${bs.ok ? gOk : '—'}<small>건${bs.ok ? ` / ${bs.n}` : ''}</small></div><div class="r">약국·의약품 소매 포함</div></div>
+      <div class="cell"><div class="k">가맹 제한 의심</div><div class="v" style="color:var(--warning)">${bs.ok ? gEx : '—'}<small>건</small></div><div class="r">${bs.ok ? esc((bs.exTop || []).slice(0, 3).map(([k, v]) => `${k} ${v}`).join(' · ') || '없음') : '집계 불가'}</div></div>
+      <div class="cell"><div class="k">조건부(주점 등)</div><div class="v">${bs.ok ? gChk : '—'}<small>건</small></div><div class="r">별표 1의2 소득기준 이하 예외 가능</div></div>
+      <div class="cell"><div class="k">소상공인 아님</div><div class="v">${bs.ok ? gNon : '—'}<small>건</small></div><div class="r">보건소·학교·공공기관 등</div></div>
+    </div>
+    <div class="note">${bNote}<br>
+      · <b>소상공인 기준은 업종별 10억~120억(도소매 50억)</b>, <b>온누리 가맹은 일괄 30억 원</b> — 매출 30억~50억 도소매점은 소상공인이라 밀집도·상인회에는 들어가지만 <b>가맹은 불가</b>합니다.<br>
+      · 2026-06-17 시행령 개정으로 보건업·수의업·법무·회계세무·사행시설이 제한업종에 추가됐습니다. <b>시행 전 등록 가맹점은 최초 갱신 전까지 유예</b>됩니다.<br>
+      · ${esc(ONNURI_EXCEPTION_NOTE)}</div>
+  </div>
+  <div class="conservative">
+    <div class="ch"><b>C. 상인조직 · 지정 신청 준비도</b>${c.rule_conflict_flag ? '<span class="chip d">조례·시행규칙 충돌</span>' : ''}</div>
+    <div class="grid">
+      <div class="cell"><div class="k">상인 동의율</div><div class="v">${ratio ? esc(ratio) : '—'}<small> 이상</small></div><div class="r">${ownerWaived === true ? '토지·건축물 소유자 동의 불요' : ownerWaived === false ? '소유자 동의 필요' : '소유자 동의 요건 미기재'}</div></div>
+      <div class="cell"><div class="k">동의 분모</div><div class="v" style="font-size:12.5px">${esc(CONSENT_BASIS[denom] || CONSENT_BASIS.UNKNOWN)}</div><div class="r">${denom === 'UNKNOWN' ? '지자체 확인 필요' : '조례 기준'}</div></div>
+      <div class="cell"><div class="k">충돌 경고</div><div class="v" style="font-size:12.5px;color:${c.rule_conflict_flag ? 'var(--danger)' : 'var(--text-secondary)'}">${c.rule_conflict_flag ? '확인 필요' : '없음'}</div><div class="r">${c.rule_conflict_flag ? '유권해석 전 확정 불가' : '조례·시행규칙 일치 확인'}</div></div>
+      <div class="cell"><div class="k">담당 부서</div><div class="v" style="font-size:12.5px">${esc((c.dept || '미확인') + (c.team ? ' ' + c.team : ''))}</div><div class="r">${esc(c.phone || '연락처 미등록')}</div></div>
+    </div>
+    <div class="note">${cNotes.length ? cNotes.map(x => '· ' + x).join('<br>') + '<br>' : ''}· 상인회 설립 동의율(시행규칙 제12조, 상인 수 구간별 1/2·1/3·1/4)과 지정 신청 동의율(조례)은 별개입니다.<br>· 담당 부서·연락처는 조례 DB 기준 — 인사이동 시 재확인하세요.</div>
+  </div>`;
 }
 
-/* 원형 반경 오차 안내 + 직접 그리기 동선 */
+/* 박스 이름은 호출부 호환을 위해 유지한다 */
+function bizBoxHTML(e, bs) {
+  return legalAxisHTML(e, bs);
+}
+
 function circleHintHTML() {
   return `<div class="hintline">${ic('info', 15)}
     <span>원형 반경은 <b>대로 건너편·블록 밖 상가</b>까지 포함될 수 있고, 한 건물의 여러 호실이 중복 집계됩니다. 실제 심사 구역처럼 도면으로 확인하려면 <b>구역 직접 그리기</b>를 쓰세요.</span>
@@ -3149,6 +3408,9 @@ function storeTypeRuleHTML() {
 function renderVerdict(e) {
   const r = e.rule, m = VMETA[e.v];
   const ss = ssOf(e.p), bs = bizStatsOf(e);
+  const legal = bs.assess || {};
+  /* 조례상 밀집도 제외 업종이 미확인이거나 조례·시행규칙이 충돌하면 '적합' 배너를 그대로 쓰지 않는다 */
+  const vBlocked = !!legal.blocksVerdict && legal.status === 'LEGAL_UNVERIFIED' && (e.v === 'pass' || e.v === 'cond');
   const pct = e.ratio != null ? Math.round(e.ratio * 100) : null;
   const w = e.ratio != null ? Math.min(e.ratio, 1.5) / 1.5 * 100 : 0;
   const expected = t1Expected(e);
@@ -3198,9 +3460,9 @@ function renderVerdict(e) {
         <div style="flex:1;min-width:0"><div class="h" style="color:#8A5A0B">📍 보정 좌표 적용 중</div>
           <div class="s">원래 등록 위치(${e.p.lat.toFixed(6)}, ${e.p.lng.toFixed(6)})에서 <b>${fmt(pinShift(e.p))}m</b> 옮긴 좌표로 판정·반경·로드뷰·리포트를 계산합니다</div></div>
         <button class="btn sm" id="v-pin-restore" style="flex:none">원래 위치 복원</button></div>` : ''}
-    <div class="vbanner ${e.v}">
-      <span class="vb-ic">${ic(m.icon, 20)}</span>
-      <div class="vb-t"><b>${e.v === 'pass' ? '밀집도 예비 기준 충족' : esc(m.label)}</b><span>${esc(sub)}</span></div>
+    <div class="vbanner ${vBlocked ? 'na' : e.v}">
+      <span class="vb-ic">${ic(vBlocked ? 'info' : m.icon, 20)}</span>
+      <div class="vb-t"><b>${vBlocked ? '법적 기준 미확인 — 적합 단정 보류' : e.v === 'pass' ? '밀집도 예비 기준 충족' : esc(m.label)}</b><span>${esc(vBlocked ? (legal.statusLabel + ' · ' + (legal.basis || '조례상 밀집도 제외 업종 확인 필요')) : sub)}</span></div>
     </div>
     ${specialSiteHTML(ss, e)}
     <div class="m3">
@@ -3229,7 +3491,7 @@ function renderVerdict(e) {
       </span>
     </div>
     <div class="pblock">
-      <div class="top"><span class="lbl">현재 확인 상가 수</span><span class="pct" style="color:${pctCol}">${pct != null ? pct + '%' : '—'}</span></div>
+      <div class="top"><span class="lbl">현재 확인 상가 수 <span class="faint" style="font-weight:600">(업종 제외 미반영)</span></span><span class="pct" style="color:${pctCol}">${pct != null ? pct + '%' : '—'}</span></div>
       <div class="val"><b class="num">${e.counts ? e.nSmall : '—'}</b><span>/ ${e.required ?? '—'}개${e.counts && e.counts.est ? ' · 보간 추정' : ' · 실측'}</span></div>
       <span class="prog"><i style="width:${w}%;background:${pctCol}"></i><span class="tick" style="left:${100 / 1.5}%" title="기준 100%"></span></span>
     </div>
@@ -3325,8 +3587,11 @@ function buildReportHTML(e) {
   const zf = zoneMixFacts(e, sim), zoneTxt = zoneMixText(zf, e), pointTxt = zonePointLine(p);
   const today = fmtDate(new Date()), rel = zoneRel(e);
   const pct = e.ratio != null ? Math.round(e.ratio * 100) : null;
-  const bsPct = bs.ok && bs.ratio != null ? Math.round(bs.ratio * 100) : null;
+  const assess = bs.assess || {};
   const stc = storeTypeCheck(g.st);
+  const consentRatio = (r && r.required_consent_ratio) || (r && r.consent_note && /2분의\s*1|1\/2/.test(r.consent_note) ? '1/2' : null);
+  const denomLabel = CONSENT_BASIS[(r && r.consent_denominator_rule) || 'UNKNOWN'] || CONSENT_BASIS.UNKNOWN;
+  g.consentRatio = consentRatio; g.denomLabel = denomLabel;
   const thTxt = r ? (e.thNon != null ? `${fmt(e.base)}㎡당 상업 ${e.thCom}개 · 비상업 ${e.thNon}개 이상` : e.th ? `${fmt(e.base)}㎡당 소상공인 ${e.th}개 이상` : '조례 별표 위임 — 별표 원문 확인 필요') : '법정 기본 2,000㎡당 30개(조례 미확인)';
   const need = e.required != null ? `${e.required}개` : '—';
   const memberTxt = p.onnuri_member
@@ -3391,29 +3656,42 @@ function buildReportHTML(e) {
   </table></div>
   ${ss.stage === 1 ? `<div class="box"><b>주의(특수입지 1단계)</b> — ${esc(ss.why)} ${esc(ss.ex)}.</div>` : ''}
   ${stc.bad ? '<div class="box red"><b>가맹 결격</b> — 본사 직영점은 소상공인이 아니어서 상권 지정 후에도 온누리 가맹이 불가합니다.</div>' : ''}
-  <h2>2. 공무원 심사 기준 정량 비교</h2>
+  <h2>2. 법적 판정 3축 비교</h2>
+  ${assess.conflict ? `<div class="box red"><b>조례·시행규칙 문언 충돌</b> — ${esc(assess.conflictNote || '유권해석 필요')}. 자치법규 체계상 조례가 우선하나, 유권해석 전에는 확정 판정이 아닙니다.</div>` : ''}
   <div class="tblwrap"><table class="cmp">
-    <tr><th>항목</th><th>조례·법정 기준</th><th>공단 실측(원형)</th><th>제한업종 제외(보수적)</th></tr>
-    <tr><td>적용 조례</td><td colspan="3">${r ? esc(r.ordinance) + ` (기준일 ${esc(r.updated || '—')})` : esc(NAT_RULE.ordinance) + ' — 조례 미확인, 법정 기본 기준 적용'}</td></tr>
-    <tr><td>필요 점포 수</td><td>${thTxt}</td><td>필요 ${need} / 확인 ${e.counts ? fmt(e.nSmall) : '미수집'}개${pct != null ? ` (${pct}%)` : ''}</td><td>${bs.ok ? `유효 ${fmt(bs.eff)}개${bsPct != null ? ` (${bsPct}%)` : ''}` : '집계 불가'}</td></tr>
+    <tr><th>구분</th><th>법적 근거·기준</th><th>확인된 수치</th><th>판정 상태</th></tr>
+    <tr><td>적용 조례</td><td colspan="3">${r ? esc(r.ordinance) + ` (기준일 ${esc(r.updated || '—')})` : esc(NAT_RULE.ordinance) + ' — 조례 미확인, 법정 기본 기준으로 단정하지 않음'}</td></tr>
+    <tr><td><b>A. 골목형상점가 지정 적격성</b><br>(밀집도)</td>
+      <td>${thTxt}<br>면적 기준: ${esc(assess.areaBasisLabel)}<br>${esc((DENSITY_POLICIES[assess.policy] || DENSITY_POLICIES.UNKNOWN).label)}${r && r.exclusion_legal_basis ? `<br><span class="faint">${esc(r.exclusion_legal_basis)}</span>` : ''}</td>
+      <td>확인 점포 ${e.counts ? fmt(e.nSmall) : '미수집'}개 / 필요 ${need}${pct != null ? ` (${pct}%)` : ''}<br>조례상 제외 확인 ${assess.excludedSample != null ? assess.excludedSample : '—'}건 (표본 ${bs.n || 0}건)</td>
+      <td><b>${esc(assess.statusLabel)}</b><br><span class="faint">${esc(assess.basis || '')}</span><br><span class="faint">출처: ${bs.src === 'nearby' ? '공단 CSV(표본)' : bs.src === 'kakao' ? '카카오 대조(표본)' : '표본 없음'} · 실측 아님</span></td></tr>
+    <tr><td><b>B. 온누리상품권 가맹 적격성</b><br>(참고)</td>
+      <td>시행령 별표 1 등록 제한업종 33종(2026-06-17 시행)<br>소상공인 도소매 50억 / 가맹 상한 30억 원<br>시행 전 등록 가맹점은 최초 갱신 전까지 유예</td>
+      <td>가맹 가능 ${bs.ok ? bs.nOk : '—'}건 · 제한 의심 ${bs.ok ? bs.nEx : '—'}건 · 조건부 ${bs.ok ? bs.nChk : '—'}건 · 소상공인 아님 ${bs.ok ? bs.nNonSmall : '—'}건</td>
+      <td>참고 — 밀집도와 법적 근거가 다름<br><span class="faint">직영(사업자번호 85)·매출 30억 초과는 지정돼도 가맹 불가</span></td></tr>
+    <tr><td><b>C. 상인조직·지정 신청 준비도</b></td>
+      <td>상인 동의 ${esc(g.consentRatio || '—')} 이상<br>동의 분모: ${esc(g.denomLabel)}</td>
+      <td>${esc(g.consent)}</td>
+      <td>${r && r.rule_conflict_flag ? '<b style="color:var(--danger)">조례·시행규칙 충돌 확인 필요</b>' : '조례 기준'}<br><span class="faint">담당 ${r && r.dept ? esc(r.dept) : '미확인'}${r && r.phone ? ' · ' + esc(r.phone) : ''}</span></td></tr>
     <tr><td>도로·주차장 공용면적</td><td colspan="3">${esc(g.areaRule)}</td></tr>
-    <tr><td>소유자 동의</td><td colspan="3">${esc(g.consent)}</td></tr>
     <tr><td>기존 상권 중복</td><td colspan="3">${zoneLine}</td></tr>
     <tr><td>직접 그린 도면 실측</td><td colspan="3">${drawTxt}</td></tr>
     <tr><td>카카오 교차검증</td><td colspan="3">${xcTxt}</td></tr>
   </table></div>
+
   ${sim ? `<h2>2-1. 직접 그린 도면 실측 · 재판정</h2>
   <div class="tblwrap"><table class="kv">
     <tr><th>도면 총 면적</th><td>${fmt(Math.round(sim.area))}㎡ (꼭짓점 ${T1.poly.pts.length}개 · 신발끈 공식)</td><th>유효 면적</th><td>${fmt(Math.round(sim.eff))}㎡ (도로·주차장 제외 ${sim.excl}%)</td></tr>
-    <tr><th>도면 내 상가(카카오)</th><td>${sim.nSmall}개 / 전체 ${sim.nAll}개 (제한업종 ${sim.nEx}건 ${sim.bizOn ? '제외' : '제외 안 함'})</td><th>공단 실측 환산</th><td>${sim.gongdan ? `${sim.gongdan.small}개 (상가 전체 ${sim.gongdan.all})` : '—'} — 공단 자료는 좌표가 없어 면적 비례 환산</td></tr>
+    <tr><th>도면 내 상가(카카오)</th><td>${sim.nSmall}개 / 전체 ${sim.nAll}개 (밀집도 인정 ${sim.nDensity}개 · 조례상 제외 ${(DENSITY_POLICIES[sim.policy] || DENSITY_POLICIES.UNKNOWN).label}${sim.policy === 'UNKNOWN' ? ` → ${sim.nDensityLo}~${sim.nDensityHi}개` : ` · 가맹 제한 의심 ${sim.nEx}건`}${sim.nNonSmall ? ` · 소상공인 아님 ${sim.nNonSmall}건` : ''})</td><th>공단 실측 환산</th><td>${sim.gongdan ? `${sim.gongdan.small}개 (상가 전체 ${sim.gongdan.all})` : '—'} — 공단 자료는 좌표가 없어 면적 비례 환산</td></tr>
     <tr><th>조례 필요 점포 수</th><td>${sim.required ?? '—'}개${sim.over ? ` (2,000㎡ 기준 ${sim.overInfo.thBase ?? '—'}개에서 상향)` : ''}</td><th>2,000㎡ 환산 밀도</th><td>${sim.per != null ? sim.per.toFixed(1) : '—'}개${sim.ratio != null ? ` (${Math.round(sim.ratio * 100)}%)` : ''}</td></tr>
     <tr><th>도면 기준 재판정</th><td colspan="3"><b>${esc(sim.label)}</b>${sim.over ? ' · 도면 유효 면적이 2,000㎡를 넘어 2,000㎡ 이상 기준으로 상향해 비교했습니다.' : ''}</td></tr>
   </table></div>` : ''}
   <h2>3. 제외·주의 업종 및 주변 상가 요약</h2>
   <div class="tblwrap"><table class="kv">
-    <tr><th>제한업종</th><td>${bs.ok ? `반경 내 ${bs.n}건 중 ${bs.nEx}건(${Math.round(bs.nEx / bs.n * 100)}%) 제외 — ${exLine}` : '상가 상세목록 없음 — 카카오 조회 또는 현장 확인 필요'}</td></tr>
-    <tr><th>주점</th><td>${bs.ok ? `${bs.nChk}건 — 유흥주점 여부 확인 필요(유흥주점이면 제외, 최저 유효 ${fmt(bs.effMin)}개)` : '미집계'}</td></tr>
-    <tr><th>약국</th><td>약국·의약품 소매는 2026.10 허용 업종이라 제외하지 않음</td></tr>
+    <tr><th>가맹 제한업종(별표 1)</th><td>${bs.ok ? `확인된 표본 ${bs.n}건 중 가맹 제한 의심 ${bs.nEx}건 — ${exLine}` : '상가 상세목록 없음 — 카카오 조회 또는 현장 확인 필요'}<br><span class="faint">표본 비율을 전체 점포 수에 곱하지 않습니다(외삽 금지).</span></td></tr>
+    <tr><th>조건부(주점 등)</th><td>${bs.ok ? `${bs.nChk}건 — 생맥주 전문점·기타 주점업은 소득기준 이하 예외 가능(별표 1의2), 유흥·단란주점은 가맹 불가` : '미집계'}</td></tr>
+    <tr><th>밀집도 반영</th><td>${esc((DENSITY_POLICIES[assess.policy] || DENSITY_POLICIES.UNKNOWN).label)} — ${esc(assess.policyDesc || '')}${assess.policy === 'NONE' ? ' (업종 이유로 차감하지 않음)' : assess.policy === 'UNKNOWN' ? ` (차감하지 않고 ${assess.rangeLo != null ? assess.rangeLo + '~' + assess.rangeHi + '개 범위로 표시' : '범위로 표시'})` : ' (표본 내 확인분만 반영)'}</td></tr>
+    <tr><th>약국</th><td>약국·의약품 소매는 2026.10 가맹 허용이 유지되어 제외하지 않음</td></tr>
     <tr><th>대로 단절</th><td>원형 반경은 대로 건너편·블록 밖 상가까지 포함될 수 있음 — 도면으로 확인</td></tr>
     <tr><th>호실 중복</th><td>상가(상권)정보는 호실 단위 등록 — 한 건물에 여러 점포가 중복 집계될 수 있음</td></tr>
   </table></div>
@@ -3424,7 +3702,7 @@ function buildReportHTML(e) {
   <div class="stamp"><span>온누리 레이더 · GS25 온누리 상권 공용 도구</span><span>${esc(p.name)} · ${today}</span></div>`;
 }
 function reportText(e) {
-  const g = reportFacts(e), p = g.p, r = g.r, bs = g.bs;
+  const g = reportFacts(e), p = g.p, r = g.r, bs = g.bs, an = bs.assess || {};
   const pct = e.ratio != null ? Math.round(e.ratio * 100) : null;
   const stc = storeTypeCheck(g.st);
   const L = [
@@ -3439,9 +3717,14 @@ function reportText(e) {
     g.sim ? `구역 용도지역 혼합: ${zoneMixText(zoneMixFacts(e, g.sim), e)}` : '',
     `판정: ${VMETA[e.v].label} — ${e.label}${pct != null ? ` (충족률 ${pct}%)` : ''}`,
     `조례: ${r ? r.ordinance + ' / 기준일 ' + (r.updated || '-') : NAT_RULE.ordinance + ' (조례 미확인)'}`,
-    `요건: ${e.thNon != null ? `${fmt(e.base)}㎡당 상업 ${e.thCom}개·비상업 ${e.thNon}개` : e.th ? `${fmt(e.base)}㎡당 ${e.th}개` : '별표 위임'}`,
-    `공단 실측: 소상공인 ${e.counts ? e.nSmall : '미수집'}개 / 필요 ${e.required ?? '-'}개`,
-    `제한업종 제외 보수적: ${bs.ok ? `유효 ${bs.eff}개 (제외 ${bs.nEx}/${bs.n}건, 주점 확인 ${bs.nChk}건)` : '집계 불가'}`,
+    `[A. 지정 적격성(밀집도)] 판정 상태: ${an.statusLabel} — ${an.basis || '-'}`,
+    `  요건: ${e.thNon != null ? `${fmt(e.base)}㎡당 상업 ${e.thCom}개·비상업 ${e.thNon}개` : e.th ? `${fmt(e.base)}㎡당 ${e.th}개` : '별표 위임'} · 확인 점포 ${e.counts ? e.nSmall : '미수집'}개 / 필요 ${e.required ?? '-'}개`,
+    `  조례상 밀집도 제외: ${(DENSITY_POLICIES[an.policy] || DENSITY_POLICIES.UNKNOWN).label} — 표본 ${bs.n || 0}건 중 확인 제외 ${an.excludedSample != null ? an.excludedSample : '-'}건${an.policy === 'UNKNOWN' ? ` · 차감 없이 ${an.rangeLo != null ? an.rangeLo + '~' + an.rangeHi + '개' : '범위'} 표시` : ''}${an.truncated ? ' · 표본 상한 도달(전체 확정 불가)' : ''}`,
+    `  면적 기준: ${an.areaBasisLabel}`,
+    an.conflict ? `  [경고] 조례·시행규칙 충돌: ${an.conflictNote || '유권해석 필요'}` : '',
+    `[B. 가맹 적격성(참고)] 가맹 가능 ${bs.ok ? bs.nOk : '-'}건 · 제한 의심 ${bs.ok ? bs.nEx : '-'}건 · 조건부 ${bs.ok ? bs.nChk : '-'}건 · 소상공인 아님 ${bs.ok ? bs.nNonSmall : '-'}건 (별표 1 33종, 2026-06-17 시행)`,
+    `  소상공인 도소매 기준 50억 vs 가맹 상한 30억 — 30억 초과·직영(85)은 지정돼도 가맹 불가`,
+    `[C. 신청 준비도] 상인 동의 ${g.consentRatio || '-'} 이상 · 분모 ${g.denomLabel}`,
     `온누리 가맹: ${p.onnuri_member ? '가맹 완료 — ' + ((p.member || {}).zone || '상권명 미기재') : '미가맹'}`,
     `점포 운영 형태: ${STORE_TYPE[g.st] || '미확인'} — ${stc.txt}`,
     `특수입지: ${g.ss.stage === 1 ? '1단계 지정 제한 가능 — ' + g.ss.type : g.ss.stage === 2 ? '2단계 구내·로드샵 확인 필요 — ' + g.ss.type : '해당 없음'}`,
@@ -3481,7 +3764,7 @@ function t1ShopRows(e) {
   const R = e.r * UI.EDGE, out = [];
   nearbyList(e.p.id).forEach((x, i) => {
     const d = x[0]; if (d > R) return;
-    out.push({ s: { id: e.p.id + '-' + i, name: x[1], category: x[2], is_small_biz: true, onnuri_member: !!matchShopMember(x[1], e.p.sido), pay: [] }, d, inc: d <= e.r ? '포함' : '경계', chk: '미확인', biz: classifyShopBiz(x[2], x[1]) });
+    out.push({ s: { id: e.p.id + '-' + i, name: x[1], category: x[2], is_small_biz: true, onnuri_member: !!matchShopMember(x[1], e.p.sido), pay: [] }, d, inc: d <= e.r ? '포함' : '경계', chk: '미확인', biz: classifyShopBiz(x[2], x[1]), den: classifyDensityExclusion({ name: x[1], cat: x[2] }, e.rule) });
   });
   return out;
 }
@@ -3525,7 +3808,7 @@ function renderShops(e) {
       <div class="right">
         <button class="btn sm" id="shops-csv" title="반경 내 상가 리스트를 CSV로 저장합니다(교차 검증·소상공인·온누리 열 포함)">${ic('down', 14)}CSV 다운로드</button>
         <select class="select" id="shops-filter" style="width:150px;height:28px" aria-label="상가 필터">
-          <option value="">전체</option><option value="inc" ${f === 'inc' ? 'selected' : ''}>검토 구역 포함</option><option value="edge" ${f === 'edge' ? 'selected' : ''}>경계(+15%)</option>${nEx ? `<option value="ex" ${f === 'ex' ? 'selected' : ''}>제외 가능 업종 ${nEx}</option>` : ''}${nChk ? `<option value="chk" ${f === 'chk' ? 'selected' : ''}>주점(유흥 확인) ${nChk}</option>` : ''}${xc ? `<option value="sus" ${f === 'sus' ? 'selected' : ''}>카카오 미확인 ${xc.suspect.length}</option>` : ''}</select>
+          <option value="">전체</option><option value="inc" ${f === 'inc' ? 'selected' : ''}>검토 구역 포함</option><option value="edge" ${f === 'edge' ? 'selected' : ''}>경계(+15%)</option>${nEx ? `<option value="ex" ${f === 'ex' ? 'selected' : ''}>가맹 제한 의심 업종 ${nEx}</option>` : ''}${nChk ? `<option value="chk" ${f === 'chk' ? 'selected' : ''}>주점(유흥 확인) ${nChk}</option>` : ''}${xc ? `<option value="sus" ${f === 'sus' ? 'selected' : ''}>카카오 미확인 ${xc.suspect.length}</option>` : ''}</select>
         </div></div>
     <div class="tbl-wrap">${rows.length ? `<table class="tbl num"><thead><tr>
         <th>No.</th>${thSort('상가명', 'name', st)}${thSort('업종', 'cat', st)}${thSort('거리', 'd', st)}${thSort('포함 여부', 'inc', st)}<th>심사 집계</th>${xc ? '<th>교차 검증</th>' : ''}</tr></thead><tbody>
@@ -3533,7 +3816,7 @@ function renderShops(e) {
         <td class="faint">${T1.page * size + i + 1}</td><td><b>${esc(r.s.name)}</b></td><td>${esc(r.s.category)}</td>
         <td>${Math.round(r.d)}m</td>
         <td>${r.inc === '포함' ? '<span class="chip a">포함</span>' : '<span class="chip o">경계</span>'}</td>
-        <td>${r.biz.k === 'ex' ? `<span class="chip xx" title="전통시장법 시행령 별표1 제한업종 — 공무원 심사에서 빠질 수 있습니다">제외 가능 · ${esc(r.biz.label)}</span>` : r.biz.k === 'check' ? '<span class="chip cf" title="일반 호프와 유흥주점이 섬여 있어 확인이 필요합니다">유흥 확인(주점)</span>' : '<span class="faint">포함</span>'}</td>
+        <td>${r.den && r.den.exclude ? `<span class="chip xx" title="이 조례가 밀집도에서 제외하는 업종입니다">밀집도 제외 · ${esc(r.den.label)}</span>` : r.biz.k === 'ex' ? `<span class="chip cf" title="전통시장법 시행령 별표1 가맹 제한업종 — 골목형상점가 지정(밀집도)과는 별개로 가맹만 제한됩니다">가맹 제한(참고) · ${esc(r.biz.label)}</span>` : r.biz.k === 'check' ? '<span class="chip cf" title="생맥주 전문점·기타 주점업은 소득기준 이하 예외 가능(별표 1의2), 유흥·단란주점은 가맹 불가">주점 확인</span>' : '<span class="faint">포함</span>'}</td>
         ${xc ? `<td>${x ? (x.st === 'both' ? `<span class="chip s" title="${x.dup ? '같은 상호가 호실 단위로 중복 등록된 행입니다' : '카카오 실시간 조회 확인: ' + esc(x.name)}">영업 확인</span>` : `<span class="chip d" title="카카오 실시간 조회에서 확인되지 않음 — 폐업 단정 아님">카카오 미확인</span>`) : '<span class="faint">—</span>'}</td>` : ''}</tr>`; }).join('')}
       </tbody></table>` : (f === 'sus' && xc && total ? stateBox('info', '카카오 미확인 점포가 없습니다', '반경 내 공단 상가가 모두 카카오 실시간 조회에서 확인됐습니다.') : emptyHtml)}</div>
     ${loading ? '' : `<div class="pager">${pagerHTML(T1.page, pages, rows.length, size)}</div>`}
@@ -3556,7 +3839,7 @@ function renderAction(e) {
     <div class="card-h"><span class="step">D</span><h3>후속 조치</h3><span class="sub">관할 담당 연락 · 현장 확인</span>
       <div class="right">${fieldChip(fieldState(id))}</div></div>
     <div class="card-b">
-      <div class="report-bar">${ic('doc', 15)}<span style="flex:1;min-width:140px"><b>한 장 리포트</b> — 분석 결과·공무원 기준 비교·현장 실행 로드맵을 A4 한 장으로 출력·PDF 저장합니다. 점주와 담당 공무원에게 그대로 보여줄 수 있는 공용 양식입니다.</span>
+      <div class="report-bar">${ic('doc', 15)}<span style="flex:1;min-width:140px"><b>한 장 리포트</b> — 분석 결과·법적 판정 3축 비교·현장 실행 로드맵을 A4 한 장으로 출력·PDF 저장합니다. 점주와 담당 공무원에게 그대로 보여줄 수 있는 공용 양식입니다.</span>
         <button class="btn sm primary" id="a-report">${ic('print', 14)}한 장 리포트</button></div>
       ${r ? `<div class="phone">
         <span style="color:var(--accent)">${ic('phone', 20)}</span>
@@ -3619,7 +3902,9 @@ function polyCentroid(pts, o) {
 /* 다각형 최대 반지름(중심~꼭짓점) — 첫 점 근처 클릭 판정·지도 표시 범위에 쓴다 */
 function polySpan(pts, o) { const c = polyCentroid(pts, o); let r = 0; pts.forEach(q => { const [x, y] = polyXY(o, q); r = Math.max(r, Math.hypot(x - c[0], y - c[1])); }); return r; }
 
-/* 실측 시뮬레이션 — 도면 면적 → 공용면적 제외 유효 면적 → 조례 기준 필요 상가·충족률 */
+/* 실측 시뮬레이션 — 도면 면적 → (조례상 허용될 때만) 공용면적 제외 → 조례 기준 필요 상가·충족률
+   밀집도 제외는 조례 density_exclusion_policy 로만 결정한다(NONE 미제외 / ALL_RESTRICTED·PARTIAL 제외 /
+   UNKNOWN 자동 차감 금지·양쪽 범위 병기). 표본 비율 외삽은 하지 않는다. */
 function polySim(e) {
   const P = T1.poly, pts = P.pts;
   if (!e || !pts || pts.length < 3) return null;
@@ -3634,46 +3919,58 @@ function polySim(e) {
     inside.push({ p: pl, self, small });
   });
   let nAll = inside.length;
-  /* 제한업종(공무원 심사 기준) 분리 — 기본값은 적용(보수적). 체크를 풀면 예전처럼 전체 상가로 계산한다. */
+  const rule = e.rule || NAT_RULE;
+  const policy = densityPolicyOf(e.rule);
+  const exOf = x => classifyDensityExclusion({ name: x.p.name, cat: x.p.cat }, e.rule);
   const smallAll = inside.filter(x => x.small);
-  const bizEx = smallAll.filter(x => classifyShopBiz(x.p.cat, x.p.name).k === 'ex');
-  const bizChk = smallAll.filter(x => classifyShopBiz(x.p.cat, x.p.name).k === 'check');
-  const bizOn = P.bizExcl !== false;
+  const bizEx = smallAll.filter(x => exOf(x).status === 'RESTRICTED');
+  const bizChk = smallAll.filter(x => exOf(x).status === 'CONDITIONAL_REVIEW');
+  const bizNon = smallAll.filter(x => exOf(x).nonSmallBiz);
+  const bizOn = policy === 'ALL_RESTRICTED' || policy === 'PARTIAL';   // 조례가 밀집도 제외를 인정한 경우만
   const ownConfirmed = !!P.includeSelf && o.kind === 'store' && inPoly(pos, ring);
   if (ownConfirmed && !inside.some(x => x.self)) {
     inside.push({ p: {name:o.name,cat:'편의점',d:0,addr:o.address,lat:pos.lat,lng:pos.lng}, self:true, small:true, manual:true });
     nAll++;
   }
-  const nSmall = smallAll.length + (ownConfirmed ? 1 : 0); // 지정 후보 점포 수: 온누리 가맹 제한업종만으로 제외 금지
+  const nSmall = smallAll.length + (ownConfirmed ? 1 : 0);
+  /* 조례상 제외 점포: 도면 안에서 확인된 제한업종만(카카오 표본). UNKNOWN 이면 차감하지 않고 범위만 */
+  const nDensity = bizOn ? Math.max(0, nSmall - bizEx.length) : nSmall;
+  const nDensityLo = Math.max(0, nSmall - bizEx.length), nDensityHi = nSmall;
   const excl = Math.max(0, Math.min(90, +P.excl || 0));
   const eff = area * (1 - excl / 100);
   const base = e.base || 2000, thCom = e.thCom, thNon = e.thNon, thFlat = e.th;
-  /* 도면은 카카오 Places 표본이므로 충족/미달 모두 검증 결과가 아닌 예비 추정만 표시한다.
-     면적 2,000㎡ 이하 최소 점포수는 비례 환산하지 않으며, 초과 면적은 검증된 조례 증가식만 처리한다. */
   const over = eff > base;
   const overInfo = over ? over2000For(e, eff) : null;
   const th = thFlat;
-  const required = requiredShopsFor(e.rule || NAT_RULE, eff, thCom || th);
-  const requiredNon = thNon != null ? requiredShopsFor(e.rule || NAT_RULE, eff, thNon) : null;
+  const required = requiredShopsFor(rule, eff, thCom || th);
+  const requiredNon = thNon != null ? requiredShopsFor(rule, eff, thNon) : null;
   const per = eff > 0 ? nSmall * base / eff : null; // 참고 지표, 판정에 사용하지 않음
-  const ratio = required ? nSmall / required : null;
+  const ratio = required ? nDensity / required : null;
+  const ratioLo = required ? nDensityLo / required : null;
   const gongdan = countsFor(o, eff); // 원형 반경 데이터(도면 상가 수가 아님)
+  const conflict = !!(e.rule && e.rule.rule_conflict_flag);
   let v = 'na', label = '확인 자료 부족';
   if (!live) {
     label = '구역 내 상가 미조회 — 카카오 조회 필요';
+  } else if (conflict) {
+    label = '조례·시행규칙 충돌 — 유권해석 전 확정 불가';
+  } else if (policy === 'UNKNOWN' && e.rule) {
+    label = `법적 기준 미확인 — 조례상 제외 범위 병기(${nDensityLo}~${nDensityHi}개)`;
   } else if (required == null) {
     label = over ? '초과면적 조례 증가식 검증 필요' : '조례 최소 점포 수 확인 필요';
-  } else if (nSmall >= required) {
+  } else if (nDensity >= required) {
     v = 'cond'; label = '예비 충족 — 상가·소상공인 실측 필요';
   } else if (requiredNon != null && nSmall >= requiredNon) {
     v = 'cond'; label = '비상업 예비 기준 충족 — 용도지역 확인 필요';
   } else {
     v = 'cond'; label = '발견 상가 수 부족 — 누락 상가 현장 조사 필요';
   }
-  return { area, eff, excl, nAll, nSmall, inside, required, requiredNon, per, ratio, base, th, thFlat, thCom, thNon,
-    nSmallAll: smallAll.length, nEx: bizEx.length, nChk: bizChk.length, bizOn, ownConfirmed, over, overInfo, gongdan,
+  return { area, eff, excl, nAll, nSmall, inside, required, requiredNon, per, ratio, ratioLo, base, th, thFlat, thCom, thNon,
+    nSmallAll: smallAll.length, nEx: bizEx.length, nChk: bizChk.length, nNonSmall: bizNon.length, bizOn,
+    policy, nDensity, nDensityLo, nDensityHi, conflict, ownConfirmed, over, overInfo, gongdan,
     v, label, live: !!live, liveState: APP.live.key === o.id ? APP.live.state : 'idle', span: polySpan(pts, pos), ring };
 }
+
 /* 초과 면적은 검증된 조례 증가식 이외에 임의 환산하지 않는다 */
 function over2000For(e, eff) {
   const r = e.rule || NAT_RULE, base = e.base || 2000;
@@ -3939,13 +4236,15 @@ function renderPolyCard() {
       <table class="tbl num"><thead><tr><th>상호</th><th>업종</th><th>거리</th><th>주소</th><th>집계</th></tr></thead><tbody>
       ${sim.inside.length ? sim.inside.slice().sort((a, b) => a.p.d - b.p.d).map(x => `<tr><td><b>${esc(x.p.name)}</b></td><td>${esc(x.p.cat)}</td>
         <td>${Math.round(x.p.d)}m</td><td class="faint">${esc(x.p.addr || '')}</td>
-        <td>${x.self ? (sim.ownConfirmed ? '<span class="chip a">대상 GS25 수동 확인 · 포함(+1)</span>' : '<span class="chip o">대상 점포 · 미포함</span>') : !x.small ? '<span class="chip d">제외 업종</span>' : (b => b.k === 'ex' ? `<span class="chip xx">제외 가능 · ${esc(b.label)}</span>` : b.k === 'check' ? '<span class="chip cf">유흥 확인(주점)</span>' : '<span class="chip s">포함</span>')(classifyShopBiz(x.p.cat, x.p.name))}</td></tr>`).join('')
+        <td>${x.self ? (sim.ownConfirmed ? '<span class="chip a">대상 GS25 수동 확인 · 포함(+1)</span>' : '<span class="chip o">대상 점포 · 미포함</span>') : !x.small ? '<span class="chip d">소상공인 확인 필요</span>' : (d => d.exclude ? `<span class="chip xx">밀집도 제외 · ${esc(d.label)}</span>` : d.status === 'RESTRICTED' ? `<span class="chip cf">가맹 제한(참고) · ${esc(d.label)}</span>` : d.status === 'CONDITIONAL_REVIEW' ? '<span class="chip cf">유흥 확인(주점)</span>' : '<span class="chip s">포함</span>')(classifyDensityExclusion({ name: x.p.name, cat: x.p.cat }, e.rule))}</td></tr>`).join('')
       : '<tr><td colspan="5" class="faint">아직 구역 내에서 확인된 상가가 없습니다.</td></tr>'}
       </tbody></table></div>` : '';
   box.innerHTML = `
     <div class="card-h"><h3>📐 직접 그린 구역 실측 시뮬레이션</h3><span class="sub">${P.done ? '도면 작성 완료 · 예비 분석' : '그리는 중'}</span>
       <div class="right">${badge(sim.v)}</div></div>
-    ${sim.over ? `<div class="ssite s1" style="margin:10px 20px 0"><span class="si">${ic('warn', 16)}</span><div class="sb"><b>기준 면적 초과 — ${sim.overInfo.alt ? '검증된 초과면적 규칙 반영' : '적용 계산식 확인 필요'}</b><span class="sx">도면 유효 면적 ${fmt(Math.round(sim.eff))}㎡는 기본 단위 ${fmt(sim.base)}㎡를 넘습니다. 별도 규정이 검증되지 않으면 자동 적합 판정을 하지 않습니다.</span></div></div>` : ''}
+    ${sim.excl > 0 && exclOk !== true ? `<div class="ssite s1" style="margin:10px 20px 0"><span class="si">${ic('warn', 16)}</span><div class="sb"><b>공용면적 제외는 조례 근거가 확인되지 않았습니다</b><span class="sx">이 지자체는 도로·주차장 면적 제외 조항이 확인되지 않았는데 제외율 ${sim.excl}%를 적용 중입니다. 이 값은 <b>가정값</b>이며 심의·담당 부서 확인 전에는 인정되지 않습니다.</span></div></div>` : ''}
+    ${sim.conflict ? `<div class="ssite s1" style="margin:10px 20px 0"><span class="si">${ic('warn', 16)}</span><div class="sb"><b>조례·시행규칙 문언 충돌</b><span class="sx">${esc(e.rule && e.rule.rule_conflict_note || '유권해석 전에는 확정 판정이 아닙니다.')} — 조례 기준으로 계산했습니다.</span></div></div>` : ''}
+    ${sim.over ? `<div class="ssite s2" style="margin:10px 20px 0"><span class="si">${ic('warn', 16)}</span><div class="sb"><b>기준 면적 초과 — ${sim.overInfo.alt ? '검증된 초과면적 규칙 반영' : '적용 계산식 확인 필요'}</b><span class="sx">도면 유효 면적 ${fmt(Math.round(sim.eff))}㎡는 기본 단위 ${fmt(sim.base)}㎡를 넘습니다. ${sim.overInfo.alt ? '조례에 검증된 비율식으로 필요 점포 수를 계산했습니다.' : '별도 규정이 검증되지 않아 자동 적합 판정을 하지 않습니다.'}</span></div></div>` : ''}
     <div class="trio num">
       <div><div class="k">도면 총 면적</div><div class="v">${fmt(Math.round(sim.area))}<small>㎡</small></div></div>
       <div><div class="k">유효 면적 <span class="faint">(제외 ${sim.excl}%)</span></div><div class="v">${fmt(Math.round(sim.eff))}<small>㎡</small></div></div>
@@ -3961,9 +4260,9 @@ function renderPolyCard() {
           <input type="checkbox" id="poly-self" ${P.includeSelf ? 'checked' : ''}>소상공인 요건 확인 후 대상 GS25 +1
         </label>
         <span class="faint" style="font-size:11.5px">구역 안에 점포가 있을 때에만 포함 · 수동 체크는 법적 소상공인 확인을 대체하지 않습니다</span></span></div>
-      <div class="vrow"><span class="k">가맹 제한업종 (참고)</span><span class="v" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-        <label class="laychk" style="border:1px solid var(--border);border-radius:10px;padding:3px 9px;background:#fff"><input type="checkbox" id="poly-biz" ${sim.bizOn ? 'checked' : ''}>온누리 가맹 제한업종 참고 표시(밀집도 미반영)</label>
-        <span class="faint" style="font-size:11.5px">병·의원·일반학원·부동산·유원지·법무·회계·금융·동물병원 제외(약국은 포함) · 주점은 유흥 확인 ${sim.nChk}건${sim.bizOn ? ` → ${sim.nSmallAll}개 중 ${sim.nEx}건 가맹 제한 의심` : ' · 가맹 업종 참고 표시 꺼짐'}</span></span></div>
+      <div class="vrow"><span class="k">조례상 밀집도 제외</span><span class="v" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <span class="chip ${sim.policy === 'NONE' ? 's' : sim.policy === 'UNKNOWN' ? 'o' : 'a'}">${esc((DENSITY_POLICIES[sim.policy] || DENSITY_POLICIES.UNKNOWN).label)}</span>
+        <span class="faint" style="font-size:11.5px">${sim.policy === 'NONE' ? '이 조례에는 업종 제외 조항이 없습니다 → 도면 내 제한업종도 밀집도에 포함' : sim.policy === 'UNKNOWN' ? `조문 미확인 → 차감하지 않고 ${sim.nDensityLo}~${sim.nDensityHi}개 범위로 표시` : `도면 내 확인분 ${sim.nEx}건을 제외 → ${sim.nDensity}개`} · 가맹 제한 의심 ${sim.nEx}건 · 조건부(주점 등) ${sim.nChk}건 · 소상공인 아님 ${sim.nNonSmall}건</span></span></div>
       <div class="vrow"><span class="k">조례 공용면적</span><span class="v">${exclChip} <span class="faint" style="font-size:11.5px">${exclOk === true ? '이 지자체는 심의를 거쳐 도로·주차장 부지를 뺄 수 있습니다' : exclOk === false ? '이 조례는 도로 면적을 포함해 산정합니다' : '조례에 면적 제외 규정이 확인되지 않습니다'}</span></span></div>
       <div class="vrow"><span class="k">필요 상가 수</span><span class="v"><b class="num">${sim.required ?? '—'}</b>개 <span class="faint">유효 면적 기준${sim.requiredNon != null ? ` (비상업 ${sim.requiredNon}개)` : ''}${sim.over ? ' · 기준면적 초과(별도 규정 확인)' : ''}</span>
         ${sim.thNon != null ? `<span class="faint" style="font-size:11.5px">· ${fmt(sim.base)}㎡당 상업 ${sim.thCom}·비상업 ${sim.thNon}개</span>` : ''}</span></div>
@@ -3976,7 +4275,7 @@ function renderPolyCard() {
       <div class="vrow" style="border-bottom:0"><span class="k">충족률 · 판정</span><span class="v" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
         <span class="prog" style="flex:1;min-width:120px"><i style="width:${w}%;background:${m.color}"></i><span class="tick" style="left:${100 / 1.5}%" title="기준 100%"></span></span>
         <b class="num" style="min-width:44px;text-align:right;color:${m.color}">${pct != null ? pct + '%' : '—'}</b>
-        <b style="color:${m.color}">${esc(sim.label)}</b>${sim.over ? `<span class="chip cf">2,000㎡ 이상 기준</span>` : ''}${liveChip}</span></div>
+        <b style="color:${m.color}">${esc(sim.label)}</b>${sim.over ? `<span class="chip cf">${fmt(sim.base)}㎡ 초과 기준</span>` : ''}${sim.policy === 'UNKNOWN' ? '<span class="chip o">법적 기준 미확인</span>' : ''}${sim.conflict ? '<span class="chip d">조례·시행규칙 충돌</span>' : ''}${liveChip}</span></div>
     </div>
     <div class="poly-acts">
       <button class="btn sm" id="poly-list">${P.list ? '구역 내 상가 접기' : `구역 내 상가 보기 (${sim.nAll})`}</button>
@@ -3997,7 +4296,8 @@ function polyCopy() {
     `도면: 꼭짓점 ${T1.poly.pts.length}개 · 총 면적 ${fmt(Math.round(sim.area))}㎡ (신발끈 공식 실측)`,
     `도로·주차장 제외율: ${sim.excl}% → 유효 면적 ${fmt(Math.round(sim.eff))}㎡`,
     `구역 내 확인 상가: ${sim.nSmall}개 (카카오 실시간 · 전체 ${sim.nAll}개)`,
-    `온누리 가맹업종 참고: ${sim.bizOn ? `가맹 제한 의심 ${sim.nEx}건(밀집도 집계에서 자동 제외하지 않음), 주점 확인 ${sim.nChk}건` : '미표시'}; 골목형상점가 지정 요건과 가맹 업종 적격은 별개`,
+    `조례상 밀집도 제외: ${(DENSITY_POLICIES[sim.policy] || DENSITY_POLICIES.UNKNOWN).label} — 인정 점포 ${sim.nDensity}개${sim.policy === 'UNKNOWN' ? ` (범위 ${sim.nDensityLo}~${sim.nDensityHi}개)` : ''}`,
+    `온누리 가맹업종(참고): 가맹 제한 의심 ${sim.nEx}건 · 조건부(주점 등) ${sim.nChk}건 · 소상공인 아님 ${sim.nNonSmall}건 — 지정 요건과 가맹 적격은 별개`,
     `기준: ${r ? r.ordinance : NAT_RULE.ordinance} — ${sim.thNon != null ? `${fmt(sim.base)}㎡당 상업 ${sim.thCom}개·비상업 ${sim.thNon}개` : `${fmt(sim.base)}㎡당 ${sim.th}개`}`,
     `필요 상가: ${sim.required ?? '-'}개${sim.requiredNon != null ? ` (비상업 ${sim.requiredNon}개)` : ''} · 2,000㎡ 환산 ${sim.per != null ? sim.per.toFixed(1) : '-'}개 · 충족률 ${sim.ratio != null ? Math.round(sim.ratio * 100) + '%' : '-'}`,
     `시뮬레이션 판정: ${VMETA[sim.v].label} (${sim.label})`,
@@ -4013,7 +4313,7 @@ function polyCSV() {
   const rows = sim.inside.slice().sort((a, b) => a.p.d - b.p.d);
   downloadCSV(`직접그린구역_${e.p.name}_${Math.round(sim.area)}m2.csv`, toCSV([
     ['상호', x => x.p.name], ['업종', x => x.p.cat], ['거리(m)', x => Math.round(x.p.d)], ['주소', x => x.p.addr || ''],
-    ['집계', x => { const b = classifyShopBiz(x.p.cat, x.p.name); return x.self ? (sim.ownConfirmed ? '대상 GS25 수동확인 포함' : '대상 GS25 미포함') : !x.small ? '소상공인 확인 필요 업종' : b.k === 'ex' ? `온누리 가맹업종 확인(${b.label})` : b.k === 'check' ? '유흥 확인(주점)' : '포함'; }], ['위도', x => x.p.lat], ['경도', x => x.p.lng],
+    ['집계', x => { const d = classifyDensityExclusion({ name: x.p.name, cat: x.p.cat }, e.rule); return x.self ? (sim.ownConfirmed ? '대상 GS25 수동확인 포함' : '대상 GS25 미포함') : !x.small ? '소상공인 확인 필요 업종' : d.exclude ? `밀집도 제외(${d.label})` : d.status === 'RESTRICTED' ? `가맹 제한 참고(${d.label})` : d.status === 'CONDITIONAL_REVIEW' ? '유흥 확인(주점)' : '포함'; }], ['위도', x => x.p.lat], ['경도', x => x.p.lng],
   ], rows));
 }
 
@@ -4763,11 +5063,13 @@ function renderGuide() {
       <li><b>2단계(확인 필요)</b>: 대학·병원·오피스·공장·관공서 인접 — 캠퍼스·건물 내부(구내)면 지정이 어렵고, 정문 앞·도로변 로드샵이면 문제없습니다</li>
       <li>탭 3은 1단계를 기본으로 빼고 보여줍니다(필터에서 포함 가능). 탭 1은 해당되면 판정 배너 아래에 주황색 경고를 띄웁니다.</li>
     </ul>
-    <h4>${ic('clip', 15)}공무원 심사 기준 — 제한업종 분리</h4>
+    <h4>${ic('clip', 15)}법적 판정 3축 — 지정(밀집도)과 가맹은 별개</h4>
     <ul>
-      <li>전통시장법 시행령 별표1 제한업종(병·의원, 일반교육, 부동산, 유원지·오락, 법무·회계·세무, 금융·보험, 동물병원)은 유효 상가 수에서 빠집니다</li>
-      <li><b>약국·의약품 소매는 2026.10 허용</b>되어 제외하지 않습니다. <b>주점</b>은 일반 호프와 유흥주점이 섬여 있어 '유흥 확인'으로 따로 셀니다</li>
-      <li>탭 1 판정 카드의 <b>[공무원 기준 보수적 추정]</b> 박스가 제한업종을 뺀 유효 상가 수와 충족률을 보여줍니다</li>
+      <li><b>A. 지정 적격성(밀집도)</b> — 조례 제3조 기준. 조례가 업종 제외를 규정한 경우(<code>ALL_RESTRICTED</code>·<code>PARTIAL</code>)에만 제한업종을 빼고, <b>조문이 미확인(<code>UNKNOWN</code>)이면 차감하지 않고 범위로 표시</b>합니다. 전국 일괄 차감은 하지 않습니다.</li>
+      <li><b>B. 온누리 가맹 적격성(참고)</b> — 시행령 별표 1 등록 제한업종 33종(2026-06-17 시행). 병·의원(보건업), 수의업, 법무, 회계·세무, 일반교습학원, 부동산, 금융·보험, 주류 도매·소매, 성인·사행 등이 해당합니다. <b>약국·의약품 소매는 2026-10 가맹 허용 유지</b>, <b>생맥주 전문점·기타 주점업은 소득기준 이하 예외(별표 1의2)</b> 가능, 유흥·단란주점은 불가입니다.</li>
+      <li><b>C. 상인조직·신청 준비도</b> — 상인 동의율과 <b>동의 분모</b>(가맹 제한업종을 포함하는지), 조례·시행규칙 <b>충돌 경고</b>, 담당 부서를 함께 보여줍니다.</li>
+      <li>소상공인 기준(도소매 50억 원)과 온누리 가맹 상한(30억 원)은 다릅니다 — 30억~50억 도소매점은 소상공인이지만 가맹은 불가합니다.</li>
+      <li>표본(공단 상세목록 150건·카카오 업종당 45건) 비율을 전체 점포 수에 곱하지 않습니다. 표본 상한에 닿으면 <b>'표본 제한으로 전체 확정 불가'</b>로 표시합니다.</li>
     </ul>
     <div class="callout">이 앱의 조례 DB는 <b>${fmt(k.rules)}곳</b>의 자치법규 원문을 반영했습니다. 최종 기준과 절차는 반드시 <b>관할 지자체 담당 부서</b>에 확인하세요 — 탭 1 판정 카드의 [후속 조치]에서 담당 부서·전화로 바로 연결됩니다.</div>`;
 }
