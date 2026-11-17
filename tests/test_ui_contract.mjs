@@ -256,4 +256,64 @@ test('반경 25m 원 과소집계 완화 — 경계 밖 점포와 도면 안내'
   assert.ok(hint.includes('반경 경계 5m 바로 밖'));
 });
 
+/* ── 2026-11-18 UI 계약 — 기본 진입 홈 · 모바일 검색창/표 · KPI 프리페치 · 시도별 기준일 ── */
+const m760 = html.slice(html.indexOf('@media (max-width:760px)'), html.indexOf('@media (max-width:520px)'));
+const m520 = html.slice(html.indexOf('@media (max-width:520px)'), html.indexOf('/* --- 특수입지'));
+test('기본 진입 화면은 홈이고 해시 딥링크는 그대로 동작한다', () => {
+  assert.ok(/<section class="view active" id="view-home"/.test(html));
+  assert.ok(!/<section class="view active" id="view-check"/.test(html));
+  assert.ok(html.includes('data-view="home" aria-selected="true"'));
+  assert.ok(!html.includes('data-view="check" aria-selected="true"'));
+  assert.ok(html.includes("switchView(location.hash.slice(1) || 'home')"));
+  assert.ok(section('function switchView(v) {', 'const meta = VIEW_META').includes("v = 'home'"));
+  const views = section('const VIEWS =', 'const VIEW_META');
+  for (const v of ['check', 'db', 'discover', 'history', 'rules', 'fav', 'data', 'feedback']) assert.ok(views.includes(`'${v}'`), v);
+  assert.ok(html.includes('switchView(\'check\')'), '점포 선택 시 탭1 전환은 유지');
+});
+test('모바일 홈 검색창은 눌리지 않게 높이·테두리를 고정한다', () => {
+  assert.ok(/\.hero-search \.searchbox\{[^}]*height:54px/.test(m760));
+  assert.ok(/\.hero-search \.searchbox\{[^}]*min-height:54px/.test(m760));
+  assert.ok(/\.hero-search \.searchbox\{[^}]*border:2px solid/.test(m760));
+  assert.ok(/\.hero-search \.searchbox \.input\{[^}]*font-size:15px/.test(m760));
+  assert.ok(/\.hero-search \.btn\{[^}]*height:54px/.test(m760));
+});
+test('가맹점·발굴 탭 KPI 는 인라인 4열이 아니라 클래스로 반응한다', () => {
+  assert.ok(!html.includes('style="grid-template-columns:repeat(4,1fr)"'), '인라인 style 제거');
+  assert.ok(html.includes('class="kpis kpis-4" id="t2-kpis"'));
+  assert.ok(html.includes('class="kpis kpis-4" id="t3-kpis"'));
+  assert.ok(/\.kpis-4\{grid-template-columns:repeat\(4,minmax\(0,1fr\)\)\}/.test(html));
+  assert.ok(m760.includes('.kpis,.kpis-4{grid-template-columns:repeat(2,minmax(0,1fr))'), '760px 2열');
+  assert.ok(m520.includes('.kpis,.kpis-4{grid-template-columns:minmax(0,1fr)}'), '520px 1열');
+});
+test('모바일 표는 주소·조례명을 줄바꿈해 오른쪽 넘침을 막는다', () => {
+  assert.ok(/\.tbl \.cell2 small\{[^}]*white-space:normal/.test(m760));
+  assert.ok(/\.tbl \.cell2 small\{[^}]*max-width:none/.test(m760));
+  assert.ok(/\.tbl td\.nw,\.tbl th\.nw\{white-space:normal\}/.test(m760));
+  assert.ok(m760.includes('.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}'));
+});
+test('부트에서 시도별 상가목록을 미리 받고 KPI 는 그 전에 계산 중으로 표시한다', () => {
+  const pre = section('async function prefetchNearbyAll()', 'function computeKPI() {');
+  assert.ok(pre.includes('loadNearby(sido)'), '시도별 프리페치');
+  assert.ok(pre.includes('NEARBY.concurrency') && /concurrency: 5/.test(html));
+  assert.ok(pre.includes('NEARBY.finished = true'), '완료 표시');
+  assert.ok(section('async function start()', '(async function boot()').includes('prefetchNearbyAll();'), '부트에서 호출');
+  const kpi = section('function computeKPI() {', 'function updateNavKPI(');
+  assert.ok(kpi.includes('nearbyPending()') && kpi.includes('pending: true'));
+  assert.ok(kpi.includes('assessmentOf(') && kpi.includes('evKPI('), '판정 계약 유지');
+  assert.ok(section('function updateNavKPI()', 'function updateHeader()').includes("'계산 중'"));
+  assert.ok(section('function renderHome()', 'function renderRecent()').includes('계산 중'));
+});
+test('시도별 상가 기준일(asof_by_sido)을 헤더 pill 과 KPI 카드에 반영한다', () => {
+  const kpi = section('function computeKPI() {', 'function updateNavKPI(');
+  assert.ok(kpi.includes('asof_by_sido') && kpi.includes('개 시도'));
+  assert.ok(section('function updateHeader()', 'function bootErrorHeader()').includes('asofNote'));
+  assert.ok(section('function updateNavKPI()', 'function updateHeader()').includes('asofOldN'));
+  assert.ok(section('function renderHome()', 'function renderRecent()').includes('asofOldN'));
+  const asofBy = zMeta.sources.find(s => s.name === '상가(상권)정보').asof_by_sido;
+  const old = Object.values(asofBy).filter(v => v !== '2026-09-30');
+  assert.equal(Object.keys(asofBy).length, 17);
+  assert.equal(old.length, 9);
+  assert.ok(old.every(v => v === '2025-06-30'));
+});
+
 console.log(`FINAL ${passed} contract/async tests passed`);

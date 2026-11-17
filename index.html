@@ -202,6 +202,7 @@ select.select{padding-right:34px;appearance:none;background-image:url("data:imag
 
 /* ============================ KPI ============================ */
 .kpis{display:grid;gap:14px;grid-template-columns:repeat(4,minmax(0,1fr))}
+.kpis-4{grid-template-columns:repeat(4,minmax(0,1fr))}   /* 4칸 KPI(가맹점·발굴 탭) — 인라인 style 대신 클래스로: 1240px 이하 2열, 520px 이하 1열 */
 .kpi{display:flex;align-items:center;gap:14px;padding:18px 20px;background:#fff;border-radius:var(--radius-card);box-shadow:var(--shadow-card);min-width:0}
 .kpi .ic{width:46px;height:46px;border-radius:15px;display:grid;place-items:center;background:var(--primary-light);color:var(--primary);flex:none}
 .kpi .ic.s{background:var(--success-bg);color:var(--success)}
@@ -594,7 +595,7 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
   .tb-title h1{font-size:22px}
 }
 @media (max-width:1240px){
-  .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .kpis,.kpis-4{grid-template-columns:repeat(2,minmax(0,1fr))}
   .statusline{display:none}
   .tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
 }
@@ -619,7 +620,7 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
   .tb-title h1{font-size:19px}
   .tb-title p{display:none}
   .profile .pn{display:none}
-  .kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .kpis,.kpis-4{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
   .kpi{padding:14px;gap:10px}
   .kpi .ic{width:38px;height:38px;border-radius:12px}
   .kpi b{font-size:20px}
@@ -645,8 +646,11 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
   .tiles{grid-template-columns:repeat(2,minmax(0,1fr))}
   .hero{padding:20px}
   .hero-txt h2{font-size:19px}
-  .hero-search{flex-direction:column}
-  .hero-search .btn{width:100%}
+  /* 홈 검색창 — 세로 배치에서 .searchbox 의 flex:1 때문에 높이가 눌리지 않게 고정한다 */
+  .hero-search{flex-direction:column;gap:10px}
+  .hero-search .searchbox{flex:none;width:100%;height:54px;min-height:54px;padding:0 14px;border:2px solid rgba(255,255,255,.95);border-radius:15px}
+  .hero-search .searchbox .input{font-size:15px;font-weight:600;letter-spacing:-.01em}
+  .hero-search .btn{width:100%;height:54px;font-size:15px}
   .toolbar{padding:14px}
   .searchbox .input{font-size:14px}
   .mapzone{grid-template-rows:auto minmax(0,var(--s1)) 10px minmax(0,var(--s2));height:740px}
@@ -670,11 +674,18 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
   .legend{display:none}
   .drawer{width:100%}
   .vrow{grid-template-columns:minmax(0,1fr);gap:3px}
-  .table-scroll,.tbl-wrap{overflow-x:auto}
+  .table-scroll,.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  /* 표 — 390px에서 주소·조례명이 오른쪽으로 삐져나가지 않게 줄바꿈을 허용하고 여백을 줄인다 */
+  .tbl{font-size:12px}
+  .tbl th,.tbl td{padding:10px 8px}
+  .tbl .cell2 small{white-space:normal;overflow:visible;max-width:none;text-overflow:clip;word-break:keep-all;overflow-wrap:anywhere}
+  .tbl .cell2 b{overflow-wrap:anywhere}
+  .tbl td.nw,.tbl th.nw{white-space:normal}
+  .tbl td .btn.xs{padding:0 8px}
 }
 @media (max-width:520px){
   .tiles{grid-template-columns:minmax(0,1fr)}
-  .kpis{grid-template-columns:minmax(0,1fr)}
+  .kpis,.kpis-4{grid-template-columns:minmax(0,1fr)}
   .store-head .acts .btn{padding:0 10px}
   .pblock .val b{font-size:22px}
 }
@@ -836,9 +847,9 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
       <div><b>온누리 레이더</b><small>골목형상점가 분석 시스템</small></div>
     </div>
 
-    <button class="nav-item" data-view="home" aria-selected="false"><span data-i="home"></span>홈</button>
+    <button class="nav-item" data-view="home" aria-selected="true"><span data-i="home"></span>홈</button>
     <div class="side-label">점포·상권 분석</div>
-    <button class="nav-item" data-view="check" aria-selected="true"><span data-i="pin"></span>점포 적격 판별</button>
+    <button class="nav-item" data-view="check" aria-selected="false"><span data-i="pin"></span>점포 적격 판별</button>
     <button class="nav-item" data-view="discover" aria-selected="false"><span data-i="search"></span>전국 잠재 점포 발굴</button>
     <button class="nav-item" data-view="db" aria-selected="false"><span data-i="layers"></span>가맹점 &amp; 상권 DB</button>
     <div class="side-label">내 분석 기록</div>
@@ -858,8 +869,8 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
     <header class="topbar">
       <button class="icon-btn" id="side-toggle" aria-label="메뉴 접기/펴기" title="메뉴 접기/펴기"><span data-i="menu"></span></button>
       <div class="tb-title">
-        <h1 id="pg-title">점포 적격 판별</h1>
-        <p id="pg-desc">특정 점포의 골목형상점가 지정 가능성을 빠르게 분석합니다.</p>
+        <h1 id="pg-title">홈</h1>
+        <p id="pg-desc">오늘의 온누리 적격 판별 현황을 한눈에 확인합니다.</p>
       </div>
       <div class="tb-right">
         <span class="statusline" id="h-sync"><i class="dot warn"></i>DB 연결 중…</span>
@@ -890,7 +901,7 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
       <div class="boot" id="boot"><div class="state"><div class="spin"></div><b>실데이터 로딩 중…</b><span>GS25 전국 점포 18,198 · 골목형상점가 264 · 온누리 가맹점 22.5만 · 상가(상권)정보</span></div></div>
 
       <!-- ============================ HOME ============================ -->
-      <section class="view" id="view-home" role="tabpanel">
+      <section class="view active" id="view-home" role="tabpanel">
         <div class="home">
           <div class="hero">
             <div class="hero-txt">
@@ -925,12 +936,12 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
       </section>
 
       <!-- ============================ TAB 1 ============================ -->
-      <section class="view active" id="view-check" role="tabpanel">
+      <section class="view" id="view-check" role="tabpanel">
         <div class="t1-wrap">
           <div class="kpis" id="t1-kpis">
             <div class="kpi"><span class="ic" data-i="store"></span><div><b id="k-total">—</b><span>분석 대상 점포</span></div></div>
             <div class="kpi"><span class="ic s" data-i="target"></span><div><b id="k-cand">—</b><span>지정 가능 후보</span></div></div>
-            <div class="kpi"><span class="ic w" data-i="clip"></span><div><b id="k-review">—</b><span>현장 확인 필요</span></div></div>
+            <div class="kpi"><span class="ic w" data-i="clip"></span><div><b id="k-review">—</b><span id="k-review-l">현장 확인 필요(조건부)</span><span class="faint" id="k-review-sub">조건부 판정만 · 탭 3 '현장 확인 대상'은 적합+조건부 합계</span></div></div>
             <div class="kpi"><span class="ic z" data-i="refresh"></span><div><b class="sm" id="k-db">—</b><span id="k-db-sub">DB 최신화 상태</span></div></div>
           </div>
 
@@ -1051,7 +1062,7 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
             <div class="field"><label for="f-fresh">데이터 갱신일</label><select class="select" id="f-fresh"><option value="">전체</option><option value="fresh">최신(90일 이내)</option><option value="stale">갱신 대기</option></select></div>
             <div class="acts"><button class="btn ghost" id="f-reset">초기화</button><button class="btn" id="f-csv"><span data-i="down"></span>CSV 다운로드</button></div>
           </div>
-          <div class="kpis" style="grid-template-columns:repeat(4,1fr)" id="t2-kpis"></div>
+          <div class="kpis kpis-4" id="t2-kpis"></div>
           <div class="t2-body">
             <div class="card">
               <div class="card-h">
@@ -1097,7 +1108,7 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
             <div class="field"><label for="d-area">검토 면적</label><select class="select" id="d-area"></select></div>
             <div class="acts"><button class="btn ghost" id="d-reset">초기화</button><button class="btn" id="d-csv"><span data-i="down"></span>CSV 다운로드</button></div>
           </div>
-          <div class="kpis" style="grid-template-columns:repeat(4,1fr)" id="t3-kpis"></div>
+          <div class="kpis kpis-4" id="t3-kpis"></div>
           <div class="t3-body">
             <div class="card">
               <div class="card-h"><h3>우선순위 후보 리스트</h3><span class="sub" id="t3-count"></span>
@@ -5413,7 +5424,7 @@ function t3Render() {
   $('#t3-kpis').innerHTML = [
     ['', 'store', unmember, '미가맹 GS25 수'],
     ['', 'target', regional.filter(r => ok(r) && r.pr.total >= 70).length, '우선 검토 대상 (70점↑)'],
-    ['w', 'clip', regional.filter(r => ok(r) && r.field !== '완료').length, '현장 확인 필요'],
+    ['w', 'clip', regional.filter(r => ok(r) && r.field !== '완료').length, '현장 확인 대상(적합+조건부)'],
     ['s', 'check', regional.filter(r => r.verdict.cls === 'pass').length, '자료 기준 적합 후보'],
   ].map(([c, i, v, l]) => `<div class="kpi"><span class="ic ${c}">${ic(i, 20)}</span><div><b>${fmt(v)}<small>개</small></b><span>${l}</span></div></div>`).join('');
 
@@ -5481,7 +5492,7 @@ const VIEW_META = {
   feedback: ['오류 제보·문의', '조회 오류, 데이터 수정, 사용 문의와 개선 의견을 전달합니다.'],
   data: ['데이터 다운로드', '분석에 쓰는 실데이터셋을 내려받습니다.'],
 };
-const APPX = { view: 'check', k: null };
+const APPX = { view: 'home', k: null };
 const HIST_MAX = 30;
 
 /* ---------- 히스토리 · 즐겨찾기 ---------- */
@@ -5533,7 +5544,13 @@ function refreshBadges() {
 /* ---------- KPI / 헤더 ---------- */
 let KPI_CACHE = { sig: '', k: null };
 let nearbyVersion = 0;                 /* 상가 상세목록 로드·실패 때 증가 — KPI 캐시 서명에 들어간다 */
-function kpiSignature() { return [DB.loadedAt ? +DB.loadedAt : 0, CONFIG.DEFAULT_AREA, nearbyVersion, DB.stores.length, DB.memberLoaded ? 1 : 0].join('|'); }
+/* 시도별 상가 상세목록(data/nearby/*.json) 선행 로딩 상태.
+   이 목록이 없으면 densityAssess()가 '표본 없음'으로 보고 모든 점포를 조건부로 세기 때문에
+   첫 화면 KPI가 '0 / 2,283'으로 보였다. 부트 직후 17개 시도를 동시 5개로 미리 받는다. */
+const NEARBY = { started: false, finished: false, total: 0, done: 0, failed: 0, concurrency: 5, timer: null };
+function nearbyPending() { return !!DB.stores.length && !NEARBY.finished; }
+function nearbyStatusText() { return NEARBY.total ? `${NEARBY.done}/${NEARBY.total}개 시도` : ''; }
+function kpiSignature() { return [DB.loadedAt ? +DB.loadedAt : 0, CONFIG.DEFAULT_AREA, nearbyVersion, NEARBY.done, NEARBY.finished ? 1 : 0, DB.stores.length, DB.memberLoaded ? 1 : 0].join('|'); }
 function invalidateKPI() { KPI_CACHE = { sig: '', k: null }; APPX.k = null; }
 /* 상가 상세목록이 도착(또는 실패)하면 표본 기반 판정 근거가 달라진다 — KPI 캐시를 버리고 화면 숫자를 다시 맞춘다.
    탭 3의 후보 목록도 같은 판정(assessmentOf)을 쓰므로 같이 다시 그려야 홈·탭 3 숫자가 어긋나지 않는다. */
@@ -5542,20 +5559,74 @@ function nearbyKPIChanged() {
   invalidateKPI();
   if (!DB.stores || !DB.stores.length) return;
   T3.dirty = true;
-  setTimeout(() => {
+  scheduleKpiRefresh();
+}
+/* 상가 목록이 한 파일씩 도착할 때마다 1.8만 점포 KPI를 다시 계산하지 않도록 묶어서 갱신한다 */
+function scheduleKpiRefresh() {
+  clearTimeout(NEARBY.timer);
+  NEARBY.timer = setTimeout(() => {
     updateNavKPI();
     if (APPX.view === 'home') renderHome();
+    else if (APPX.view === 'discover' && !nearbyPending()) t3Render();
+  }, 400);
+}
+/* 모든 시도 상가 상세목록 백그라운드 프리페치 — 동시 5개, 끝나면 KPI·홈을 다시 그린다 */
+async function prefetchNearbyAll() {
+  if (NEARBY.started || !DB.stores.length) return NEARBY.finished;
+  const sidos = uniq(DB.stores.filter(s => s.cov).map(s => s.sido));
+  NEARBY.started = true; NEARBY.total = sidos.length; NEARBY.done = 0; NEARBY.failed = 0;
+  invalidateKPI(); updateNavKPI();
+  if (APPX.view === 'home') renderHome();
+  let next = 0;
+  const worker = async () => {
+    while (next < sidos.length) {
+      const sido = sidos[next++];
+      const before = nearbyState(sido);
+      try { await loadNearby(sido); } catch (e) { /* 실패해도 진행 — 점포별로는 '자료 없음'으로 남는다 */ }
+      if (before !== 'ready' && nearbyState(sido) !== 'ready') NEARBY.failed++;
+      NEARBY.done++;
+    }
+  };
+  try {
+    await Promise.all(Array.from({ length: Math.min(NEARBY.concurrency, sidos.length) }, worker));
+  } finally {
+    NEARBY.finished = true;
+    clearTimeout(NEARBY.timer);
+    invalidateKPI(); updateNavKPI();
+    if (APPX.view === 'home') renderHome();
     else if (APPX.view === 'discover') t3Render();
-  }, 0);
+  }
+  return true;
 }
 /* 상단 KPI — 탭 3(t3Render)과 같은 3종 판정(assessmentOf → headlineVerdict)으로 집계한다.
    예전에는 구식 단순 산식(countsFor × 비례환산 ≥ 조례 기준)이라 홈 '지정 가능 후보 1,115'와
    탭 3 '자료 기준 적합 후보 27'이 서로 다른 말을 했다. 이제 cand = 판정 '적합',
    rev = 판정 '조건부'(상가 미수집·표본 보류 포함)로 같은 판정 함수에서 센다.
-   18,198개를 매번 다시 계산하지 않도록 evKPI()(지도·사유 문장 제외)로 평가하고 결과를 캐시한다. */
+   18,198개를 매번 다시 계산하지 않도록 evKPI()(지도·사유 문장 제외)로 평가하고 결과를 캐시한다.
+   상가 상세목록 프리페치가 끝나기 전에는 cand/rev 를 0으로 단정하지 않고 null + pending 으로 돌려
+   화면이 '계산 중'을 표시하게 한다(판정 자체는 목록이 도착해야 확정된다). */
 function computeKPI() {
   const sig = kpiSignature();
   if (KPI_CACHE.sig === sig && KPI_CACHE.k) return KPI_CACHE.k;
+  const m = DB.meta || {};
+  const src = (m.sources || []).find(x => x.name === '상가(상권)정보') || {};
+  const covered = m.stores_with_shop_data || 0;
+  /* 시도별 상가 기준일 — 대부분 2026-09-30, 추가 9개 시도는 2025-06-30(meta.sources.asof_by_sido) */
+  const asofBy = src.asof_by_sido || {};
+  const asofOldList = [...new Set(Object.values(asofBy).filter(v => v && v !== (src.asof || '')))].sort();
+  const asofOldN = Object.values(asofBy).filter(v => v && v !== (src.asof || '')).length;
+  const base = {
+    total: DB.stores.length, covered, noData: Math.max(0, DB.stores.length - covered),
+    asof: src.asof || '', asofBy, asofOldN, asofOld: asofOldList.join(' · '),
+    asofNote: src.asof ? (asofOldN ? `${src.asof} (${asofOldN}개 시도 ${asofOldList.join(' · ')})` : src.asof) : '',
+    zones: DB.zones.length, zonesEst: DB.zones.filter(z => z.geo === 'est-member').length,
+    rules: DB.rules.length, merchants: m.merchants || 0,
+  };
+  if (nearbyPending()) {
+    const k = { ...base, cand: null, rev: null, inZone: null, pending: true };
+    KPI_CACHE = { sig, k };
+    return k;
+  }
   let cand = 0, rev = 0, inZoneN = 0;
   const area = CONFIG.DEFAULT_AREA;
   DB.stores.forEach(s => {
@@ -5566,27 +5637,32 @@ function computeKPI() {
     if (v.cls === 'pass') cand++;
     else if (v.cls === 'cond') rev++;          /* 상가 미수집·조건부 = 현장 확인 필요 */
   });
-  const m = DB.meta || {};
-  const src = (m.sources || []).find(x => x.name === '상가(상권)정보') || {};
-  const covered = m.stores_with_shop_data || 0;
-  const k = {
-    total: DB.stores.length, cand, rev, inZone: inZoneN, covered, noData: Math.max(0, DB.stores.length - covered),
-    asof: src.asof || '', zones: DB.zones.length, zonesEst: DB.zones.filter(z => z.geo === 'est-member').length,
-    rules: DB.rules.length, merchants: m.merchants || 0,
-  };
+  const k = { ...base, cand, rev, inZone: inZoneN, pending: false };
   KPI_CACHE = { sig, k };
   return k;
 }
 function updateNavKPI() {
   const k = computeKPI(); APPX.k = k;
   const set = (id, v) => { const el = $('#' + id); if (el) el.textContent = fmt(v); };
-  set('k-total', k.total); set('k-cand', k.cand); set('k-review', k.rev);
+  /* 프리페치 전에는 0으로 단정하지 않고 '계산 중' — 값은 상가 목록이 도착하고 채워진다 */
+  const pend = !!k.pending;
+  const setNum = (id, v) => {
+    const el = $('#' + id); if (!el) return;
+    el.textContent = pend ? '계산 중' : fmt(v);
+    el.classList.toggle('sm', pend);
+    el.title = pend ? `상가 상세목록 불러오는 중 ${nearbyStatusText()} — 끝나면 자동으로 채워집니다` : '';
+  };
+  set('k-total', k.total); setNum('k-cand', k.cand); setNum('k-review', k.rev);
+  const rl = $('#k-review-l'), rs = $('#k-review-sub');
+  if (rl) rl.textContent = pend ? `현장 확인 필요(조건부) · 계산 중 ${nearbyStatusText()}` : '현장 확인 필요(조건부)';
+  if (rs) rs.textContent = pend ? '상가 상세목록을 불러와 집계 중입니다' : "조건부 판정만 · 탭 3 '현장 확인 대상'은 적합+조건부 합계";
   const db = $('#k-db'), sub = $('#k-db-sub');
-  if (db) db.textContent = k.asof ? fmtDate(k.asof) : '—';
-  if (sub) sub.textContent = `상가정보 기준 · 조례 ${fmt(k.rules)}곳`;
+  if (db) { db.textContent = k.asof ? fmtDate(k.asof) : '—'; db.title = `상가(상권)정보 기준일 ${k.asofNote || '—'}`; }
+  if (sub) sub.textContent = (k.asofOldN ? `${k.asofOldN}개 시도 ${k.asofOld.replace(/-/g, '.')} 기준 · ` : '상가정보 기준 · ') + `조례 ${fmt(k.rules)}곳`;
   refreshBadges();
 }
 function updateHeader() {
+  const k = APPX.k && APPX.k.asofNote !== undefined ? APPX.k : computeKPI();
   const m = DB.meta || {};
   const src = (m.sources || []).find(x => x.name === '상가(상권)정보') || {};
   const s = $('#h-sync');
@@ -5595,13 +5671,19 @@ function updateHeader() {
     s.title = `점포 ${fmt(DB.stores.length)} · 상가 반경계산 ${fmt(m.stores_with_shop_data || 0)}개 점포 · 구역 ${fmt(DB.zones.length)}(추정 ${fmt(DB.zones.filter(z => z.geo === 'est-member').length)}) · 조례 ${fmt(DB.rules.length)} · 가맹점 ${fmt(m.merchants || 0)} · 가맹 매칭 ${fmt(DB.memberMatched || 0)}개 점포`;
   }
   const d = $('#h-date');
-  if (d) { d.textContent = `기준 ${src.asof || '—'}`; d.title = `데이터 로드 ${fmtDT(DB.loadedAt)}`; }
+  if (d) {
+    /* 2026-09-30 단일 표기가 아니라 시도별 기준일(9개 시도 2025-06-30)을 함께 보여준다 */
+    d.textContent = `기준 ${k.asofNote || src.asof || '—'}`;
+    const by = k.asofBy || {};
+    const byLine = Object.keys(by).length ? Object.entries(by).map(([sido, v]) => `${sido} ${v}`).join(' · ') : '';
+    d.title = `${byLine ? '시도별 상가 기준일 — ' + byLine + '\n' : ''}데이터 로드 ${fmtDT(DB.loadedAt)}`;
+  }
 }
 function bootErrorHeader() { const s = $('#h-sync'); if (s) s.innerHTML = '<i class="dot err"></i>DB 동기화 오류'; }
 
 /* ---------- 라우팅 ---------- */
 function switchView(v) {
-  if (!VIEWS.includes(v)) v = 'check';
+  if (!VIEWS.includes(v)) v = 'home';   /* 빈 해시·알 수 없는 해시는 홈으로 (기본 첫 화면 = 홈) */
   APPX.view = v;
   $$('.nav-item[data-view]').forEach(t => t.setAttribute('aria-selected', t.dataset.view === v));
   $$('.view').forEach(s => s.classList.toggle('active', s.id === 'view-' + v));
@@ -5635,11 +5717,13 @@ function renderHome() {
   const k = APPX.k || computeKPI(); APPX.k = k;
   const hist = histList(), fav = favList();
   const hk = $('#home-kpis');
+  const pend = !!k.pending;
+  const kv = v => pend ? '계산 중' : fmt(v);
   if (hk) hk.innerHTML = [
     kpiCard('store', '', fmt(k.total), '', '분석 대상 점포', `상가 반경계산 ${fmt(k.covered)}곳`),
-    kpiCard('target', 's', fmt(k.cand), '', '지정 가능 후보', `2,000㎡·조례 기준 적합${k.inZone ? ` · 구역 내 ${fmt(k.inZone)}곳 제외` : ''}`),
-    kpiCard('clip', 'w', fmt(k.rev), '', '현장 확인 필요', '상가미수집·조건부 포함'),
-    kpiCard('book', 'z', fmt(k.rules), '곳', '조례 DB 등록', k.asof ? `상가정보 ${fmtDate(k.asof)}` : ''),
+    kpiCard('target', 's', kv(k.cand), '', '지정 가능 후보', pend ? `상가 상세목록 불러오는 중 ${nearbyStatusText()}` : `2,000㎡·조례 기준 적합${k.inZone ? ` · 구역 내 ${fmt(k.inZone)}곳 제외` : ''}`),
+    kpiCard('clip', 'w', kv(k.rev), '', '현장 확인 필요(조건부)', pend ? '상가 상세목록을 불러와 집계 중입니다' : '상가 미수집·표본 부족만 — 적합은 제외'),
+    kpiCard('book', 'z', fmt(k.rules), '곳', '조례 DB 등록', k.asof ? `상가정보 ${fmtDate(k.asof)}${k.asofOldN ? ` <span class="faint">(${k.asofOldN}개 시도 ${k.asofOld.replace(/-/g, '.')})</span>` : ''}` : ''),
   ].join('');
   const hr = $('#home-recent');
   if (hr) hr.innerHTML = hist.length ? hist.slice(0, 6).map(h => `
@@ -6045,7 +6129,9 @@ async function start() {
     // 첫 방문은 검색 대기 상태. 점포는 사용자가 명시적으로 선택한다.
     if (!T1.sel) t1RenderEmpty();
     refreshBadges(); renderRecent();
-    switchView(location.hash.slice(1) || 'check');
+    switchView(location.hash.slice(1) || 'home');
+    /* 첫 화면 KPI가 '0'으로 보이지 않도록 시도별 상가 상세목록을 백그라운드로 미리 받는다 */
+    prefetchNearbyAll();
   } catch (err) { bootError(err.message || String(err)); }
 }
 
