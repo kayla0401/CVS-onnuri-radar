@@ -2118,7 +2118,8 @@ const ZONE_GIS = {
     if (/^(제[123]종(전용|일반)주거지역|준주거지역|(전용|일반|준)공업지역|(보전|생산|자연)녹지지역|주거지역|전용주거지역|일반주거지역|공업지역|녹지지역|(보전|생산|계획)?관리지역|농림지역|자연환경보전지역)$/.test(name)) return 'noncommercial';
     return '';
   },
-  /* 카카오 좌표 → 지번 → 19자리 PNU(법정동코드 10 + 대지구분 1 + 본번 4 + 부번 4) */
+  /* 카카오 좌표 → 지번 → 19자리 PNU(법정동코드 10 + 대지구분 1 + 본번 4 + 부번 4).
+     coord2address 응답에는 법정동코드(b_code)가 오지 않으므로 coord2regioncode의 법정동(B) 코드로 채운다. */
   pnuOf(pos) {
     const key = pos.lat.toFixed(6) + ',' + pos.lng.toFixed(6);
     if (this.pnuCache.has(key)) return this.pnuCache.get(key);
@@ -2127,14 +2128,22 @@ const ZONE_GIS = {
       try {
         if (!KMap.ready || !kakao.maps.services) return fail();
         const gc = new kakao.maps.services.Geocoder();
-        gc.coord2Address(pos.lng, pos.lat, (res, status) => {
-          if (status !== kakao.maps.services.Status.OK || !res || !res.length) return fail();
-          const a = (res[0] && res[0].address) || {};
-          const b = String(a.b_code || '').trim();
+        const build = (a, bCode) => {
+          const b = String(bCode || '').trim();
           const main = String(a.main_address_no == null ? '' : a.main_address_no).padStart(4, '0');
           const sub = String(a.sub_address_no == null ? '' : a.sub_address_no).padStart(4, '0');
           if (!/^\d{10}$/.test(b) || main === '0000' || !/^\d{4}$/.test(main) || !/^\d{4}$/.test(sub)) return fail();
           resolve(b + (String(a.mountain_yn).toUpperCase() === 'Y' ? '2' : '1') + main + sub);
+        };
+        gc.coord2Address(pos.lng, pos.lat, (res, status) => {
+          if (status !== kakao.maps.services.Status.OK || !res || !res.length) return fail();
+          const a = (res[0] && res[0].address) || {};
+          if (/^\d{10}$/.test(String(a.b_code || '').trim())) return build(a, a.b_code);
+          gc.coord2RegionCode(pos.lng, pos.lat, (regs, rstatus) => {
+            if (rstatus !== kakao.maps.services.Status.OK || !regs || !regs.length) return fail();
+            const legal = regs.filter(r => r.region_type === 'B')[0] || regs[0];
+            build(a, legal && legal.code);
+          });
         });
       } catch (_) { fail(); }
     });
