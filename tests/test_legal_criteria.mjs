@@ -88,7 +88,7 @@ function runTests(html, rules, stores) {
     sample: { n: 12, nEx: 4, nChk: 1, nNonSmall: 0, truncated: false, src: 'nearby' } });
   eq('성남시 판정 상태 = 법적 기준 미확인', nA.status, 'LEGAL_UNVERIFIED');
   ok('성남시 적합 단정 차단(blocksVerdict)', nA.blocksVerdict === true);
-  eq('성남시 범위 병기(8~12개)', [nA.rangeLo, nA.rangeHi], [8, 12]);
+  eq('성남시 미확인 범위(0~12개)', [nA.rangeLo, nA.rangeHi], [0, 12]);
   ok('성남시 상태 라벨이 "법적 기준 미확인"', nA.statusLabel === api.DENSITY_STATUS.LEGAL_UNVERIFIED.label, nA.statusLabel);
 
   lines.push('[4] 인천 서해구 — ALL_RESTRICTED + 조례·시행규칙 충돌 + 비율식 15개');
@@ -118,11 +118,11 @@ function runTests(html, rules, stores) {
   const trunc = assess({ rule: allRestricted, area: 2000, population: 40, thCom: 15, thNon: null,
     sample: { n: 150, nEx: 12, nChk: 3, nNonSmall: 0, truncated: true, src: 'nearby' } });
   eq('표본 상한이면 추가 확인 필요(제외 규정 있는 조례)', trunc.status, 'NEEDS_CHECK');
-  ok('표본 상한이면 범위로 표시(28~40)', trunc.rangeLo === 28 && trunc.rangeHi === 40, `${trunc.rangeLo}~${trunc.rangeHi}`);
+  ok('표본 상한이면 인정 하한을 확정하지 않음(0~28)', trunc.rangeLo === 0 && trunc.rangeHi === 28, `${trunc.rangeLo}~${trunc.rangeHi}`);
   const noneTrunc = assess({ rule: suwon, area: 2000, population: 30, thCom: 25, thNon: 20,
     sample: { n: 150, nEx: 12, nChk: 3, nNonSmall: 1, truncated: true, src: 'nearby' } });
   eq('NONE 조례는 표본 상한과 무관하게 차감 없음', noneTrunc.excludedSample, 1);
-  eq('NONE 조례는 표본 상한이어도 판정을 보류하지 않음(비소상공인 1건만 빼고 충족 추정)', noneTrunc.status, 'EST_PASS');
+  eq('NONE 조례라도 전체 소상공인 여부 미확인이면 보류', noneTrunc.status, 'NEEDS_CHECK');
   eq('초과면적 미검증 수원시 3,000㎡ 는 보류(null)', req(suwon, 3000, 25), null);
   const noRule = assess({ rule: null, area: 2000, population: 10, thCom: 30, thNon: null, sample: { n: 10, nEx: 0, nChk: 0, nNonSmall: 0 } });
   eq('조례 미확인이면 법적 기준 미확인', noRule.status, 'LEGAL_UNVERIFIED');
@@ -134,23 +134,26 @@ function runTests(html, rules, stores) {
   lines.push('[6] 메인 배너 직관 판정(headlineVerdict) — 수학적 상한·하한');
   /* ① 명백한 미달: GS252테크노파크점(부천) 4개 / 25·20개 필요 · density UNKNOWN */
   const hvTech = headline({ population: 4, maxShops: 4, minShops: 4, reqCom: 25, reqNon: 20, policy: 'UNKNOWN' });
-  eq('테크노파크점 판정 = 추정 미달(빨강)', [hvTech.level, hvTech.cls, hvTech.emoji], ['FAIL', 'fail', '❌']);
-  ok('테크노파크점 부제: 업종 제외와 무관한 점포 수 부족', /업종 제외 여부와 무관/.test(hvTech.sub), hvTech.sub);
-  ok('테크노파크점 부제에 현재/필요 개수', /현재 확인 4개/.test(hvTech.sub) && /20~25개/.test(hvTech.sub), hvTech.sub);
+  eq('테크노파크점 판정 = 조문 확인 필요', [hvTech.level, hvTech.cls, hvTech.emoji], ['COND_LEGAL', 'cond', '⚠️']);
+  ok('테크노파크점 부제: 업종 제외와 무관한 점포 수 부족', /조문 미확인/.test(hvTech.sub), hvTech.sub);
+  ok('테크노파크점 부제에 현재/필요 개수', /집계 4개/.test(hvTech.sub) && /20~25개/.test(hvTech.sub), hvTech.sub);
   /* ② 경계: 수원 망포센트럴점 20개 · 상업 25 / 비상업 20 · density NONE */
   const hvSuwon = headline({ population: 20, maxShops: 20, minShops: 20, reqCom: 25, reqNon: 20, policy: 'NONE' });
   eq('망포센트럴점 판정 = 가능성 있음(노랑)', [hvSuwon.level, hvSuwon.cls], ['COND', 'cond']);
   ok('망포센트럴점 부제: 비상업 충족·상업 5개 부족', /비상업\(20개\) 충족/.test(hvSuwon.sub) && /상업\(25개\)엔 5개 부족/.test(hvSuwon.sub), hvSuwon.sub);
   /* ③ 명백한 충족: 35/25 UNKNOWN */
   const hvPass = headline({ population: 35, maxShops: 35, minShops: 35, reqCom: 25, reqNon: null, policy: 'UNKNOWN' });
-  eq('35개/25개 필요 = 지정 가능성 높음(초록)', [hvPass.level, hvPass.cls, hvPass.emoji], ['PASS', 'pass', '✅']);
-  ok('충족 배너도 조문 미확인을 괄호로 병기', /조문 미확인으로 A축 참고/.test(hvPass.sub), hvPass.sub);
+  eq('35개라도 조문 미확인이면 통과 금지', [hvPass.level, hvPass.cls, hvPass.emoji], ['COND_LEGAL', 'cond', '⚠️']);
+  ok('충족 배너도 조문 미확인을 괄호로 병기', /조문 미확인/.test(hvPass.sub), hvPass.sub);
   /* ④ UNKNOWN 경계: 22~28개 / 25개 */
   const hvRange = headline({ population: 28, maxShops: 28, minShops: 22, reqCom: 25, reqNon: null, policy: 'UNKNOWN' });
   eq('22~28개 경계 = 가능성 있음 · 조문 확인', [hvRange.level, hvRange.cls], ['COND_LEGAL', 'cond']);
   ok('경계 배너 제목에 조문 확인', /가능성 있음/.test(hvRange.title) && /조문 확인/.test(hvRange.title), hvRange.title);
-  ok('경계 부제에 22~28개 범위와 갈림 설명', /22~28개 범위/.test(hvRange.sub) && /갈림/.test(hvRange.sub), hvRange.sub);
+  ok('경계 부제에 22~28개 범위와 갈림 설명', /집계 28개/.test(hvRange.sub) && /인정 점포 수 확인/.test(hvRange.sub), hvRange.sub);
   /* ⑤ 데이터 없음 */
+  eq('숫자가 충분해도 조례 충돌이면 통과 금지', headline({population:35,minShops:35,maxShops:35,reqCom:25,policy:'NONE',conflict:true}).level, 'COND');
+  eq('보간·표본 자료는 통과 금지', headline({population:35,minShops:35,maxShops:35,reqCom:25,policy:'NONE',evidenceLimited:true}).level, 'COND');
+  eq('표본 자료가 부족해도 확정 미달 금지', headline({population:4,minShops:0,maxShops:4,reqCom:25,policy:'NONE',evidenceLimited:true}).level, 'COND');
   const hvNone = headline({ population: null, reqCom: 30, reqNon: null, policy: 'UNKNOWN' });
   eq('상가 데이터 0건 = 데이터 없음(회색)', [hvNone.level, hvNone.cls, hvNone.emoji], ['NO_DATA', 'na', '🔍']);
   ok('데이터 없음 부제에 현장/카카오 확인 안내', /현장\/카카오|현장 확인/.test(hvNone.sub), hvNone.sub);
