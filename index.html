@@ -3415,7 +3415,7 @@ function renderVerdict(e) {
   const ss = ssOf(e.p), bs = bizStatsOf(e);
   const legal = bs.assess || {};
   /* 조례상 밀집도 제외 업종이 미확인이거나 조례·시행규칙이 충돌하면 '적합' 배너를 그대로 쓰지 않는다 */
-  const vBlocked = !!legal.blocksVerdict && legal.status === 'LEGAL_UNVERIFIED' && (e.v === 'pass' || e.v === 'cond');
+  const vBlocked = !!legal.blocksVerdict && legal.status === 'LEGAL_UNVERIFIED' && e.v !== 'na';
   const pct = e.ratio != null ? Math.round(e.ratio * 100) : null;
   const w = e.ratio != null ? Math.min(e.ratio, 1.5) / 1.5 * 100 : 0;
   const expected = t1Expected(e);
