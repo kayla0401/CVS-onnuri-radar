@@ -3376,8 +3376,8 @@ function legalAxisHTML(e, bs) {
   <div class="conservative">
     <div class="ch"><b>B. 온누리상품권 가맹 적격성</b><span class="chip o">참고 · 밀집도와 별개</span><span class="chip s">별표 1 33종</span></div>
     <div class="grid">
-      <div class="cell"><div class="k">가맹 가능 업종</div><div class="v" style="color:var(--success)">${bs.ok ? gOk : '—'}<small>${bs.ok ? `건 / ${bs.n}` : ''}</small></div><div class="r">약국·의약품 소매 포함</div></div>
-      <div class="cell"><div class="k">가맹 제한 의심</div><div class="v" style="color:var(--warning)">${bs.ok ? gEx : '—'}<small>${bs.ok ? '건' : ''}</small></div><div class="r">${bs.ok ? esc((bs.exTop || []).slice(0, 3).map(([k, v]) => `${k} ${v}`).join(' · ') || '없음') : '집계 불가'}</div></div>
+      <div class="cell"><div class="k">가맹 가능 업종</div><div class="v" style="color:${bs.ok ? 'var(--success)' : 'var(--text-tertiary)'}">${bs.ok ? gOk : '—'}<small>${bs.ok ? `건 / ${bs.n}` : ''}</small></div><div class="r">약국·의약품 소매 포함</div></div>
+      <div class="cell"><div class="k">가맹 제한 의심</div><div class="v" style="color:${bs.ok ? 'var(--warning)' : 'var(--text-tertiary)'}">${bs.ok ? gEx : '—'}<small>${bs.ok ? '건' : ''}</small></div><div class="r">${bs.ok ? esc((bs.exTop || []).slice(0, 3).map(([k, v]) => `${k} ${v}`).join(' · ') || '없음') : '집계 불가'}</div></div>
       <div class="cell"><div class="k">조건부(주점 등)</div><div class="v">${bs.ok ? gChk : '—'}<small>${bs.ok ? '건' : ''}</small></div><div class="r">별표 1의2 소득기준 이하 예외 가능</div></div>
       <div class="cell"><div class="k">소상공인 아님</div><div class="v">${bs.ok ? gNon : '—'}<small>${bs.ok ? '건' : ''}</small></div><div class="r">보건소·학교·공공기관 등</div></div>
     </div>
