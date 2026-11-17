@@ -173,6 +173,8 @@ function runTests(html, rules, stores) {
   ok('옛 인천 서구 + 당하동 → 검단구 조례', rGeomdan.rule && rGeomdan.rule.sigungu === '검단구', JSON.stringify(rGeomdan.rule && rGeomdan.rule.sigungu));
   const rNoDong = mt('서구', '인천 서구 어딘가로1');
   ok('법정동을 못 읽으면 서해구로 기본 매칭 + 추정 표시', rNoDong.rule && rNoDong.rule.sigungu === '서해구' && rNoDong.legacy.guessed === true, JSON.stringify(rNoDong.rule && rNoDong.rule.sigungu));
+  const rBaekseok = mt('서구', '인천 서구 백석로1 (백석동 100)');
+  ok('백석동·시천동은 검단구(법률 제21734호 분구 기준)', rBaekseok.rule && rBaekseok.rule.sigungu === '검단구', JSON.stringify(rBaekseok.rule && rBaekseok.rule.sigungu));
   const rYeongjong = mt('중구', '인천 중구 공항로187 (운서동 2850)');
   ok('옛 인천 중구 + 운서동 → 영종구 조례', rYeongjong.rule && rYeongjong.rule.sigungu === '영종구', JSON.stringify(rYeongjong.rule && rYeongjong.rule.sigungu));
   const rJemulpo = mt('중구', '인천 중구 신포로23번길 (신포동)');
