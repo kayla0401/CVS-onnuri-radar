@@ -322,12 +322,13 @@ svg.fmap [data-sid],svg.fmap [data-zone],svg.fmap [data-gs]{cursor:pointer}
 
 /* --- 점포 분석 카드 --- */
 #t1-verdict,.analysis-card{position:relative}
-.store-head{display:flex;align-items:flex-start;gap:13px;padding:20px 20px 14px}
-.store-logo{width:48px;height:48px;border-radius:15px;background:var(--primary-light);color:var(--primary);display:grid;place-items:center;font-size:12px;font-weight:800;letter-spacing:-.04em;flex:none}
-.store-id{flex:1;min-width:0}
-.store-id h2{margin:0;font-size:19px;font-weight:800;letter-spacing:-.03em;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.store-id p{margin:3px 0 0;font-size:12.5px;color:var(--text-tertiary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.store-head .acts{display:flex;align-items:center;gap:6px;flex:none}
+/* 점포명·주소는 어떤 폭에서도 '…' 로 잘리지 않는다 — 액션 버튼은 별도 열/행으로 밀어낸다 */
+.store-head{display:grid;grid-template-columns:auto minmax(0,1fr) auto;grid-template-areas:"logo id acts";align-items:start;gap:13px;padding:20px 20px 14px}
+.store-logo{grid-area:logo;width:48px;height:48px;border-radius:15px;background:var(--primary-light);color:var(--primary);display:grid;place-items:center;font-size:12px;font-weight:800;letter-spacing:-.04em;flex:none}
+.store-id{grid-area:id;min-width:0}
+.store-id h2{margin:0;font-size:19px;font-weight:800;letter-spacing:-.03em;line-height:1.3;white-space:normal;overflow-wrap:anywhere;word-break:keep-all}
+.store-id p{margin:3px 0 0;font-size:12.5px;color:var(--text-tertiary);line-height:1.5;white-space:normal;overflow-wrap:anywhere}
+.store-head .acts{grid-area:acts;display:flex;align-items:center;gap:6px;flex:none;flex-wrap:wrap;justify-content:flex-end}
 .member-banner{display:flex;align-items:center;gap:12px;margin:0 20px 12px;padding:12px 14px;background:var(--primary-light);border-radius:14px}
 .member-banner .mi{width:32px;height:32px;border-radius:50%;background:#fff;color:var(--primary);display:grid;place-items:center;flex:none}
 .member-banner .h{font-size:13.5px;font-weight:800;color:var(--primary)}
@@ -354,6 +355,7 @@ svg.fmap [data-sid],svg.fmap [data-zone],svg.fmap [data-gs]{cursor:pointer}
 .vbanner.fail .vb-t b{color:#B23A43}
 .vbanner.na .vb-t b{color:var(--text-secondary)}
 .vbanner .vb-t span{display:block;font-size:12.5px;color:var(--text-secondary);margin-top:2px;line-height:1.45}
+.vbanner .vb-emoji{font-size:22px;line-height:1}
 .vbanner .vb-r{margin-left:auto;flex:none}
 
 .m3{display:grid;grid-template-columns:1.5fr 1fr 1fr;margin:16px 20px 0;border-bottom:1px solid var(--border)}
@@ -618,7 +620,8 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
   .kpi b{font-size:20px}
   .kpi b.sm{font-size:14.5px}
   .kpi span{font-size:11.5px}
-  .store-head{padding:16px 16px 12px}
+  .store-head{padding:16px 16px 12px;grid-template-columns:auto minmax(0,1fr);grid-template-areas:"logo id" "acts acts"}
+  .store-head .acts{justify-content:flex-start;margin-top:2px}
   .card-h{padding:14px 16px}
   .m3,.pblock,.s3,.kvline,.vrows,.trio,.reasons,.member-banner,.vbanner,.ssite,.conservative,.hintline{margin-left:16px;margin-right:16px}
   .conservative .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
@@ -667,8 +670,7 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
 @media (max-width:520px){
   .tiles{grid-template-columns:minmax(0,1fr)}
   .kpis{grid-template-columns:minmax(0,1fr)}
-  .store-head .acts .btn{font-size:0;padding:0 10px}
-  .store-head{flex-wrap:wrap}
+  .store-head .acts .btn{padding:0 10px}
   .pblock .val b{font-size:22px}
 }
 /* --- 특수입지 · 법적 판정 3축(A 지정·B 가맹·C 신청준비) · 한 장 리포트 --- */
@@ -1434,11 +1436,53 @@ function dist(a, b) { const dLat = (b.lat - a.lat) * RAD, dLng = (b.lng - a.lng)
 function inPoly(p, poly) { let c = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const [yi, xi] = poly[i], [yj, xj] = poly[j]; if ((yi > p.lat) !== (yj > p.lat) && p.lng < (xj - xi) * (p.lat - yi) / (yj - yi) + xi) c = !c; } return c; }
 function inZone(p, z) { return z.polygon ? inPoly(p, z.polygon) : dist(p, z) <= z.radius; }
 
-function findRule(sido, sigungu) {
+/* @legacy-admin:start  (행정구역·조례 매칭 — DOM 비의존, 단위 테스트가 그대로 실행) */
+function ruleBank(rules) { return rules || (typeof DB !== 'undefined' && DB.rules) || []; }
+function findRule(sido, sigungu, address, rules) { return ruleMatch(sido, sigungu, address, rules).rule; }
+/* 2026-07-01 인천 행정구역 개편 — 옛 구 이름이 남은 점포·주소를 새 구 조례로 잇는다.
+   서구 → 서해구·검단구, 중구 → 제물포구·영종구, 동구 → 제물포구, 남구 → 미추홀구.
+   stores.json 원본(전국 18,198건)은 그대로 두고 매칭에서만 보정한다. */
+const LEGACY_DISTRICTS = {
+  '인천|서구': { note: '2026-07-01 인천 행정구역 개편 — 서구 → 서해구·검단구', fallback: '서해구',
+    dong: { '당하동': '검단구', '마전동': '검단구', '불로동': '검단구', '원당동': '검단구', '대곡동': '검단구', '금곡동': '검단구',
+      '오류동': '검단구', '왕길동': '검단구', '검단동': '검단구', '시천동': '검단구',
+      '가정동': '서해구', '신현동': '서해구', '석남동': '서해구', '가좌동': '서해구', '원창동': '서해구', '경서동': '서해구',
+      '연희동': '서해구', '청라동': '서해구', '심곡동': '서해구', '공촌동': '서해구', '검암동': '서해구', '백석동': '서해구' } },
+  '인천|중구': { note: '2026-07-01 인천 행정구역 개편 — 중구 → 제물포구·영종구', fallback: '제물포구',
+    dong: { '운서동': '영종구', '중산동': '영종구', '운남동': '영종구', '운북동': '영종구', '을왕동': '영종구',
+      '남북동': '영종구', '덕교동': '영종구', '무의동': '영종구' } },
+  '인천|동구': { note: '2026-07-01 인천 행정구역 개편 — 중구·동구 → 제물포구', fallback: '제물포구' },
+  '인천|남구': { note: '2018-07-01 인천 남구 → 미추홀구 개칭', fallback: '미추홀구' },
+};
+function legacyRule(sido, sigungu, address, rules) {
   sido = normSido(sido); const sg = String(sigungu || '');
-  const c = DB.rules.filter(r => r.sido === sido && (sg === r.sigungu || sg.startsWith(r.sigungu + ' ') || sg.startsWith(r.sigungu)));
-  return c.sort((a, b) => b.sigungu.length - a.sigungu.length)[0] || null;
+  const key = Object.keys(LEGACY_DISTRICTS).find(k => {
+    const p = k.split('|'), g = p[1];
+    return p[0] === sido && (sg === g || sg.startsWith(g + ' ') || sg.startsWith(g));
+  });
+  if (!key) return null;
+  const L = LEGACY_DISTRICTS[key];
+  const m = /\(([^)]*)\)/.exec(String(address || ''));
+  const tail = m ? m[1].trim() : '';
+  let to = L.fallback, byDong = false;
+  if (L.dong && tail) {
+    const hit = Object.keys(L.dong).find(d => tail.startsWith(d));
+    if (hit) { to = L.dong[hit]; byDong = true; }
+  }
+  const rule = ruleBank(rules).find(x => x.sido === sido && x.sigungu === to) || null;
+  if (!rule) return null;
+  return { rule, from: key.split('|')[1], to, note: L.note, guessed: !byDong, dong: byDong ? tail.split(/[\s,]/)[0] : '' };
 }
+function ruleMatch(sido, sigungu, address, rules) {
+  sido = normSido(sido); const sg = String(sigungu || '');
+  const bank = ruleBank(rules);
+  const c = bank.filter(r => r.sido === sido && (sg === r.sigungu || sg.startsWith(r.sigungu + ' ') || sg.startsWith(r.sigungu)));
+  const best = c.sort((a, b) => b.sigungu.length - a.sigungu.length)[0];
+  if (best) return { rule: best, legacy: null };
+  const lg = legacyRule(sido, sg, address, bank);
+  return { rule: lg ? lg.rule : null, legacy: lg };
+}
+/* @legacy-admin:end */
 
 /* 검증된 조례 계산만 자동 판정: 기준 면적 이하에서는 최소 점포 수를 고정한다.
    초과 면적은 조례 DB에 검증된 증가식이 없는 한 보류한다. */
@@ -1480,7 +1524,8 @@ function countsFor(p, areaM2) {
 /** 핵심 판정 함수 — 좌표 기반 실측 점포수 × 조례 기준 */
 function evaluate(p, areaM2) {
   const r = Math.sqrt(areaM2 / Math.PI);
-  const local = findRule(p.sido, p.sigungu);
+  const rm = ruleMatch(p.sido, p.sigungu, p.address);
+  const local = rm.rule;
   const rule = local || NAT_RULE;
   const pinMoved = !!pinOf(p);
   const c = pinMoved ? null : countsFor(p, areaM2);
@@ -1504,7 +1549,7 @@ function evaluate(p, areaM2) {
       reasons.push('핀 위치가 변경되었지만 기존 상가 수는 최초 등록 좌표 중심의 집계치입니다. 보정된 위치에서 재집계할 수 없어 밀집도 판정을 보류합니다.');
       reasons.push('직접 구역을 그리고 현장 점포 수를 확인하거나 실제 좌표가 있는 상가 원본 자료로 재계산하세요.');
     } else {
-      reasons.push(`${p.sido}는 상가(상권)정보 CSV 수집 범위 밖입니다(현재 전국 17개 시도 중 ${DB.meta.sido_covered.length}개 시도 보유).`);
+      reasons.push(`${josa(p.sido, '은', '는')} 상가(상권)정보 CSV 수집 범위 밖입니다(현재 전국 17개 시도 중 ${DB.meta.sido_covered.length}개 시도 보유).`);
       reasons.push('이 점포는 주변 상가 수를 계산할 수 없어 판정을 보류합니다. 아래 "실시간 카카오 조회"로 반경 내 업소를 확인할 수 있습니다.');
     }
   } else {
@@ -1559,6 +1604,9 @@ function evaluate(p, areaM2) {
     if (c.est) reasons.push('선택한 면적은 실측 프리셋(2,000·5,000·10,000㎡) 사이 보간값입니다. 프리셋 선택 시 정확한 실측값으로 판정합니다.');
     if (!local) reasons.push('이 지자체의 골목형상점가 조례 기준은 아직 DB에 없습니다. 법정 기본값으로 판정했으니 담당 부서에 실제 기준을 확인하세요.');
   }
+  if (rm.legacy) {
+    reasons.push(`주소의 옛 행정구역 '${rm.legacy.from}'을(를) '${rm.legacy.to}' 조례로 매칭했습니다 — ${rm.legacy.note}. ${rm.legacy.guessed ? '법정동을 확인하지 못해 기본 관할로 계산했으니 담당 부서에 관할을 확인하세요.' : `법정동(${rm.legacy.dong}) 기준 ${rm.legacy.to} 관할입니다.`}`);
+  }
 
   let score = 0;
   if (c && th) {
@@ -1568,7 +1616,7 @@ function evaluate(p, areaM2) {
     score += 10;
   }
   return {
-    p, pos, rule: local, natRule: !local, area: areaM2, r, base, th, thCom, thNon, reqCom, reqNon, passCom, passNon, required, per, ratio,
+    p, pos, rule: local, legacy: rm.legacy, natRule: !local, area: areaM2, r, base, th, thCom, thNon, reqCom, reqNon, passCom, passNon, required, per, ratio,
     nAll, nSmall, nOther, counts: c, zc, inside, overlapping, nearest, v, label, reasons,
     score: Math.round(score),
   };
@@ -1789,6 +1837,16 @@ function niceStep(v) { const p = 10 ** Math.floor(Math.log10(v)), n = v / p; ret
    ##################################################################### */
 const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)];
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+/* 한국어 조사 — 받침 유무로 은/는·이/가·을/를을 고른다("인천는" → "인천은") */
+const hasJong = w => {
+  const s = String(w ?? '').trim();
+  const ch = s.charCodeAt(s.length - 1);
+  if (ch >= 0xAC00 && ch <= 0xD7A3) return (ch - 0xAC00) % 28 !== 0;
+  const t = s.slice(-1);
+  if (/[0-9]/.test(t)) return ['0', '1', '3', '6', '7', '8'].includes(t);   /* 영·일·삼·육·칠·팔 은 받침 있음 */
+  return true;                                                            /* 판정 불가(영문·기호)는 받침 있는 쪽으로 */
+};
+const josa = (w, withJong, without) => `${w}${hasJong(w) ? withJong : without}`;
 const fmt = n => Number(n).toLocaleString('ko-KR');
 const fmtD = m => m >= 1000 ? (m / 1000).toFixed(2) + 'km' : Math.round(m) + 'm';
 const pad = n => String(n).padStart(2, '0');
@@ -1923,8 +1981,8 @@ function pinShift(p) { const v = pinOf(p); return v ? Math.round(dist(basePos(p)
 
 function t1Init() {
   $('#area-seg').innerHTML = CONFIG.AREA_PRESETS.map(a => `<button data-a="${a}">${fmt(a)}㎡</button>`).join('');
-  $('#area-seg').onclick = e => { const b = e.target.closest('button'); if (!b) return; T1.area = +b.dataset.a; $('#area-custom').value = ''; T1.page = 0; t1Run(); };
-  $('#area-custom').onchange = e => { const v = +e.target.value; if (v >= 300) { T1.area = v; T1.page = 0; t1Run(); } else toast('300㎡ 이상 입력하세요'); };
+  $('#area-seg').onclick = e => { const b = e.target.closest('button'); if (!b) return; T1.area = +b.dataset.a; $('#area-custom').value = ''; T1.page = 0; resetPolyState(); t1Run(); };
+  $('#area-custom').onchange = e => { const v = +e.target.value; if (v >= 300) { T1.area = v; T1.page = 0; resetPolyState(); t1Run(); } else toast('300㎡ 이상 입력하세요'); };
   const q = $('#q');
   q.addEventListener('input', () => { $('#q-clear').hidden = !q.value; t1Suggest(true); });
   q.addEventListener('focus', () => t1Suggest(true));
@@ -2663,6 +2721,7 @@ async function t1Analyze() {
 
 function t1Select(p, noHist) {
   T1.sel = p; T1.hl = null; T1.page = 0; T1.filter = ''; T1.open = false; T1.pinMode = false;
+  resetPolyState();                      /* 다른 점포를 열거나 같은 점포를 다시 분석해도 이전 도면은 지운다 */
   $('#q').value = p.name; $('#q-clear').hidden = false; t1HideAC(); t1Run();
   if (!noHist) pushHistory(p);
   ZONE_GIS.auto(p);
@@ -2684,11 +2743,12 @@ function t1Run() {
   $('#area-desc').textContent = `원형 환산 반경 ${Math.round(Math.sqrt(T1.area / Math.PI))}m`;
   if (!T1.sel) return t1RenderEmpty();
   const e = T1.ev = ev(T1.sel, T1.area);
-  if (T1.poly.store !== e.p.id) { T1.poly.pts = []; T1.poly.done = false; T1.poly.list = false; T1.poly.store = e.p.id; T1.poly.on = false; T1.poly.includeSelf = false; T1.poly.bizExcl = false; polyClearOv(); }
+  if (T1.poly.store !== e.p.id) { resetPolyState(); T1.poly.store = e.p.id; }
   const r = e.rule;
   $('#t1-info').innerHTML = `<div class="infoline"><div class="info-grid">
       <span>${ic('pin', 13)}${esc(e.p.sido)} ${esc(e.p.sigungu)}</span>
       ${r ? '<span class="chip a">조례 DB 등록</span>' : '<span class="chip w">조례 미확인 · 법정 기준</span>'}
+      ${e.legacy ? `<span class="chip a" title="${esc(e.legacy.note)}">옛 주소 매칭 · ${esc(e.legacy.from)} → ${esc(e.legacy.to)}</span>` : ''}
       ${e.p.kind === 'store' ? `<span>점포코드 ${esc(e.p.id)}</span>` : ''}
       ${e.p.kind === 'store' ? (e.p.cov ? '<span class="chip s">상가 반경계산 O</span>' : '<span class="chip d">상가 데이터 미수집</span>') : ''}
       ${e.p.kind === 'store' && e.nOther ? `<span>반경 56m 내 타 시·군·구 상가 ${e.nOther}곳</span>` : ''}
@@ -3003,6 +3063,65 @@ function densityAssess(o) {
     setStatus('EST_FAIL', `필요 ${need}개에 ${need - shrunk}개 부족(확인된 점포 기준)`);
   }
   return out;
+}
+
+/* ---- 메인 배너 직관 판정(headline) ----
+   A축(법적 근거·세부 산정)은 조문 미확인·표본·실측 아님을 그대로 정직하게 남기고,
+   메인 배너만 '수학적 범위'로 0.5초 결론을 낸다.
+     상한 maxShops = 확인 점포 전부(업종 제외 0건 기준)
+     하한 minShops = 별표 1 제한업종을 가능한 만큼 모두 뺀 값(UNKNOWN 이면 표본에서 확인된 제외분까지)
+   → 상한이 비상업 기준(reqLow)에도 못 미치면 업종 제외 여부와 무관하게 '추정 미달',
+     하한이 상업 기준(reqHigh)을 넘으면 '지정 가능성 높음', 그 사이는 '가능성 있음 · 조건 확인 필요'. */
+const HEADLINE_STATUS = {
+  NO_DATA:   { emoji:'🔍', title:'데이터 없음 · 현장/카카오 확인 필요', cls:'na' },
+  FAIL:      { emoji:'❌', title:'추정 미달', cls:'fail' },
+  PASS:      { emoji:'✅', title:'지정 가능성 높음', cls:'pass' },
+  COND:      { emoji:'⚠️', title:'가능성 있음 · 조건 확인 필요', cls:'cond' },
+  COND_LEGAL:{ emoji:'⚠️', title:'가능성 있음 · 조문 확인 필요', cls:'cond' },
+  BASIS:     { emoji:'⚠️', title:'기준 확인 필요', cls:'cond' },
+};
+function headlineVerdict(o) {
+  o = o || {};
+  const pop = o.population == null || !Number.isFinite(+o.population) ? null : +o.population;
+  const maxShops = o.maxShops == null ? pop : +o.maxShops;
+  const minShops = o.minShops == null ? maxShops : Math.min(+o.minShops, maxShops);
+  const reqs = [o.reqCom, o.reqNon].filter(x => x != null && +x > 0).map(Number);
+  const reqLow = reqs.length ? Math.min.apply(null, reqs) : null;
+  const reqHigh = reqs.length ? Math.max.apply(null, reqs) : null;
+  const policy = o.policy || 'UNKNOWN';
+  const conflict = !!o.conflict;
+  const reqTxt = reqLow == null ? '기준 미상' : reqLow === reqHigh ? `최소 ${reqLow}개` : `최소 ${reqLow}~${reqHigh}개`;
+  const res = (k, sub, extra) => Object.assign({ level: k, emoji: HEADLINE_STATUS[k].emoji, title: HEADLINE_STATUS[k].title,
+    full: HEADLINE_STATUS[k].emoji + ' ' + HEADLINE_STATUS[k].title, cls: HEADLINE_STATUS[k].cls, sub,
+    maxShops, minShops, reqLow, reqHigh }, extra || {});
+
+  /* 0) 표본·데이터 0건 — 먼저 '무엇을 확인해야 하는지'를 보여준다 */
+  if (pop == null || maxShops == null) return res('NO_DATA', `${o.noDataReason || '상가 데이터 미수집 · 카카오 조회 전'} — 현장 확인 또는 카카오 실시간 조회 필요`);
+  /* 0-1) 기준 자체가 확정되지 않은 경우 — 숫자 비교로 단정하지 않는다 */
+  if (o.basisUnknown) return res('BASIS', `${o.basisUnknown} — 담당 부서·조례 원문 확인 필요`);
+  if (!reqLow) return res('BASIS', '조례 별표의 점포 수 기준이 DB에 없습니다 — 별표 원문 확인 필요');
+
+  /* 2) 상한조차 최소 기준에 못 미친다 — 업종 제외·용도지역과 무관하게 미달 */
+  if (maxShops < reqLow) {
+    return res('FAIL', `현재 확인 ${maxShops}개 / ${reqTxt} 필요 — 업종 제외 여부와 무관하게 점포 수 부족`);
+  }
+  /* 3) 가장 빡빡한 기준(상업지역)을 하한으로도 넘는다 */
+  if (minShops >= reqHigh) {
+    const tail = policy === 'UNKNOWN' ? ' (조문 미확인으로 A축 참고)' : '';
+    return res('PASS', `최소 ${minShops}개 확보 / ${reqTxt} — 업종 제외·용도지역 감안해도 충족 추정${tail}`);
+  }
+  /* 4) 경계 — 왜 갈리는지 한 줄로 */
+  let sub;
+  if (conflict) {
+    sub = o.conflictSub || `조례 ${reqLow}개 vs 시행규칙 기준 충돌 — 담당 부서 확인 필요`;
+  } else if (reqLow !== reqHigh && minShops >= reqLow) {
+    sub = `현재 ${minShops}개 — 비상업(${reqLow}개) 충족, 상업(${reqHigh}개)엔 ${reqHigh - minShops}개 부족 (용도지역 확인 필요)`;
+  } else if (policy === 'UNKNOWN') {
+    sub = `${minShops}~${maxShops}개 범위(${reqTxt}) — 조례 업종 제외 여부에 따라 충족/미달 갈림`;
+  } else {
+    sub = `${minShops}~${maxShops}개 확인(${reqTxt}) — 업종 제외·용도지역 확인 필요`;
+  }
+  return res(policy === 'UNKNOWN' && !conflict ? 'COND_LEGAL' : 'COND', sub);
 }
 /* @legal-core:end */
 
@@ -3345,6 +3464,7 @@ function legalAxisHTML(e, bs) {
         : `<div class="v" style="color:var(--text-tertiary)">0<small>건</small></div><div class="r">${bs.n ? `표본 ${bs.n}건 중 제외 대상 없음` : '표본 없음 — 현장 확인 필요'}</div>`);
   const srcTxt = bs.src === 'nearby' ? '공단 CSV(표본)' : bs.src === 'kakao' ? '카카오 대조(표본)' : '표본 없음';
   const aNotes = [`적용 면적 기준: <b>${esc(a.areaBasisLabel || AREA_BASIS.UNKNOWN)}</b> — 도면·반경 면적은 ${(a.areaBasis === 'SUM_OF_SHOP_AREA' || a.areaBasis === 'CHECK_REQUIRED') ? '그대로 대입할 수 없습니다' : '조례 표현과 대조 필요'}`];
+  if (a.status === 'LEGAL_UNVERIFIED') aNotes.push('맨 위 배너는 점포 수 상한·하한의 <b>수학적 판정</b>입니다 — 조문 확인 결과는 이 A축 카드와 한 장 리포트 기준입니다.');
   if (a.truncated) aNotes.push(`표본 상한 도달(${bs.n}건) — <b>표본 밖 점포는 확정할 수 없습니다</b>`);
   if (a.conflict) aNotes.push(`<b style="color:var(--danger)">조례·시행규칙 충돌</b> — ${esc(a.conflictNote || '유권해석 필요')}`);
   if (r && r.shop_definition_note) aNotes.push(`조례 '점포' 정의 — ${esc(r.shop_definition_note)}`);
@@ -3414,12 +3534,39 @@ function storeTypeRuleHTML() {
   return `<span class="noteline warn"><b>[상시 안내]</b> <span>본사 직영점(사업자번호 가운데 <b>85</b>)과 직전 연도 매출(환전액) <b>30억 원(일 약 822만 원) 초과</b> 점포는 <b>상권 지정 후에도 온누리 가맹 불가</b>입니다 (2026.06 시행령).</span></span>`;
 }
 
+/* 메인 배너 입력값 — 공단 집계 점포 수(상한)와 조례 제외를 최대한 반영한 하한을 넘긴다 */
+function headlineOf(e, legal) {
+  legal = legal || {};
+  const pop = e.counts ? e.nSmall : (legal.population == null ? null : +legal.population);
+  const maxShops = pop;
+  const minShops = legal.rangeLo == null ? pop : Math.min(+legal.rangeLo, pop == null ? +legal.rangeLo : pop);
+  const baseArea = +(e.rule && e.rule.base_area || 2000);
+  let basisUnknown = null;
+  if (!e.rule) basisUnknown = '적용 조례 미확인 — 법정 기본값으로 단정하지 않음';
+  else if (!e.th && e.thNon == null) basisUnknown = '조례 별표의 점포 수 기준 미등록';
+  else if (e.area > baseArea && e.rule.over_area_verified !== true) basisUnknown = `검토 면적 ${fmt(e.area)}㎡ 초과면적 계산식 미검증`;
+  let conflictSub = null;
+  if (e.rule && e.rule.rule_conflict_flag) {
+    const cm = /시행규칙[^()]*\((\d+)\s*개/.exec(e.rule.rule_conflict_note || '');
+    conflictSub = `조례(${e.reqCom != null ? e.reqCom : e.required}개) vs 시행규칙(${cm ? cm[1] : '30'}개) 충돌 — 담당 부서 확인 필요`;
+  }
+  return headlineVerdict({
+    population: maxShops, maxShops, minShops,
+    reqCom: e.reqCom, reqNon: e.reqNon, policy: densityPolicyOf(e.rule), conflict: !!e.rule && !!e.rule.rule_conflict_flag,
+    conflictSub, basisUnknown,
+    noDataReason: e.counts ? null : (pinOf(e.p) ? '핀 보정 좌표 기준 상가 수 재집계 필요' : `${e.p.sido} 상가(상권)정보 CSV 미수집`),
+  });
+}
+
 function renderVerdict(e) {
   const r = e.rule, m = VMETA[e.v];
   const ss = ssOf(e.p), bs = bizStatsOf(e);
   const legal = bs.assess || {};
-  /* 조례상 밀집도 제외 업종이 미확인이거나 조례·시행규칙이 충돌하면 '적합' 배너를 그대로 쓰지 않는다 */
-  const vBlocked = !!legal.blocksVerdict && legal.status === 'LEGAL_UNVERIFIED' && e.v !== 'na';
+  /* 메인 배너는 수학적 범위(상한·하한)로 직관 결론을 낸다 — 조문 미확인·표본 여부는 A축 카드와 한 장 리포트가 정직하게 유지 */
+  const hv = headlineOf(e, legal);
+  const hvLegalChip = legal.status === 'LEGAL_UNVERIFIED' ? `<span class="chip o" style="flex:none">A축 조문 미확인</span>` : '';
+  /* 출처 정직 표기 — 공단 CSV 집계는 표본이지 현장 실측이 아니다 */
+  const cntSrc = !e.counts ? ' · 미수집' : e.counts.est ? ' · 보간 추정' : ' · 공단 표본(실측 아님)';
   const pct = e.ratio != null ? Math.round(e.ratio * 100) : null;
   const w = e.ratio != null ? Math.min(e.ratio, 1.5) / 1.5 * 100 : 0;
   const expected = t1Expected(e);
@@ -3433,7 +3580,6 @@ function renderVerdict(e) {
   const st = storeTypeOf(e.p), stNote = storeTypeNote(st);
   const bizHref = `https://bizno.net/?query=${encodeURIComponent(e.p.name)}`;
   const fav = isFav(e.p.id);
-  const sub = verdictSub(e);
   const legalZone = LS.get('zoning:' + e.p.id, { type: '', at: '' });
   const zoneKind = ['commercial', 'noncommercial'].includes(legalZone.type) ? legalZone.type : '';
   const zoneName = zoneKind === 'commercial' ? '상업지역 (수동 확인)' : zoneKind === 'noncommercial' ? '비상업지역 (수동 확인)' : '용도지역 미확인';
@@ -3469,9 +3615,10 @@ function renderVerdict(e) {
         <div style="flex:1;min-width:0"><div class="h" style="color:#8A5A0B">📍 보정 좌표 적용 중</div>
           <div class="s">원래 등록 위치(${e.p.lat.toFixed(6)}, ${e.p.lng.toFixed(6)})에서 <b>${fmt(pinShift(e.p))}m</b> 옮긴 좌표로 판정·반경·로드뷰·리포트를 계산합니다</div></div>
         <button class="btn sm" id="v-pin-restore" style="flex:none">원래 위치 복원</button></div>` : ''}
-    <div class="vbanner ${vBlocked ? 'na' : e.v}">
-      <span class="vb-ic">${ic(vBlocked ? 'info' : m.icon, 20)}</span>
-      <div class="vb-t"><b>${vBlocked ? '법적 기준 미확인 — 적합 단정 보류' : e.v === 'pass' ? '밀집도 예비 기준 충족' : esc(m.label)}</b><span>${esc(vBlocked ? (legal.statusLabel + ' · ' + (legal.basis || '조례상 밀집도 제외 업종 확인 필요')) : sub)}</span></div>
+    <div class="vbanner ${hv.cls}">
+      <span class="vb-ic vb-emoji" aria-hidden="true">${hv.emoji}</span>
+      <div class="vb-t"><b>${esc(hv.title)}</b><span>${esc(hv.sub)}</span></div>
+      ${hvLegalChip}
     </div>
     ${specialSiteHTML(ss, e)}
     <div class="m3">
@@ -3501,7 +3648,7 @@ function renderVerdict(e) {
     </div>
     <div class="pblock">
       <div class="top"><span class="lbl">현재 확인 상가 수 <span class="faint" style="font-weight:600">(업종 제외 미반영)</span></span><span class="pct" style="color:${pctCol}">${pct != null ? pct + '%' : '—'}</span></div>
-      <div class="val"><b class="num">${e.counts ? e.nSmall : '—'}</b><span>/ ${e.required ?? '—'}개${e.counts && e.counts.est ? ' · 보간 추정' : ' · 실측'}</span></div>
+      <div class="val"><b class="num">${e.counts ? e.nSmall : '—'}</b><span>/ ${e.required ?? '—'}개${cntSrc}</span></div>
       <span class="prog"><i style="width:${w}%;background:${pctCol}"></i><span class="tick" style="left:${100 / 1.5}%" title="기준 100%"></span></span>
     </div>
     ${bizBoxHTML(e, bs)}
@@ -3524,7 +3671,7 @@ function renderVerdict(e) {
       ${isM ? `<div class="vrow"><span class="k">참고용 조례 판정</span><span class="v">${badge(e.v)} <b style="color:${m.color}">${esc(e.label)}</b> <span class="faint">— 조례상 점포 밀집도만 본 값입니다. 이 점포는 이미 가맹 등록되어 신규 지정 판정 대상이 아닙니다.</span></span></div>` : ''}
       <div class="vrow"><span class="k">적용 기준</span><span class="v">${ruleName} ${r && r.updated ? `<span class="faint">(기준일 ${esc(r.updated)})</span>` : ''} ${r && r.dept ? `<span class="faint">· 담당 ${esc(r.dept)}${r.team ? ' ' + esc(r.team) : ''}${r.phone ? ' ' + esc(r.phone) : ''}</span>` : ''}</span></div>
       <div class="vrow"><span class="k">점포 밀집 기준</span><span class="v">${ruleStdHTML(e)}</span></div>
-      <div class="vrow"><span class="k">검토 구역</span><span class="v"><b class="num">${fmt(e.area)}㎡</b> <span class="faint">(원형 환산 반경 ${Math.round(e.r)}m${e.counts && e.counts.est ? ' · 보간 추정' : ' · 실측'})</span></span></div>
+      <div class="vrow"><span class="k">검토 구역</span><span class="v"><b class="num">${fmt(e.area)}㎡</b> <span class="faint">(원형 환산 반경 ${Math.round(e.r)}m${e.counts && e.counts.est ? ' · 보간 추정' : ' · 현장 실측 아님'})</span></span></div>
       <div class="vrow"><span class="k">충족률</span><span class="v" style="display:flex;align-items:center;gap:12px"><span class="prog" style="flex:1"><i style="width:${w}%;background:${m.color}"></i><span class="tick" style="left:${100 / 1.5}%" title="기준 100%"></span></span><b class="num" style="min-width:44px;text-align:right;color:${m.color}">${pct != null ? pct + '%' : '—'}</b></span></div>
       <div class="vrow"><span class="k">기존 구역 거리</span><span class="v">${e.nearest ? `<b>${esc(e.nearest.z.name)}</b> 중심 ${fmtD(e.nearest.d)} · 경계 ${fmtD(e.nearest.edge)} <span class="chip ${rel[1]}">${rel[0]}</span>` : '—'}</span></div>
       <div class="vrow"><span class="k">온누리 가맹</span><span class="v">${memberInfoHTML(e.p)}</span></div>
@@ -3593,6 +3740,7 @@ function storeTypeCheck(st) {
 }
 function buildReportHTML(e) {
   const g = reportFacts(e), p = g.p, r = g.r, ss = g.ss, bs = g.bs, sim = g.sim, xc = g.xc;
+  const hv = headlineOf(e, bs.assess || {});
   const zf = zoneMixFacts(e, sim), zoneTxt = zoneMixText(zf, e), pointTxt = zonePointLine(p);
   const today = fmtDate(new Date()), rel = zoneRel(e);
   const pct = e.ratio != null ? Math.round(e.ratio * 100) : null;
@@ -3652,6 +3800,7 @@ function buildReportHTML(e) {
   return `
   <h1>골목형상점가 지정 사전검토 리포트</h1>
   <div class="sub">${esc(p.name)} · ${esc(p.address)} · 분석 기준일 ${today} · 온누리 레이더</div>
+  <div class="box"><b>${esc(hv.full)}</b> — ${esc(hv.sub)}<br><span class="faint">수학적 범위 판정: 상한 ${hv.maxShops == null ? '—' : hv.maxShops}개(업종 제외 0건) · 하한 ${hv.minShops == null ? '—' : hv.minShops}개(조례 제외 최대 반영) · 기준 ${hv.reqLow == null ? '—' : hv.reqLow === hv.reqHigh ? hv.reqLow + '개' : hv.reqLow + '~' + hv.reqHigh + '개'}. A축 카드의 조문 확인 결과와 함께 읽으세요.</span></div>
   <h2>1. 기본 현황</h2>
   <div class="tblwrap"><table class="kv">
     <tr><th>점포명</th><td colspan="3"><b>${esc(p.name)}</b>${p.kind === 'store' ? ` (점포코드 ${esc(p.id)})` : ''} · ${esc(p.sido)} ${esc(p.sigungu)}</td></tr>
@@ -3659,6 +3808,7 @@ function buildReportHTML(e) {
     <tr><th>분석 좌표</th><td colspan="3">${pinOf(p) ? `<b>핀 보정 좌표</b> ${e.pos.lat.toFixed(6)}, ${e.pos.lng.toFixed(6)} — 공단 등록 위치(${(+p.lat).toFixed(6)}, ${(+p.lng).toFixed(6)})에서 ${fmt(pinShift(p))}m 옮긴 값` : `공단 등록 좌표 ${(+p.lat).toFixed(6)}, ${(+p.lng).toFixed(6)}`}</td></tr>
     <tr><th>검토 구역</th><td>${fmt(e.area)}㎡ · 원형 환산 반경 ${Math.round(e.r)}m (${e.counts ? (e.counts.est ? '보간 추정' : '실측 프리셋') : '상가데이터 미수집'})</td><th>기존 상권</th><td>${zoneLine}</td></tr>
     <tr><th>조례 판정</th><td>${esc(e.label)} (${pct != null ? '충족률 ' + pct + '%' : '충족률 미상'})</td><th>온누리 가맹</th><td>${memberTxt}</td></tr>
+    ${e.legacy ? `<tr><th>행정구역 개편</th><td colspan="3">옛 주소 '${esc(e.legacy.from)}' → '${esc(e.legacy.to)}' 조례로 매칭 — ${esc(e.legacy.note)}${e.legacy.guessed ? ' (법정동 미확인 · 기본 관할 적용, 담당 부서 확인 필요)' : ` (법정동 ${esc(e.legacy.dong)} 기준)`}</td></tr>` : ''}
     <tr><th>점포 운영 형태</th><td colspan="3">${esc(STORE_TYPE[g.st] || '미확인')} — ${esc(stc.txt)}</td></tr>
     <tr><th>법적 용도지역</th><td colspan="3">점포 필지 ${pointTxt}${sim ? ` · 도면 혼합 ${esc(zoneTxt)}` : ''}</td></tr>
     <tr><th>특수입지 판정</th><td colspan="3">${ssTxt}</td></tr>
@@ -3795,7 +3945,7 @@ function renderShops(e) {
   T1._jump = false;
   const slice = rows.slice(T1.page * size, (T1.page + 1) * size);
   const st = T1.sort;
-  const covNote = !e.p.cov ? `<div class="foot" style="padding:8px 16px 0;color:var(--danger)">${esc(e.p.sido)}는 상가(상권)정보 CSV 수집 범위 밖입니다. 아래 실시간 조회로 확인하세요.</div>` : '';
+  const covNote = !e.p.cov ? `<div class="foot" style="padding:8px 16px 0;color:var(--danger)">${esc(josa(e.p.sido, '은', '는'))} 상가(상권)정보 CSV 수집 범위 밖입니다. 아래 실시간 조회로 확인하세요.</div>` : '';
   /* 리스트가 비어 보이는 이유를 구분한다: (a) 아직 로딩 중 (b) 받기 실패 (c) 집계와 불일치 (d) 진짜 0건 */
   const nst = e.p.cov ? nearbyState(e.p.sido) : 'nocov';
   const loading = nst === 'loading' || (nst === 'idle' && e.p.cov);
@@ -3806,14 +3956,14 @@ function renderShops(e) {
   } else if (nst === 'error') {
     emptyHtml = stateBox('err', '반경 내 상가 리스트를 불러오지 못했습니다', `${esc(e.p.sido)} 상가 파일을 내려받지 못했습니다. 위 B구역의 상가 수(${fmt(agg)}개)는 사전 집계값이라 그대로 유효합니다.`, '<button class="btn sm" id="shops-retry">다시 불러오기</button>');
   } else if (!e.p.cov) {
-    emptyHtml = stateBox('empty', '반경 내 상가 데이터가 없습니다', `${esc(e.p.sido)}는 상가(상권)정보 CSV 수집 범위 밖입니다. 아래 실시간 카카오 조회로 확인하세요.`);
+    emptyHtml = stateBox('empty', '반경 내 상가 데이터가 없습니다', `${josa(e.p.sido, '은', '는')} 상가(상권)정보 CSV 수집 범위 밖입니다. 아래 실시간 카카오 조회로 확인하세요.`);
   } else if (agg > 0) {
     emptyHtml = stateBox('warn', '리스트에는 0건, 사전 집계는 ' + fmt(agg) + '개입니다', 'B구역의 상가 수는 상가(상권)정보 반경 집계값이고, 이 리스트는 점포별 상세 파일에 있는 업소만 표시합니다. 두 값의 차이는 집계 기준(호실 단위·업종 필터)에서 생깁니다. 현장 확인 시 사전 집계값을 기준으로 보고, 상세 업소는 실시간 카카오 조회로 보완하세요.');
   } else {
     emptyHtml = stateBox('empty', '반경 내 상가 데이터가 없습니다', '사전 집계(반경 내 소상공인)도 0개입니다. 이 점포 주변에는 상가업소가 거의 없습니다.');
   }
   $('#t1-shops').innerHTML = `
-    <div class="card-h"><span class="step">C</span><h3>반경 내 상가 리스트</h3><span class="sub">(${loading ? '불러오는 중' : '경계 +15% 포함 ' + total + '개 · 실측'})</span>
+    <div class="card-h"><span class="step">C</span><h3>반경 내 상가 리스트</h3><span class="sub">(${loading ? '불러오는 중' : '경계 +15% 포함 ' + total + '개 · 공단 표본(실측 아님)'})</span>
       <div class="right">
         <button class="btn sm" id="shops-csv" title="반경 내 상가 리스트를 CSV로 저장합니다(교차 검증·소상공인·온누리 열 포함)">${ic('down', 14)}CSV 다운로드</button>
         <select class="select" id="shops-filter" style="width:150px;height:28px" aria-label="상가 필터">
@@ -3988,10 +4138,28 @@ function over2000For(e, eff) {
 }
 
 /* --- 지도 오버레이(카카오) --- */
-function polyClearOv() {
-  (APP.polyOv || []).forEach(o => { try { o.setMap(null); } catch (_) {} });
+function polyClearOv() {  (APP.polyOv || []).forEach(o => { try { o.setMap(null); } catch (_) {} });
   (APP.zoneOv || []).forEach(o => { try { o.setMap(null); } catch (_) {} });
   APP.polyOv = []; APP.zoneOv = []; APP.polyPrev = null;
+}
+/* 도면 상태 초기화 — 점포 전환·재분석 때 이전 점포의 도면/상태바/결과가 한 픽셀도 남지 않게 모두 지운다.
+   이전에는 pts·done·on만 지워서 제외율·상태 토스트·색칩이 남았다. */
+function resetPolyState() {
+  const P = T1.poly;
+  P.on = false; P.done = false; P.pts = []; P.list = false;
+  P.excl = 0; P.includeSelf = false; P.bizExcl = false; P.store = null;
+  P._drag = null; P.shape = null; P.line = null; P.lblEl = null; P.lblOv = null;
+  try { polyClearOv(); } catch (_) { }
+  (APP.polyDotOv || []).forEach(o => { try { o.setMap(null); } catch (_) { } });
+  APP.polyDotOv = [];
+  const card = $('#t1-poly'); if (card) { card.hidden = true; card.innerHTML = ''; }
+  const bar = $('#draw-bar'); if (bar) bar.hidden = true;
+  const lg = $('#lg-poly'); if (lg) lg.hidden = true;
+  const n = $('#db-n'); if (n) n.textContent = '0';
+  ['db-a', 'db-s'].forEach(id => { const el = $('#' + id); if (el) el.textContent = '—'; });
+  /* 상태바(토스트)에 남은 '도면 작성 완료…' 문구도 지운다 */
+  const t = $('#toast'); if (t) { t.classList.remove('show'); t.textContent = ''; }
+  syncCaption();
 }
 function polyDotList(e) {
   const R = T1.poly.on ? 400 : e.r * 2.4;
