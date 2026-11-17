@@ -256,6 +256,68 @@ test('키워드 2차 조회 결과도 오래된 요청이면 버린다', async (
   assert.equal(ctx3.APP.live.state, 'loading', '늦은 키워드 응답으로 결과를 확정하지 않는다');
   assert.ok(!ctx3.APP.live.places.some(x => x.name === '늦게온가게'));
 });
+/* ── keywordSearch 옵션의 location 은 반드시 kakao.maps.LatLng 인스턴스 ─────────
+   2026-11-18 라이브 실측: 평범한 {lat,lng} 객체를 넘기면 SDK가 내부에서 getLng 를 부르다
+   'TypeError: a.getLng is not a function'을 던지고, 바깥 catch 가 삼켜 '0건 더 찾았습니다'로
+   조용히 표시됐다(GS25망포센트럴점 — 아가페미용실·수원바디온필라테스 등 5곳 거짓 음성). */
+test('2차 키워드 조회는 location 에 kakao.maps.LatLng 인스턴스를 넘긴다', async () => {
+  const src = section('let liveRequestSequence', 'function noteBox');
+  const seenOpts = [];
+  function LatLng(lat, lng) { this.lat = lat; this.lng = lng; }
+  LatLng.prototype.getLat = function () { return this.lat; };
+  LatLng.prototype.getLng = function () { return this.lng; };
+  const e = { p: { id: 'L' }, pos: { lat: 37.0, lng: 127.0 }, r: 25 };
+  const ctx4 = {
+    APP: {}, T1: { ev: e, poly: { on: false, pts: [] } }, T3: { dirty: false }, KMap: { ready: true },
+    KAKAO_GROUPS: [['CS2', '편의점']], UI: { EDGE: 1.15 },
+    t1ShopRows: () => [{ s: { id: 'r1', name: '온결헤어룸', category: '미용실' }, d: 9 }],
+    xcPairScore: () => 0, posOf: p => p, renderShops() {}, renderMap1() {}, renderVerdict() {},
+    renderPolyCard() {}, syncDrawBar() {}, toast() {},
+    kakao: { maps: { LatLng, services: {
+      Places: function () {
+        this.categorySearch = (c, fn) => fn([{ id: 'p1', place_name: '다른가게', x: '127', y: '37' }], 'OK');
+        this.keywordSearch = (q, fn, opts) => {
+          seenOpts.push(opts);
+          /* 실제 SDK와 같은 제약: LatLng 인스턴스가 아니면 getLng 를 부르다 던진다 */
+          if (!(opts && opts.location instanceof LatLng)) throw new TypeError('a.getLng is not a function');
+          if (opts.location.getLng() !== 127.0) throw new TypeError('a.getLng is not a function');
+          if (!(opts.radius > 0) || opts.sort === undefined) throw new Error('반경·정렬 옵션 누락');
+          fn([{ id: 'k1', place_name: '온결헤어룸', category_name: '가정,생활 > 미용실', x: '127.0001', y: '37.0001' }], 'OK');
+        };
+      }, Status: { OK: 'OK' }, SortBy: { DISTANCE: 1 } } } },
+  };
+  vm.createContext(ctx4); vm.runInContext(src, ctx4);
+  await ctx4.t1Live(e);
+  assert.ok(seenOpts.length >= 1, '키워드 2차 조회가 호출된다');
+  assert.ok(seenOpts[0].location instanceof LatLng, 'location 은 kakao.maps.LatLng 인스턴스여야 한다');
+  assert.equal(seenOpts[0].location.lat, 37.0);
+  assert.equal(seenOpts[0].location.lng, 127.0);
+  assert.equal(ctx4.APP.live.kw.added, 1, 'LatLng 를 넘겨야 2차 조회가 결과를 실제로 회수한다');
+});
+/* ── '카카오 미확인'·'신규 후보' 행의 카카오맵·네이버지도 바로 찾기 링크 ── */
+test('카카오 미확인 행에 카카오맵·네이버지도 바로 찾기 링크가 함께 붙는다', () => {
+  const escStub = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const linkApi = new Function('esc', section('const naverMapLink', 'const UI =') + '\n' +
+    section('const xcRowLink', 'function xcEstCell') + ';return {xcRowLink,kakaoMapLink,naverMapLink};')(escStub);
+  const q = '수원시 영통구 망포동 자란다태권도';
+  const out = linkApi.xcRowLink('자란다태권도', '수원시 영통구 망포동');
+  assert.ok(out.includes('카카오맵 ↗'), '카카오맵 링크');
+  assert.ok(out.includes('네이버지도 ↗'), '네이버지도 링크');
+  assert.ok(out.includes(`href="https://map.kakao.com/link/search/${encodeURIComponent(q)}"`), '카카오맵 검색 URL');
+  assert.ok(out.includes(`href="https://map.naver.com/p/search/${encodeURIComponent(q)}"`), '네이버지도 검색 URL');
+  assert.equal((out.match(/target="_blank"/g) || []).length, 2, '두 링크 모두 새 창');
+  assert.equal((out.match(/rel="noopener"/g) || []).length, 2, '두 링크 모두 noopener');
+  assert.ok(out.includes('class="xc-links"'), '모바일에서 줄바꿈되는 링크 묶음');
+  /* 지역 단서가 비면 상호만으로도 링크가 성립한다(주소 없는 카카오 장소) */
+  assert.ok(linkApi.kakaoMapLink('  ').endsWith('/link/search/'));
+});
+test('요약·하단 안내가 카카오 오픈API 정책 한계와 지도 링크를 설명한다', () => {
+  const sum = section('function xcSummaryHTML', 'function liveBlock');
+  const live = section('function liveBlock', 'let liveRequestSequence');
+  assert.ok(sum.includes('카카오 오픈API 정책상') && sum.includes('카카오맵·네이버지도'), '요약 안내');
+  assert.ok(live.includes('카카오 오픈API가 제공하지 않는 매장'), '하단 안내');
+  assert.ok(/xc-links\{display:inline-flex[^}]*flex-wrap:wrap/.test(html), '링크 묶음 CSS(줄바꿈 허용)');
+});
 
 /* ── 이미 지정 구역 내 점포는 '신규 후보'에서 뺀다 ─────────────────────────── */
 test('상단 KPI·탭3 가 이미 지정 구역 내 점포를 후보에서 제외한다', () => {

@@ -447,6 +447,7 @@ svg.fmap [data-sid],svg.fmap [data-zone],svg.fmap [data-gs]{cursor:pointer}
 .xc-all{margin-top:10px}
 .xc-all summary{cursor:pointer;font-size:11.5px;color:var(--text-secondary);padding:5px 0;font-weight:700}
 .xc-new{color:var(--primary);font-weight:700;text-decoration:underline;font-size:11.5px;white-space:nowrap}
+.xc-links{display:inline-flex;flex-wrap:wrap;gap:2px 9px;align-items:center;max-width:100%}
 .poly-acts{display:flex;gap:8px;flex-wrap:wrap;margin:14px 20px 0}
 .poly-note{font-size:11px;color:var(--text-tertiary);line-height:1.6;padding:10px 20px 16px}
 .poly-mode{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:999px;font-size:11.5px;font-weight:700;background:var(--success-bg);color:var(--success-fg)}
@@ -2019,6 +2020,10 @@ const kakaoRvLink = p => `https://map.kakao.com/link/roadview/${p.lat},${p.lng}`
    주소를 우선 넘기고(층·호 단위까지 검색창에 그대로 들어감), 주소가 없으면 상호로 넘긴다. */
 const naverMapLink = q => `https://map.naver.com/p/search/${encodeURIComponent(String(q || '').trim())}`;
 const naverStoreLink = p => naverMapLink(p.address || p.name);
+/* 카카오맵 검색 링크 — 카카오 로컬 API(키워드·업종 조회)는 정책상 제공하지 않는 매장이 있어도
+   카카오맵 앱·웹에는 등록돼 있는 경우가 많다(GS25망포센트럴점 실측: 온결헤어룸·자란다태권도).
+   /link/search/ 는 모바일에서 카카오맵 앱으로 바로 넘겨 주고, 웹에서는 map.kakao.com/?q= 로 검색을 실행한다. */
+const kakaoMapLink = q => `https://map.kakao.com/link/search/${encodeURIComponent(String(q || '').trim())}`;
 const UI = { STALE_DAYS: 90, EDGE: 1.15, PAGE: { shops: 10, db: 20, disc: 15 } };
 
 const ICONS = {
@@ -3686,7 +3691,12 @@ function xcLocHint(p) {
   const dong = ((addr.match(/\(([^)]*?동)/) || [])[1] || (addr.match(/[가-힣]{1,4}동(?=[\s,)]|$)/) || [])[0] || '').trim();
   return [p.sigungu || '', dong].filter(Boolean).join(' ');
 }
-const xcRowLink = (name, addr) => `<a class="xc-new" href="${naverMapLink((addr ? addr + ' ' : '') + name)}" target="_blank" rel="noopener" title="네이버 지도에서 ${esc((addr ? addr + ' ' : '') + name)} 검색">네이버 확인 ↗</a>`;
+/* '카카오 미확인'·'신규 후보' 행에서 한 번에 찾아볼 수 있게 카카오맵·네이버지도 두 링크를 나란히 둔다.
+   카카오 오픈API에서 안 잡히는 매장도 카카오맵·네이버지도에서는 검색되므로 두 지도를 함께 붙인다. */
+const xcRowLink = (name, addr) => {
+  const q = ((addr ? addr + ' ' : '') + name).trim();
+  return `<span class="xc-links"><a class="xc-new" href="${kakaoMapLink(q)}" target="_blank" rel="noopener" title="카카오맵에서 '${esc(q)}' 검색">카카오맵 ↗</a><a class="xc-new" href="${naverMapLink(q)}" target="_blank" rel="noopener" title="네이버 지도에서 '${esc(q)}' 검색">네이버지도 ↗</a></span>`;
+};
 function xcEstCell(c, on) {
   const pct = c.ratio != null ? Math.round(c.ratio * 100) : null;
   const col = c.ok == null ? 'inherit' : c.ok ? 'var(--success)' : 'var(--danger)';
@@ -3710,15 +3720,15 @@ function xcSummaryHTML(e, xc) {
     ${kwLine}
     ${est ? `<div class="xc-est">${xcEstCell(est.cur, false)}${xcEstCell(est.ex, false)}${xcEstCell(est.add, false)}${xcEstCell(est.net, true)}</div>
       <div class="xc-sub">${ic('info', 13)} 미확인 제외 / 신규 후보 반영 시 실질 예상 <span class="faint">(기준 ${est.th ?? '—'}개 / ${fmt(est.base)}㎡ · 참고치)</span></div>` : `<div class="xc-hint">상가정보 CSV가 없는 시도라 실질 충족률은 계산하지 않습니다. 카카오 조회 결과로만 확인하세요.</div>`}
-    ${nSus ? `<div class="xc-sub" style="color:var(--danger)">${ic('warn', 13)} 카카오 미확인 ${nSus}건 <span class="faint" style="font-weight:500">— 공단 CSV에만 있고 카카오 조회에서 안 잡힌 점포(폐업·미등록·업종 밖 여부는 현장 확인)</span></div>
+    ${nSus ? `<div class="xc-sub" style="color:var(--danger)">${ic('warn', 13)} 카카오 미확인 ${nSus}건 <span class="faint" style="font-weight:500">— 공단 CSV에만 있고 카카오 조회에서 안 잡힌 점포입니다. 카카오맵·네이버지도에서 상호로 바로 찾아 폐업·미등록·업종 밖 여부를 확인하세요</span></div>
       <div class="tbl-wrap"><table class="tbl num"><thead><tr><th>상호(공단)</th><th>업종</th><th>거리</th><th>확인</th></tr></thead><tbody>
       ${xc.suspect.slice(0, 12).map(r => `<tr><td><b>${esc(r.s.name)}</b></td><td>${esc(r.s.category)}</td><td>${Math.round(r.d)}m${r.inc === '경계' ? ' <span class="chip o">경계</span>' : ''}</td><td>${xcRowLink(r.s.name, loc)}</td></tr>`).join('')}</tbody></table></div>
       ${nSus > 12 ? `<div class="faint" style="font-size:11px">외 ${nSus - 12}건 — 위 C구역 리스트의 '카카오 미확인' 필터로 전체를 볼 수 있습니다.</div>` : ''}` : ''}
     ${nNew ? `<div class="xc-sub" style="color:var(--accent)">${ic('pass', 13)} 신규·누락 후보 ${nNew}건 <span class="faint" style="font-weight:500">— 카카오에서는 영업 중이나 공단 CSV에 없는 점포</span></div>
-      <div class="tbl-wrap"><table class="tbl num"><thead><tr><th>상호(카카오)</th><th>업종</th><th>거리</th><th>주소</th></tr></thead><tbody>
+      <div class="tbl-wrap"><table class="tbl num"><thead><tr><th>상호(카카오)</th><th>업종</th><th>거리</th><th>주소 · 확인</th></tr></thead><tbody>
       ${xc.fresh.slice(0, 12).map(p => `<tr><td><b>${esc(p.name)}</b></td><td>${esc(p.cat)}</td><td>${Math.round(p.d)}m</td><td class="faint">${esc(p.addr || '')} ${xcRowLink(p.name, p.addr)}</td></tr>`).join('')}</tbody></table></div>
       ${nNew > 12 ? `<div class="faint" style="font-size:11px">외 ${nNew - 12}건</div>` : ''}` : ''}
-    <div class="xc-hint">${ic('info', 12)} 교차 검증은 <b>상호 정규화(공백·특수문자·지점명·영문↔한글 표기·업종 꼬리말) + 거리</b>로 자동 대조합니다. 1차로 카카오 업종 18개 카테고리를 훑고, 업종당 최대 45건(15건×3페이지)을 넘는 밀집 상가는 상한 업종의 중심을 4방향으로 옮긴 격자 조회로 더 받아옵니다. 그래도 짝을 못 찾은 점포는 <b>상호 키워드로 2차 재조회</b>해 미용실·필라테스·세탁소처럼 업종 코드 밖 업종을 보완합니다. 남는 점포가 있으니 '카카오 미확인'은 폐업 단정이 아니라 <b>현장·네이버 지도 확인 대상</b>입니다. 실질 추정은 미확인 점포를 모두 소상공인으로, 신규 후보는 소상공인 성격 업종만 계산한 값입니다. 상가(상권)정보와 카카오는 업종 분류·집계 기준도 달라 개수가 다릅니다.</div>`;
+    <div class="xc-hint">${ic('info', 12)} 교차 검증은 <b>상호 정규화(공백·특수문자·지점명·영문↔한글 표기·업종 꼬리말) + 거리</b>로 자동 대조합니다. 1차로 카카오 업종 18개 카테고리를 훑고, 업종당 최대 45건(15건×3페이지)을 넘는 밀집 상가는 상한 업종의 중심을 4방향으로 옮긴 격자 조회로 더 받아옵니다. 그래도 짝을 못 찾은 점포는 <b>상호 키워드로 2차 재조회</b>해 미용실·필라테스·세탁소처럼 업종 코드 밖 업종을 보완합니다. 남는 점포가 있으니 '카카오 미확인'은 폐업 단정이 아닙니다. 특히 <b>카카오 오픈API 정책상 카카오맵 앱에는 등록돼 있어도 API 조회로는 제공되지 않는 매장</b>이 있어, 영업 중이어도 '미확인'으로 남을 수 있습니다 — 옆의 <b>카카오맵 ↗·네이버지도 ↗</b> 링크로 바로 확인하세요. 실질 추정은 미확인 점포를 모두 소상공인으로, 신규 후보는 소상공인 성격 업종만 계산한 값입니다. 상가(상권)정보와 카카오는 업종 분류·집계 기준도 달라 개수가 다릅니다.</div>`;
 }
 function liveBlock(e) {
   const L = APP.live;
@@ -3737,7 +3747,7 @@ function liveBlock(e) {
     ${body}
     ${xc && xc.all.length ? `<details class="xc-all"><summary>카카오 조회 전체 ${xc.all.length}건 보기</summary><div class="tbl-wrap"><table class="tbl num"><thead><tr><th>상호</th><th>업종</th><th>거리</th><th>공단 CSV</th><th>주소</th></tr></thead><tbody>
       ${xc.all.map(p => `<tr><td><b>${esc(p.name)}</b></td><td>${esc(p.cat)}</td><td>${Math.round(p.d)}m</td><td>${xc.selfKeys.has(xc.key(p)) ? '<span class="chip o">대상 점포</span>' : p.d > e.r * UI.EDGE ? '<span class="faint">—</span>' : xc.fresh.some(f => f === p) ? '<span class="chip a">미등록</span>' : '<span class="chip s">확인</span>'}</td><td class="faint">${esc(p.addr || '')}</td></tr>`).join('')}</tbody></table></div></details>` : ''}
-    <div class="foot" style="padding:6px 0 0">카카오 로컬 API 실시간 조회값 · 공단 상가(상권)정보(2026-09-30) 스냅샷과 대조한 결과입니다. '카카오 미확인'은 카카오 조회에서 안 잡혔다는 뜻이지 폐업이 확정된 것은 아닙니다.</div></div>`;
+    <div class="foot" style="padding:6px 0 0">카카오 로컬 API 실시간 조회값 · 공단 상가(상권)정보(2026-09-30) 스냅샷과 대조한 결과입니다. '카카오 미확인'은 카카오 조회에서 안 잡혔다는 뜻이지 폐업이 확정된 것은 아닙니다. 카카오 오픈API가 제공하지 않는 매장은 카카오맵 앱에 등록돼 있어도 '미확인'으로 남을 수 있으니, 각 점포 옆 <b>카카오맵·네이버지도</b> 링크로 영업 여부를 확인하세요.</div></div>`;
 }
 
 
@@ -3805,7 +3815,10 @@ async function xcKeywordPass(e, ps, home, seen, current, put) {
       if (status === kakao.maps.services.Status.OK) (data || []).forEach(d => put(d, '키워드', 'kw'));
       res(true);
     };
-    try { calls++; ps.keywordSearch(q, collect, { location: home, radius, sort: kakao.maps.services.SortBy.DISTANCE }); }
+    /* location은 반드시 kakao.maps.LatLng 인스턴스여야 한다 — e.pos({lat,lng}) 평범한 객체를 그대로 넘기면
+       SDK가 'a.getLng is not a function'을 던져 조회가 통째로 실패하고, 아래 catch에 삼켜져
+       '0건 더 찾았습니다'로 조용히 표시된다(GS25망포센트럴점 실측 2026-11-18). */
+    try { calls++; ps.keywordSearch(q, collect, { location: new kakao.maps.LatLng(home.lat, home.lng), radius, sort: kakao.maps.services.SortBy.DISTANCE }); }
     catch (_) { res(false); }
   });
   for (let i = 0; i < targets.length; i += KW_BATCH) {
