@@ -494,6 +494,37 @@ test('시도별 상가 기준일(asof_by_sido)을 헤더 pill 과 KPI 카드에 
   assert.ok(old.every(v => v === '2025-06-30'));
 });
 
+/* 카카오 탭 표 — 열 붕괴 회귀 계약 (2026-11-18: 집계 칩이 상호·주소 열을 1글자 폭으로 밀어낸 문제) */
+const kakaoTableHTML = new Function('esc', 'classifyDensityExclusion',
+  section('function kakaoTableHTML(sim, e) {', 'function polyListHTML(sim, e) {') + '\n;return kakaoTableHTML;')(
+  (s) => String(s == null ? '' : s),
+  () => ({ exclude: false, status: 'RESTRICTED', label: '일반음식점' }));
+const kakaoRowsHTML = kakaoTableHTML({
+  ownConfirmed: true,
+  inside: [
+    { p: { name: '가맹점상호가길게', cat: '일반음식점', d: 154.4, addr: '경기도 수원시 영통구 영통로154번길 60' }, self: false, small: true },
+    { p: { name: '대상점포', cat: '편의점', d: 0, addr: '경기도 수원시 영통구 망포동 417-2' }, self: true, small: true },
+  ],
+}, { rule: {} });
+test('카카오 표는 고정 레이아웃 + 5열 colgroup(합 100%)으로 상호·주소 열이 붕괴하지 않는다', () => {
+  assert.ok(kakaoRowsHTML.includes('table-layout:fixed'), 'table-layout:fixed 없음');
+  assert.ok(kakaoRowsHTML.includes('class="tbl num semas-tbl"'), '공단 DB 표와 같은 표 클래스');
+  const cols = [...kakaoRowsHTML.matchAll(/<col style="width:(\d+)%">/g)].map((m) => Number(m[1]));
+  assert.equal(cols.length, 5, 'col 개수 ' + cols.length);
+  assert.equal(cols.reduce((a, b) => a + b, 0), 100, '열 폭 합계 ' + cols.reduce((a, b) => a + b, 0));
+  assert.ok(cols[0] >= 20 && cols[3] >= 20, '상호·주소 열이 좁은 조각으로 붕괴: ' + cols.join('/'));
+  assert.deepEqual([...kakaoRowsHTML.matchAll(/<th>([^<]+)<\/th>/g)].map((m) => m[1]), ['상호', '업종', '거리', '주소', '집계']);
+  assert.equal((kakaoRowsHTML.match(/<tr>/g) || []).length, 3, '헤더 1 + 데이터 2행');
+  assert.equal((kakaoRowsHTML.match(/<td/g) || []).length, 10, '행마다 5칸');
+});
+test('좁은 열의 집계·참고 칩은 줄바꿈되고 nowrap 으로 열을 밀지 않는다', () => {
+  const css = section('.semas-tbl{width:100%;table-layout:fixed}', '.semas-square');
+  assert.ok(/\.semas-tbl \.chip\{[^}]*white-space:normal/.test(css), '칩 white-space:normal');
+  assert.ok(/\.semas-tbl \.chip\{[^}]*max-width:100%/.test(css), '칩 max-width:100%');
+  assert.ok(css.includes('word-break:keep-all'), '한글 단어 단위 줄바꿈');
+  assert.ok(kakaoRowsHTML.includes('<span class="chip cf">가맹 제한(참고) · 일반음식점</span>'), '긴 집계 칩 렌더');
+});
+
 console.log(`FINAL ${passed} contract/async tests passed`);
 
 /* 공단 상가(상권)정보 프록시(/semas) 계약 — 워크플로 수정 없이 같은 CI 단계에서 실행한다 */
