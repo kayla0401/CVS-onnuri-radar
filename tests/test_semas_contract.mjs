@@ -259,3 +259,6 @@ test('카카오 45건 표본 문구는 공단 전수와 함께 설명된다', ()
 });
 
 console.log(`TOTAL ${passed} semas contract tests passed`);
+
+/* 건축물대장(/building) 프록시·2,000㎡ 상한 UI 계약 — 같은 CI 단계에서 실행한다 */
+await import('./test_building_contract.mjs');

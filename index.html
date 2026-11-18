@@ -321,6 +321,39 @@ svg.fmap [data-sid],svg.fmap [data-zone],svg.fmap [data-gs]{cursor:pointer}
 .hl-ring{width:26px;height:26px;border-radius:50%;border:3px solid #F2B544;background:rgba(242,181,68,.18);animation:pulse 1.4s ease-out infinite}
 @keyframes pulse{0%{box-shadow:0 0 0 0 rgba(242,181,68,.55)}100%{box-shadow:0 0 0 12px rgba(242,181,68,0)}}
 
+/* --- 건축물대장(건물 전 층 점포 전용면적) 카드 --- */
+.bld-card{margin:12px 20px 0;border:1px solid var(--border);border-radius:16px;background:#fff;overflow:hidden}
+.bld-h{display:flex;align-items:center;gap:8px;padding:12px 14px 10px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.bld-h b{font-size:13px;font-weight:800;letter-spacing:-.01em}
+.bld-h .sub{font-size:11px;color:var(--text-tertiary);font-weight:600}
+.bld-h .right{margin-left:auto;display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.bld-b{padding:12px 14px 14px}
+.bld-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.bld-grid>div{background:var(--bg-soft);border-radius:12px;padding:9px 10px;min-width:0}
+.bld-grid .k{font-size:10.5px;color:var(--text-tertiary);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bld-grid .v{font-size:13.5px;font-weight:800;margin-top:2px;font-variant-numeric:tabular-nums;letter-spacing:-.01em;overflow-wrap:anywhere}
+.bld-grid .v small{font-size:10.5px;font-weight:600;color:var(--text-tertiary);margin-left:1px}
+.bld-sum{display:flex;align-items:baseline;gap:8px;margin:12px 0 2px;flex-wrap:wrap}
+.bld-sum .big{font-size:23px;font-weight:800;font-variant-numeric:tabular-nums;letter-spacing:-.03em}
+.bld-sum .big.over{color:var(--danger)}
+.bld-sum .big small{font-size:12px;font-weight:700;color:var(--text-tertiary);margin-left:2px}
+.bld-sum .txt{font-size:11.5px;color:var(--text-secondary);line-height:1.5;min-width:0;flex:1}
+.bld-bar{height:8px;border-radius:999px;background:var(--bg-soft);position:relative;overflow:hidden;margin:8px 0 4px}
+.bld-bar i{display:block;height:100%;border-radius:999px;background:var(--primary)}
+.bld-bar i.over{background:var(--danger)}
+.bld-bar span{position:absolute;top:-3px;bottom:-3px;width:2px;left:62.5%;background:var(--text-primary);opacity:.55}
+.bld-floors{margin-top:8px;border-top:1px dashed var(--border);padding-top:8px}
+.bld-floors summary{cursor:pointer;font-size:11.5px;font-weight:700;color:var(--text-secondary)}
+.bld-fl{display:grid;grid-template-columns:96px 1fr auto;gap:8px;align-items:center;font-size:11.5px;padding:3px 0;color:var(--text-secondary)}
+.bld-fl .lb{font-weight:700;color:var(--text-primary)}
+.bld-fl .lb.anc{color:var(--text-tertiary);font-weight:600}
+.bld-fl .pu{min-width:0;overflow-wrap:anywhere}
+.bld-fl b{font-weight:700;color:var(--text-primary);font-variant-numeric:tabular-nums;white-space:nowrap}
+.bld-note{font-size:11px;color:var(--text-tertiary);line-height:1.6;margin-top:8px}
+.cap-warn{display:flex;gap:8px;align-items:flex-start;margin:10px 0 0;padding:10px 12px;border-radius:12px;background:var(--danger-bg);border:1px solid var(--danger-100);color:#B43A45;font-size:12px;line-height:1.55;font-weight:600}
+.cap-warn .ci{flex:none;margin-top:1px}
+.cap-warn b{font-weight:800}
+
 /* --- 점포 분석 카드 --- */
 #t1-verdict,.analysis-card{position:relative}
 /* 점포명·주소는 어떤 폭에서도 '…' 로 잘리지 않는다 — 액션 버튼은 별도 열/행으로 밀어낸다 */
@@ -638,7 +671,9 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
   .store-head{padding:16px 16px 12px;grid-template-columns:auto minmax(0,1fr);grid-template-areas:"logo id" "acts acts"}
   .store-head .acts{justify-content:flex-start;margin-top:2px}
   .card-h{padding:14px 16px}
-  .m3,.pblock,.s3,.kvline,.vrows,.trio,.reasons,.member-banner,.vbanner,.ssite,.conservative,.hintline{margin-left:16px;margin-right:16px}
+  .m3,.pblock,.s3,.kvline,.vrows,.trio,.reasons,.member-banner,.vbanner,.ssite,.conservative,.hintline,.bld-card{margin-left:16px;margin-right:16px}
+  .bld-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .bld-fl{grid-template-columns:74px 1fr auto}
   .conservative .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .ssite{font-size:12px}
   .sheet{padding:14px 12px;font-size:11px}
@@ -1668,6 +1703,7 @@ function evaluate(p, areaM2) {
   const inside = zc.filter(x => x.inside), overlapping = zc.filter(x => !x.inside && x.overlap), nearest = zc[0] || null;
 
   const base = rule.base_area || 2000;
+  const cap = areaCapOf(areaM2);   /* 2,000㎡ 절대 상한(중기부 2026.08 전국 공통) */
   const thCom = rule.min_shops || null;
   const thNon = rule.min_shops_non_commercial || null;
   const th = thCom || thNon;            // 상업지역 기준을 기본으로 표시(비상업 기준은 따로 병기)
@@ -1677,6 +1713,7 @@ function evaluate(p, areaM2) {
 
   if (!c) {
     v = 'na'; label = pinMoved ? '핀 보정 후 상가 수 재집계 필요' : '상가 데이터 미수집';
+    if (cap.over) reasons.push(cap.text);
     /* 조례 기준 숫자는 상가 자료와 무관하게 확정된다 — 자료가 없다고 기준까지 없는 것으로 쓰지 않는다. */
     reqCom = requiredShopsFor(rule, areaM2, thCom);
     reqNon = requiredShopsFor(rule, areaM2, thNon);
@@ -1698,7 +1735,17 @@ function evaluate(p, areaM2) {
     passCom = reqCom != null ? nSmall >= reqCom : null;
     passNon = reqNon != null ? nSmall >= reqNon : null;
     const nearTh = reqNon ?? required;
-    if (!th) {
+    if (inside.length) {
+      v = 'cond'; label = '조건부 — 기존 구역 내';
+      const iz = inside[0].z;
+      reasons.push(`이미 '${iz.name}'(${iz.type}) 구역 안에 있습니다. 신규 지정보다 기존 구역 온누리 가맹 등록을 우선 검토하세요.`
+        + (iz.geo === 'est-member' ? ` 이 구역의 위치·반경은 온누리 가맹점(GS25) ${(iz.est && iz.est.anchors) || 1}곳 좌표로 추정한 값입니다 — 실제 경계는 담당 부서 고시 도면으로 확인하세요.` : ''));
+    } else if (cap.over) {
+      /* 2,000㎡ 절대 상한 — 과거처럼 면적에 비례해 필요 점포 수를 올려 적합을 내지 않는다 */
+      v = 'fail'; label = '2,000㎡ 상한 초과 — 구역 축소·분할 필요';
+      reasons.push(`${cap.text} (${AREA_CAP_BASIS})`);
+      reasons.push('면적은 대지면적이 아니라 건물 내 1층~꼭대기 층 점포 전용면적 합산 기준입니다 — 건축물대장 자동조회 결과와 임대차계약서를 함께 확인하고, 구역을 2,000㎡ 이하로 줄이거나 여러 구역으로 나누어야 합니다.');
+    } else if (!th) {
       v = 'na'; label = '조례 별표 기준 확인 필요';
       reasons.push(`${rule.ordinance}은(는) 면적당 점포수 기준을 조례 별표에 위임하고 있어 DB에 수치가 없습니다.`);
       reasons.push(`환산 점포수는 ${per.toFixed(1)}개입니다. 법정 기본(2,000㎡당 30개)과 비교하면 ${per >= 30 ? '충족' : '미달'}이지만, 실제 기준은 담당 부서(${rule.dept || '미확인'})에 별표 원문으로 확인해야 합니다.`);
@@ -1719,11 +1766,6 @@ function evaluate(p, areaM2) {
         reasons.push(`검토 면적 ${fmt(areaM2)}㎡는 조례 기준면적 ${fmt(base)}㎡를 초과합니다. 해당 지자체의 초과면적 계산식이 검증되지 않아 자동 적합 판정을 보류합니다.`);
         reasons.push(`다만 최소 기준(${fmt(base)}㎡당 ${floor}개)은 넘었습니다(현재 ${nSmall}개). 초과면적 기준 점포 수는 담당 부서에 확인하세요.`);
       }
-    } else if (inside.length) {
-      v = 'cond'; label = '조건부 — 기존 구역 내';
-      const iz = inside[0].z;
-      reasons.push(`이미 '${iz.name}'(${iz.type}) 구역 안에 있습니다. 신규 지정보다 기존 구역 온누리 가맹 등록을 우선 검토하세요.`
-        + (iz.geo === 'est-member' ? ` 이 구역의 위치·반경은 온누리 가맹점(GS25) ${(iz.est && iz.est.anchors) || 1}곳 좌표로 추정한 값입니다 — 실제 경계는 담당 부서 고시 도면으로 확인하세요.` : ''));
     } else if (passCom === true && !overlapping.length) {
       v = 'pass'; label = thNon != null ? '예비 충족 — 양쪽 밀집 기준 만족' : '예비 충족 — 점포 수 기준 만족';
       reasons.push(thNon != null
@@ -1768,7 +1810,7 @@ function evaluate(p, areaM2) {
     score += 10;
   }
   return {
-    p, pos, rule: local, legacy: rm.legacy, natRule: !local, area: areaM2, r, base, th, thCom, thNon, reqCom, reqNon, passCom, passNon, required, per, ratio,
+    p, pos, rule: local, legacy: rm.legacy, natRule: !local, area: areaM2, r, base, cap, th, thCom, thNon, reqCom, reqNon, passCom, passNon, required, per, ratio,
     nAll, nSmall, nOther, counts: c, zc, inside, overlapping, nearest, v, label, reasons,
     score: Math.round(score),
   };
@@ -1799,7 +1841,7 @@ function evaluateKPI(p, areaM2) {
      (구역 격자 조회만 하고 정렬·중첩 계산은 하지 않아 전수 18,198개에서도 부담이 작다) */
   const pos = posOf(p);
   const inside = pinMoved ? [] : zonesNear(pos, 1500).filter(z => inZone(pos, z)).map(z => ({ z }));
-  return { p, pos, rule: local, legacy: rm.legacy, natRule: !local, area: areaM2,
+  return { p, pos, rule: local, legacy: rm.legacy, natRule: !local, area: areaM2, cap: areaCapOf(areaM2),
     r: Math.sqrt(areaM2 / Math.PI), base, th: thCom || thNon, thCom, thNon,
     reqCom, reqNon, required: reqCom ?? reqNon, nSmall: c ? (c.small ?? c.all) : 0, counts: c, pinMoved, inside };
 }
@@ -2168,7 +2210,7 @@ function clearPinOf(p) {
 function pinShift(p) { const v = pinOf(p); return v ? Math.round(dist(basePos(p), v)) : 0; }
 
 function t1Init() {
-  $('#area-seg').innerHTML = CONFIG.AREA_PRESETS.map(a => `<button data-a="${a}">${fmt(a)}㎡</button>`).join('');
+  $('#area-seg').innerHTML = CONFIG.AREA_PRESETS.map(a => `<button data-a="${a}" title="${a > AREA_CAP_M2 ? '구 기준 참고용 · 현행 2,000㎡ 상한 초과(지정 불가)' : '현행 2,000㎡ 상한 이내'}">${fmt(a)}㎡${a > AREA_CAP_M2 ? '<sup>*</sup>' : ''}</button>`).join('');
   $('#area-seg').onclick = e => { const b = e.target.closest('button'); if (!b) return; T1.area = +b.dataset.a; $('#area-custom').value = ''; T1.page = 0; resetPolyState(); t1Run(); };
   $('#area-custom').onchange = e => { const v = +e.target.value; if (v >= 300) { T1.area = v; T1.page = 0; resetPolyState(); t1Run(); } else toast('300㎡ 이상 입력하세요'); };
   const q = $('#q');
@@ -2282,6 +2324,7 @@ function t1Init() {
     if (e.target.closest('#empty-go')) { const q = $('#q'); if (q) q.focus(); return; }
     if (e.target.closest('#v-detail')) { T1.open = !T1.open; renderVerdict(T1.ev); return; }
     if (e.target.closest('#v-copy')) { t1CopySummary(); return; }
+    if (e.target.closest('#bld-refresh')) { if (T1.ev) BLD.auto(T1.ev.p, true); return; }
     if (e.target.closest('#v-report') || e.target.closest('#a-report')) { openReport(); return; }
     if (e.target.closest('#v-pin-restore')) { const ev0 = T1.ev; if (ev0) { clearPinOf(ev0.p); pinRefresh(ev0, '원래 등록 위치로 되돌렸습니다'); } return; }
     if (e.target.closest('#v-pin')) { const ev0 = T1.ev; if (ev0) { const mz = $('#mapzone'); if (mz && mz.scrollIntoView) mz.scrollIntoView({ block: 'center', behavior: 'smooth' }); pinModeToggle(true); } return; }
@@ -2352,6 +2395,14 @@ function pinSyncUI() {
 
 /* 인증은 서버에서 처리하고, 브라우저에는 조회 결과만 전달한다.
    서버에 브이월드 키가 없으면 서버가 토지이음(PNU·지번)으로 용도지역만 조회해 준다. */
+/* 지번(PNU) 직접 지정 — 카카오 지오코더를 쓸 수 없거나 현장에서 지번을 아는 경우
+   `index.html?pnu=4111710700104170002` 로 열면 그 지번으로 용도지역·건축물대장을 조회한다. */
+const PNU_OVERRIDE = (() => {
+  try {
+    const v = new URLSearchParams(location.search).get('pnu');
+    return /^\d{19}$/.test(String(v || '')) ? String(v) : '';
+  } catch { return ''; }
+})();
 const ZONE_GIS = {
   cache: new Map(),
   areaCache: new Map(),
@@ -2370,6 +2421,7 @@ const ZONE_GIS = {
   /* 카카오 좌표 → 지번 → 19자리 PNU(법정동코드 10 + 대지구분 1 + 본번 4 + 부번 4).
      coord2address 응답에는 법정동코드(b_code)가 오지 않으므로 coord2regioncode의 법정동(B) 코드로 채운다. */
   pnuOf(pos) {
+    if (PNU_OVERRIDE) return Promise.resolve(PNU_OVERRIDE);
     const key = pos.lat.toFixed(6) + ',' + pos.lng.toFixed(6);
     if (this.pnuCache.has(key)) return this.pnuCache.get(key);
     const job = new Promise(resolve => {
@@ -2495,6 +2547,127 @@ const ZONE_GIS = {
     return out;
   },
 };
+
+/* ================= 건축물대장 자동조회 (국토부 건축HUB) =================
+   골목형상점가 면적 요건은 대지면적이 아니라 **건물 내 1층~꼭대기 층 점포 전용면적 합산**이고,
+   2,000㎡ 절대 상한(중기부 2026.08 전국 공통)을 넘으면 비례 인정 없이 지정 불가다.
+   그래서 점포 지번(PNU)이 잡히는 순간 Worker(/building)를 불러 건축물대장을 함께 보여준다.
+   같은 건물은 7일 동안 localStorage 요약을 재사용하고, 화면 상태는 좌표 단위로 캐시한다. */
+const BLD = {
+  cache: new Map(),
+  id(p) { const q = posOf(p); return `${p.id || ''}|${q.lat.toFixed(6)},${q.lng.toFixed(6)}`; },
+  endpoint() { return window.ONNURI_BUILDING_ENDPOINT || ''; },
+  get(p) { return this.cache.get(this.id(p)); },
+  recall(pnu) {
+    const rec = LS.get('bld:' + pnu);
+    return rec && rec.data && rec.data.status === 'ok' && (Date.now() - (rec.at || 0) < 7 * 86400000) ? rec.data : null;
+  },
+  remember(pnu, data) { LS.set('bld:' + pnu, { at: Date.now(), data }); },
+  async auto(p, force) {
+    const endpoint = this.endpoint();
+    if (!endpoint) return;
+    const id = this.id(p), cur = this.cache.get(id);
+    if (!force && cur && (cur.status === 'loading' || cur.status === 'idle' || (cur.expires || 0) > Date.now())) return;
+    this.cache.set(id, { status: 'loading', pnu: (cur || {}).pnu || '' });
+    const refresh = () => { if (T1.ev && this.id(T1.ev.p) === id) { renderVerdict(T1.ev); renderPolyCard(); } };
+    refresh();
+    try {
+      const pos = posOf(p);
+      let pnu = cur && cur.pnu ? cur.pnu : await ZONE_GIS.pnuOf(pos);
+      if (!pnu) { await new Promise(r => setTimeout(r, 900)); pnu = await ZONE_GIS.pnuOf(pos); }
+      if (!pnu) { this.cache.set(id, { status: 'parcel', expires: Date.now() + 600000 }); refresh(); return; }
+      const hit = !force && this.recall(pnu);
+      if (hit) { this.cache.set(id, { status: 'ok', pnu, data: hit, cached: true, expires: Date.now() + 1800000 }); refresh(); return; }
+      const url = new URL(endpoint);
+      url.searchParams.set('pnu', pnu);
+      const response = await fetch(url, { credentials: 'omit', signal: AbortSignal.timeout(30000) });
+      const data = await response.json().catch(() => null);
+      if (response.status === 404) { this.cache.set(id, { status: 'notfound', pnu, expires: Date.now() + 600000 }); refresh(); return; }
+      if (!response.ok || !data || data.status !== 'ok' || !data.shops) throw new Error('Building proxy error');
+      this.remember(pnu, data);
+      this.cache.set(id, { status: 'ok', pnu, data, expires: Date.now() + 1800000 });
+    } catch {
+      this.cache.set(id, { status: 'error', expires: 0 });
+    }
+    refresh();
+  },
+};
+
+function bldStateText(st) {
+  if (!st) return '조회 준비';
+  return ({ loading: '조회 중', idle: '조회 준비', ok: '조회 완료', parcel: '지번 확인 실패', notfound: '대장 없음', error: '조회 실패', off: '연결 안 됨' })[st.status] || '미확인';
+}
+
+/* 점포 분석 카드 안의 건축물대장 블록 */
+function bldCardHTML(e) {
+  const endpoint = BLD.endpoint();
+  const st = BLD.get(e.p) || { status: endpoint ? 'idle' : 'off' };
+  const btn = `<button class="btn xs" id="bld-refresh">${ic('refresh', 12)}다시 조회</button>`;
+  const head = (chip) => `<div class="bld-h"><b>건축물대장 자동조회</b><span class="sub">국토부 건축HUB · 건물 전 층 점포 전용면적</span><div class="right">${chip || ''}</div></div>`;
+  if (st.status === 'off') return `<div class="bld-card">${head('<span class="chip o">연결 안 됨</span>')}<div class="bld-b"><div class="bld-note">건축물대장 조회 주소(ONNURI_BUILDING_ENDPOINT)가 설정되지 않았습니다 — 2,000㎡ 상한·전용면적 합산은 건축물대장 열람으로 직접 확인해야 합니다.</div></div></div>`;
+  if (st.status === 'loading' || st.status === 'idle') {
+    return `<div class="bld-card">${head('<span class="chip w">조회 중…</span>')}<div class="bld-b"><div class="bld-note">점포 지번(PNU)으로 표제부·${'전유부·층별개요'}를 불러오고 있습니다. 잠시 뒤 자동으로 표시됩니다.</div></div></div>`;
+  }
+  if (st.status === 'parcel') return `<div class="bld-card">${head('<span class="chip o">지번 확인 실패</span>' + btn)}<div class="bld-b"><div class="bld-note">카카오 지도에서 이 좌표의 지번(PNU)을 확인하지 못했습니다 — 지도를 한 번 움직이거나 핀을 보정한 뒤 다시 조회하세요.</div></div></div>`;
+  if (st.status === 'notfound') return `<div class="bld-card">${head('<span class="chip o">대장 없음</span>' + btn)}<div class="bld-b"><div class="bld-note">이 지번으로 등록된 건축물대장이 없습니다(나대지·토지 등). 건축물이 없다면 건물 전 층 전용면적 합산 요건을 확인할 수 없으니 담당 부서에 문의하세요.</div></div></div>`;
+  if (st.status === 'error') return `<div class="bld-card">${head('<span class="chip d">조회 실패</span>' + btn)}<div class="bld-b"><div class="bld-note">건축물대장 조회 서버가 응답하지 않았습니다. 잠시 뒤 [다시 조회]를 눌러 주세요. 확인되지 않은 면적으로 상한 판정을 내리지는 않습니다.</div></div></div>`;
+
+  const d = st.data || {}, b = d.building || {}, sh = d.shops || {}, cap = d.cap || {};
+  const over = !!sh.over2000;
+  const agg = b.kind === 'aggregate';
+  const area = +sh.area || 0;
+  const barW = Math.min(area / 2000, 1.6) / 1.6 * 100;
+  const kindChip = agg ? `<span class="chip a">집합건축물</span>` : `<span class="chip w">일반건축물 · 전유부 미등재</span>`;  const floors = (d.floors || []).filter(f => (f.area || f.other || f.residential) > 0);
+  const floorRows = floors.map(f => {
+    const anc = f.kind === 'ancillary';
+    const main = f.area ? `<b>${fmt(Math.round(f.area))}㎡</b>` : `<b class="faint">${fmt(Math.round(f.other || f.residential))}㎡</b>`;
+    const pu = anc ? '부대설비·주차 등(점포 아님)' : (f.purposes && f.purposes.length ? f.purposes.join(' · ') : (f.residential ? '주거' : (f.units ? `${f.units}호실` : '')));
+    return `<div class="bld-fl"><span class="lb ${anc ? 'anc' : ''}">${esc(f.label)}</span><span class="pu">${esc(pu)}</span>${main}</div>`;
+  }).join('');
+  return `<div class="bld-card">
+    ${head(`${kindChip}${PNU_OVERRIDE && st.pnu === PNU_OVERRIDE ? '<span class="chip o">지번 직접 지정</span>' : ''}<span class="chip ${over ? 'cf' : 's'}">${over ? `2,000㎡ 초과 +${fmt(Math.round(sh.excess))}㎡` : '2,000㎡ 이내'}</span>${btn}`)}
+    <div class="bld-b">
+      <div class="bld-grid">
+        <div><div class="k">건물</div><div class="v">${esc(b.name || (b.address ? '건축물대장' : '—'))}</div></div>
+        <div><div class="k">대지면적</div><div class="v">${b.platArea ? fmt(Math.round(b.platArea)) : '—'}<small>㎡</small></div></div>
+        <div><div class="k">연면적</div><div class="v">${b.totalArea ? fmt(Math.round(b.totalArea)) : '—'}<small>㎡</small></div></div>
+        <div><div class="k">층수</div><div class="v">지상 ${b.groundFloors || 0} / 지하 ${b.underFloors || 0}</div></div>
+      </div>
+      <div class="bld-sum">
+        <span class="big ${over ? 'over' : ''}">${fmt(Math.round(area))}<small>㎡</small></span>
+        <span class="txt">${agg ? `집합건축물 · 상가 전유면적 합계 ` : '일반건축물 · 층별 바닥면적 합계 '}${sh.units ? `(${fmt(sh.units)}호실) ` : ''}· 지상 ${fmt(Math.round(sh.aboveGround || 0))}㎡ + 지하 ${fmt(Math.round(sh.underground || 0))}㎡${sh.residentialArea ? ` · 주거 전유 ${fmt(Math.round(sh.residentialArea))}㎡ 제외` : ''}${sh.otherArea ? ` · 부대설비 ${fmt(Math.round(sh.otherArea))}㎡ 제외` : ''}</span>
+      </div>
+      <div class="bld-bar"><i class="${over ? 'over' : ''}" style="width:${barW.toFixed(1)}%"></i><span title="2,000㎡ 상한"></span></div>
+      <div class="bld-note" style="margin-top:2px">기준선 = 2,000㎡ 절대 상한(중기부 2026.08 전국 공통) · ${esc(sh.exclusiveBasis || '')}${agg ? '' : ` → 공용부 약 20% 차감 추정 전용 ${fmt(Math.round(sh.estimatedExclusive || 0))}㎡`}</div>
+      ${over ? `<div class="cap-warn"><span class="ci">${ic('warn', 15)}</span><span><b>${esc(cap.verdict || '2,000㎡ 상한 초과')}</b><br>과거에는 면적에 비례해 점포 수 기준을 올려 인정했지만, 현행 현장 기준은 2,000㎡를 넘으면 지정 불가입니다. ${agg ? '전유면적 합계 그대로 적용됩니다' : '임대차계약서상 실제 임대 전용면적을 확인해야 합니다'} — 구역을 2,000㎡ 이하로 줄이거나 분할하세요.</span></div>` : ''}
+      ${floorRows ? `<details class="bld-floors"><summary>층별 내역 ${floors.length}층 보기</summary>${floorRows}</details>` : ''}
+      <div class="bld-note">${(d.notes || []).map(x => esc(x)).join(' ')}${st.cached ? ' · 저장된 조회 결과(7일)' : ''}${d.checkedAt ? ` · 조회 ${esc(String(d.checkedAt).slice(0, 16).replace('T', ' '))}` : ''}</div>
+    </div></div>`;
+}
+
+/* 리포트·요약용 건축물대장 사실 모음 */
+function bldFacts(e) {
+  const st = BLD.get(e.p);
+  const d = st && st.status === 'ok' ? st.data : null;
+  const sh = (d && d.shops) || {}, b = (d && d.building) || {}, cap = (d && d.cap) || {};
+  return { st, d, ok: !!d, area: d ? +sh.area || 0 : null, units: sh.units == null ? null : sh.units,
+    over: !!sh.over2000, cap, kindLabel: b.kindLabel ? String(b.kindLabel) : '', name: b.name ? String(b.name) : '',
+    aboveGround: d ? +sh.aboveGround || 0 : null, underground: d ? +sh.underground || 0 : null,
+    estimated: d ? +sh.estimatedExclusive || 0 : null, basis: sh.exclusiveBasis || '' };
+}
+
+/* 직접 그린 구역 카드 — 도면(지면) 면적과 건물 전 층 전용면적 합산은 다르다 */
+function bldDrawHTML(e) {
+  const st = BLD.get(e.p);
+  if (!st || st.status !== 'ok') return '';
+  const d = st.data || {}, b = d.building || {}, sh = d.shops || {};
+  const over = !!sh.over2000;
+  return `<div class="ssite ${over ? 's1' : 's2'}" style="margin:10px 20px 0">
+    <span class="si">${ic('info', 16)}</span><div class="sb">
+      <b>도면 지면 면적 ≠ 건물 전 층 점포 전용면적 합산${over ? ' — 2,000㎡ 상한 초과' : ''}</b>
+      <span class="sx">이 건물(${[b.name, b.kindLabel].filter(Boolean).map(esc).join(' · ') || '건축물대장'})의 점포 전용면적 합계는 <b>${fmt(Math.round(sh.area || 0))}㎡</b>${sh.units ? ` (${fmt(sh.units)}호실)` : ''}로 2,000㎡ 상한 ${over ? `<b>+${fmt(Math.round(sh.excess))}㎡ 초과</b> — 이 건물이 들어간 구역은 지정할 수 없습니다(구역 축소·분할 필요)` : '이내입니다'}. 면적 기준은 대지·도면 면적이 아니라 <b>건물 내 1층~꼭대기 층 점포 전용면적 합산</b>입니다.</span>
+    </div></div>`;
+}
 
 /* ================= 용도지역 혼합 면적 =================
    신청 도면(꺾인 경계)과 국토교통부 용도지역 도형의 교집합을 가로 스캔라인으로 적분한다.
@@ -2920,6 +3093,7 @@ function t1Select(p, noHist) {
   $('#q').value = p.name; $('#q-clear').hidden = false; t1HideAC(); t1Run();
   if (!noHist) pushHistory(p);
   ZONE_GIS.auto(p);
+  if (typeof BLD !== 'undefined') BLD.auto(p);   /* 건축물대장 자동조회(2,000㎡ 상한·전용면적 합산) */
 }
 
 function t1RenderEmpty() {
@@ -2935,7 +3109,11 @@ function t1RenderEmpty() {
 
 function t1Run() {
   $$('#area-seg button').forEach(b => b.setAttribute('aria-pressed', +b.dataset.a === T1.area));
-  $('#area-desc').textContent = `원형 환산 반경 ${Math.round(Math.sqrt(T1.area / Math.PI))}m`;
+  const capDesc = areaCapOf(T1.area);
+  $('#area-desc').textContent = `원형 환산 반경 ${Math.round(Math.sqrt(T1.area / Math.PI))}m`
+    + (capDesc.over ? ' · 2,000㎡ 상한 초과(구 기준 참고용)' : '');
+  const descEl = $('#area-desc');
+  if (descEl) { descEl.style.color = capDesc.over ? 'var(--danger)' : ''; descEl.title = capDesc.over ? AREA_CAP_RULE : ''; }
   if (!T1.sel) return t1RenderEmpty();
   const e = T1.ev = ev(T1.sel, T1.area);
   if (T1.poly.store !== e.p.id) { resetPolyState(); T1.poly.store = e.p.id; }
@@ -3096,6 +3274,26 @@ function densityPolicyOf(rule) {
   return DENSITY_POLICIES[p] ? p : 'UNKNOWN';
 }
 
+/* ---- 2,000㎡ 절대 상한 (중기부 2026.08 가이드라인 · 전국 공통) ----
+   과거에는 2,000㎡를 넘어도 조례의 비례·계단식으로 필요 점포 수를 올려 인정했지만,
+   현행 현장 기준은 **2,000㎡를 넘으면 비례 인정 없이 지정 불가**다.
+   면적도 대지면적이 아니라 건물 내 1층~꼭대기 층 점포 전용면적 합산으로 본다.
+   → 아래 areaCapOf()가 초과 여부를 확정하고, 판정 함수는 초과 시 '적합'을 내지 않는다. */
+/* @area-cap:start (아래 블록은 DOM 비의존 — 판정코어 테스트가 그대로 떠어 실행) */
+const AREA_CAP_M2 = 2000;
+const AREA_CAP_BASIS = '중소벤처기업부 2026.08 가이드라인(전국 공통)';
+const AREA_CAP_RULE = '2,000㎡ 초과 시 비례 인정 없이 지정 불가 · 면적은 건물 내 점포 전용면적 합산';
+function areaCapOf(area) {
+  const a = +area;
+  const base = { limit: AREA_CAP_M2, basis: AREA_CAP_BASIS, rule: AREA_CAP_RULE, over: false, excess: 0, area: Number.isFinite(a) ? a : null };
+  if (!Number.isFinite(a) || a <= 0) return base;
+  if (a <= AREA_CAP_M2) return base;
+  const excess = Math.round((a - AREA_CAP_M2) * 100) / 100;
+  const n = v => Math.round(v).toLocaleString('ko-KR');
+  return { ...base, over: true, excess, text: `검토 면적 ${n(a)}㎡는 2,000㎡ 절대 상한을 ${n(excess)}㎡ 넘습니다 — 이 면적으로는 지정할 수 없습니다(구역 축소·분할 필요)` };
+}
+/* @area-cap:end */
+
 /* 온누리상품권 가맹 적격성 — 시행령 별표 1(33종) 전체 기준 */
 function classifyOnnuriEligibility(name, cat, ksic) {
   const c = String(cat == null ? '' : cat).trim();
@@ -3207,6 +3405,7 @@ function densityAssess(o) {
     excludedSample: 0, effective: population, rangeLo: population, rangeHi: population,
     status: 'NEEDS_CHECK', statusLabel: DENSITY_STATUS.NEEDS_CHECK.label, statusColor: DENSITY_STATUS.NEEDS_CHECK.color,
     conflict: !!(rule && rule.rule_conflict_flag), conflictNote: (rule && rule.rule_conflict_note) || null,
+    cap: areaCapOf(area), areasum: o.areaSum == null ? null : areaCapOf(o.areaSum),
     blocksVerdict: false, basis: '', legalBasis: (rule && rule.exclusion_legal_basis) || null,
     exclusionDate: (rule && rule.exclusion_effective_date) || null, notes,
   };
@@ -3214,6 +3413,7 @@ function densityAssess(o) {
   if (out.conflict) notes.push(`조례·시행규칙 문언 충돌 — ${out.conflictNote || '유권해석 필요'}`);
   if (policy === 'UNKNOWN') notes.push(DENSITY_POLICIES.UNKNOWN.desc);
   if (!rule) notes.push('이 지자체 조례가 DB에 없습니다 — 법정 기본값으로 단정하지 않습니다.');
+  if (out.cap.over) notes.push(out.cap.text);
   if (rule && area > baseArea && rule.over_area_verified !== true) notes.push(`검토 면적 ${Math.round(area)}㎡가 기준면적 ${baseArea}㎡를 넘지만 초과면적 계산식이 검증되지 않았습니다.`);
 
   /* 조례상 제외 점포 수 — 확인된 표본 안에서만 센다(비율 외삽 금지) */
@@ -3225,6 +3425,11 @@ function densityAssess(o) {
   /* 법적으로 확정할 수 없는 사유(조례 미확인·조문 미확인·초과면적 미검증·조례/시행규칙 충돌)를
      데이터 부족보다 먼저 본다 — 자료가 없다는 이유로 '법적 기준 미확인'이 가려지면 안 된다. */
   if (!rule) { setStatus('LEGAL_UNVERIFIED', '조례 미확인'); return out; }
+  if (out.cap.over) {
+    /* 2,000㎡ 절대 상한 — 밀집도를 아무리 세도 이 면적으로는 지정 불가다. 다른 사유보다 먼저 본다. */
+    setStatus('NEEDS_CHECK', `${AREA_CAP_BASIS} 2,000㎡ 상한 초과 — 구역 축소·분할 없이는 지정 불가`);
+    return out;
+  }
   if (policy === 'UNKNOWN') {
     /* 조문 미확인 — 조례가 별표 1 전체를 제외한다고 가정한 하한과, 전혀 빼지 않은 상한을 함께 보여준다 */
     out.rangeLo = population == null ? null : 0; // 제외 조문 미확인: 인정 가능한 최솟값을 확정할 수 없음
@@ -3274,6 +3479,9 @@ const HEADLINE_STATUS = {
   COND: { emoji:'🟡', title:'조건부', cls:'cond' },
   COND_LEGAL: { emoji:'🟡', title:'조건부', cls:'cond' },
   BASIS: { emoji:'🟡', title:'조건부', cls:'cond' },
+  /* 2,000㎡ 절대 상한 초과 — 업종·밀집도와 무관하게 이 면적으로는 지정 불가(중기부 2026.08 전국 공통).
+     공개 어휘는 3종(적합·조건부·부적합)을 그대로 두고 '부적합'으로 낸다. */
+  OVER_CAP: { emoji:'🔴', title:'부적합', cls:'fail' },
   /* 이미 지정 구역 안이거나 이미 온누리 가맹인 점포 — 새 판정을 내리기 전에 '이미 끝난 일'을 먼저 보여준다.
      공개 판정 어휘는 3종(적합·조건부·부적합) 그대로 두고, 제목은 '조건부'에 두되 문구로 상태를 분명히 밝힌다. */
   MEMBER: { emoji:'🔵', title:'조건부', cls:'cond' },
@@ -3307,7 +3515,13 @@ function headlineVerdict(o) {
      조례 기준이 확인돼 있으면 기준 숫자를 함께 보여준다(예전에는 상가정보 미수집 지자체에서
      카카오 조회 직후 '조례 별표 기준 없음'으로 오표시됐다 — 기준은 있는데 자료가 없는 상태다). */
   if (pop == null || maxShops == null) return res('NO_DATA', `${o.noDataReason || '상가 데이터 미수집 · 카카오 조회 전'}${reqLow != null ? ` — 조례 기준(최소 ${reqLow}개)은 확인돼 있지만 주변 상가 수를 세지 못해 판정하지 않습니다` : ''} · 현장 확인 또는 카카오 실시간 조회 필요`);
-  /* 0-3) 기준 자체가 확정되지 않은 경우 — 숫자 비교로 단정하지 않는다 */
+  /* 0-3) 2,000㎡ 절대 상한 초과 — 비례 인정이 없으므로 점포 수와 무관하게 지정 불가 */
+  if (o.overCap) {
+    const capExcess = o.overCap.excess == null ? null : +o.overCap.excess;
+    const n = v => Math.round(v).toLocaleString('ko-KR');
+    return res('OVER_CAP', `${n(o.overCap.area == null ? o.area : o.overCap.area)}㎡ — 2,000㎡ 절대 상한(${AREA_CAP_BASIS})을 ${capExcess != null ? n(capExcess) + '㎡ ' : ''}초과했습니다. 비례 인정이 없어 이 면적으로는 지정 불가이며, 구역을 2,000㎡ 이하로 줄이거나 분할해야 합니다${o.overCap.building ? ' (건물 전 층 점포 전용면적 합계 기준)' : ''}`, { overCap: true });
+  }
+  /* 0-3b) 기준 자체가 확정되지 않은 경우 — 숫자 비교로 단정하지 않는다 */
   if (o.basisUnknown) return res('BASIS', `${o.basisUnknown} — 담당 부서·조례 원문 확인 필요`);
   /* 0-4) 기준면적을 넘는 면적: 초과면적 계산식이 미검증이어도 '최소 기준'(기준면적 기준 점포 수)은 확정이다.
      최소 기준에도 못 미치면 초과 계산식과 무관하게 부적합이고, 넘으면 기준 확인 필요로 남긴다. */
@@ -4146,6 +4360,8 @@ function headlineOf(e, legal) {
     population: maxShops, maxShops, minShops,
     reqCom: e.reqCom, reqNon: e.reqNon, policy: densityPolicyOf(e.rule), conflict: !!e.rule && !!e.rule.rule_conflict_flag,
     conflictSub, basisUnknown,
+    /* 2,000㎡ 절대 상한(중기부 2026.08 전국 공통) — 면적이 넓으면 점포 수와 무관하게 지정 불가 */
+    overCap: (e.cap || areaCapOf(e.area)).over ? { area: e.area, excess: (e.cap || areaCapOf(e.area)).excess } : null,
     evidenceLimited: !!e.counts?.est || !!legal.truncated || legal.status === 'NEEDS_CHECK',
     noDataReason: e.counts ? null : (pinOf(e.p) ? '핀 보정 좌표 기준 상가 수 재집계 필요' : `${e.p.sido} 상가(상권)정보 CSV 미수집`),
     /* 신규 판정보다 먼저 보여줄 '이미 끝난 일' */
@@ -4258,6 +4474,7 @@ function renderVerdict(e) {
         <span class="faint" style="font-size:11px">자동조회는 점포 <b>필지</b> 기준입니다(브이월드 용도지역 레이어, 키가 없으면 토지이음 지번 조회). 필지 경계와 신청 구역 전체의 용도지역은 별도 확인이 필요합니다.</span>
       </span>
     </div>
+    ${bldCardHTML(e)}
     <div class="pblock">
       <div class="top"><span class="lbl">현재 확인 상가 수 <span class="faint" style="font-weight:600">(업종 제외 미반영)</span></span><span class="pct" style="color:${pctCol}">${pct != null ? pct + '%' : '—'}</span></div>
       <div class="val"><b class="num">${e.counts ? e.nSmall : '—'}</b><span>/ ${e.required ?? '—'}개${cntSrc}</span></div>
@@ -4349,6 +4566,7 @@ const EASY_MOOD = {
   COND_LEGAL: { label: '가능성 있음 · 조문 확인 필요', color: '#8A5A0B', bg: '#FFF8EC' },
   BASIS: { label: '기준 확인이 먼저', color: '#8A5A0B', bg: '#FFF8EC' },
   NO_DATA: { label: '자료 부족 · 직접 확인', color: '#5A6472', bg: '#F2F4F7' },
+  OVER_CAP: { label: '2,000㎡ 상한 초과 · 지정 불가', color: '#B43A45', bg: '#FDECEE' },
   FAIL: { label: '지금 자료로는 어려움', color: '#B43A45', bg: '#FDECEE' },
 };
 function easyMoodOf(hv) { return EASY_MOOD[hv && hv.level] || EASY_MOOD.COND; }
@@ -4442,7 +4660,8 @@ function easyTodo(e, hv, bs, xc) {
     if (!r.min_shops && !r.min_shops_non_commercial) qs.push('조례 별표에 적힌 점포 수 기준이 정확히 몇 곳인지');
     if (F.policy === 'UNKNOWN') qs.push('점포 수를 셀 때 제외되는 업종(예: 일반교습학원·유흥주점)이 있는지, 있다면 어떤 업종인지');
     if (r.excludes_road_parking !== false) qs.push('구역 면적을 잴 때 도로·주차장 같은 공용면적을 빼고 계산할 수 있는지');
-    if (e.area > F.base || r.over_area_verified !== true) qs.push(`${fmt(F.base)}㎡를 넘는 구역은 점포 수 기준이 어떻게 올라가는지(초과면적 계산식)`);
+    if (e.area > 2000) qs.push('검토 구역이 2,000㎡를 넘었는데, 구역을 줄이거나 분할하는 방법 외에 다른 길이 있는지(중기부 2026.08 전국 공통 상한)');
+    if (e.area > F.base) qs.push(`${fmt(F.base)}㎡를 넘는 구역의 과거 초과면적 계산식이 지금도 적용되는지`);
     if (r.owner_consent_waived !== true) qs.push('상인 동의는 몇 % 이상인지, 토지·건축물 소유자 동의도 필요한지');
     if (r.rule_conflict_flag) qs.push('조례와 시행규칙 기준이 다르게 적혀 있는데 어느 쪽을 적용하는지');
     if (!r.updated || daysSince(r.updated) > UI.STALE_DAYS) qs.push('조례가 최근에 개정된 게 있는지(지금 보고 있는 기준이 맞는지)');
@@ -4543,6 +4762,7 @@ function easySummaryHTML(e, mode) {
   const mood = easyMoodOf(hv), why = easyWhy(e, hv, bs, xc), todo = easyTodo(e, hv, bs, xc);
   const lead = hv.level === 'MEMBER' ? hv.sub
     : hv.level === 'PASS' ? '지금 자료로는 지정 요건을 채울 가능성이 높아 보여요. 실제 지정은 현장 확인과 담당 부서 심사로 정해집니다.'
+    : hv.level === 'OVER_CAP' ? '검토 구역(또는 건물 전 층 점포 면적 합계)이 2,000㎡를 넘어 이 면적으로는 지정할 수 없어요. 과거처럼 넓은 면적을 비례 인정하는 방식은 지금 현장 기준에서 통하지 않습니다 — 구역을 줄이거나 나누는 것이 먼저예요.'
     : hv.level === 'FAIL' ? '지금 자료로는 주변 가게 수가 기준에 모자라 보여요. 실제로 더 있는지 현장에서 세어 보면 결과가 달라질 수 있어요.'
     : hv.level === 'NO_DATA' ? '주변 상가 자료가 없어 판정을 보류했어요. 현장에서 직접 세거나 카카오 실시간 조회로 확인해야 해요.'
     : hv.level === 'BASIS' ? '기준(조례 별표·초과면적) 확인이 먼저라 판정을 보류했어요. 담당 부서에 한 번만 물어보면 정리됩니다.'
@@ -4601,6 +4821,12 @@ function storeTypeCheck(st) {
 function buildReportHTML(e) {
   const g = reportFacts(e), p = g.p, r = g.r, ss = g.ss, bs = g.bs, sim = g.sim, xc = g.xc;
   const hv = headlineOf(e, bs.assess || {});
+  const bf = bldFacts(e);
+  const bldTxt = bf.ok
+    ? `${bf.name ? esc(bf.name) + ' · ' : ''}${esc(bf.kindLabel)} · 점포 전용면적 합계 <b>${fmt(Math.round(bf.area))}㎡</b>${bf.units ? ` (${fmt(bf.units)}호실)` : ''} · 지상 ${fmt(Math.round(bf.aboveGround || 0))}㎡ + 지하 ${fmt(Math.round(bf.underground || 0))}㎡ · 2,000㎡ 상한 ${bf.over ? `<b style="color:var(--danger)">초과 +${fmt(Math.round((bf.cap || {}).excess || 0))}㎡ — 지정 불가(구역 축소·분할)</b>` : '이내'}`
+    : (bf.st && ['loading', 'idle'].includes(bf.st.status) ? '조회 중 — 점포 지번으로 건축물대장을 불러오고 있습니다'
+      : bf.st && bf.st.status === 'notfound' ? '이 지번으로 등록된 건축물대장 없음 — 담당 부서 확인 필요'
+      : '미조회 — 건축물대장 열람(eum.go.kr·정부24)으로 건물 전 층 점포 전용면적 합산을 확인해야 함');
   const zf = zoneMixFacts(e, sim), zoneTxt = zoneMixText(zf, e), pointTxt = zonePointLine(p);
   const today = fmtDate(new Date()), rel = zoneRel(e);
   const pct = e.ratio != null ? Math.round(e.ratio * 100) : null;
@@ -4662,6 +4888,7 @@ function buildReportHTML(e) {
   <div class="sub">${esc(p.name)} · ${esc(p.address)} · 분석 기준일 ${today} · 온누리 레이더</div>
   <h2>0. 한눈에 보기 — 쉬운 말 요약</h2>
   <div class="easy-block">${easySummaryHTML(e, 'sheet')}</div>
+  <div class="box"><b>2,000㎡ 절대 상한·면적 기준(중기부 2026.08 전국 공통)</b> — 2,000㎡를 넘으면 비례 인정 없이 지정 불가이며, 면적은 대지·도면 면적이 아니라 <b>건물 내 1층~꼭대기 층 점포 전용면적 합산</b>입니다. ${bf.ok ? `이 건물 합계 ${fmt(Math.round(bf.area))}㎡${bf.over ? ` — 상한 ${fmt(Math.round((bf.cap || {}).excess || 0))}㎡ 초과(지정 불가)` : ' — 상한 이내'}` : '건축물대장 미조회 — 열람으로 확인하세요'}${e.cap && e.cap.over ? `<br><b style="color:var(--danger)">검토 면적 ${fmt(e.area)}㎡는 상한 초과 — 구역 축소·분할 필요</b>` : ''}</div>
   <div class="box"><b>다음 확인</b><ul>${fieldNextSteps(e).map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>
   <div class="box"><b>${esc(hv.full)}</b> — ${esc(hv.sub)}<br><span class="faint">자료 기준 참고 범위: 최대 ${hv.maxShops == null ? '미수집' : hv.maxShops + '개'}(업종 제외 0건) · 하한 ${hv.minShops == null ? '미수집' : hv.minShops + '개'}(미확인 사항 포함 시 인정 수 확정 불가) · 기준 ${hv.reqLow == null ? '미상' : hv.reqLow === hv.reqHigh ? hv.reqLow + '개' : hv.reqLow + '~' + hv.reqHigh + '개'}. A축 카드의 조문 확인 결과와 함께 읽으세요.</span></div>
   <h2>1. 기본 현황</h2>
@@ -4673,6 +4900,8 @@ function buildReportHTML(e) {
     <tr><th>사전검토</th><td>${esc(hv.title)} (${pct != null ? '충족률 ' + pct + '%' : '충족률 미상'})</td><th>온누리 가맹</th><td>${memberTxt}</td></tr>
     ${e.legacy ? `<tr><th>행정구역 개편</th><td colspan="3">옛 주소 '${esc(e.legacy.from)}' → '${esc(e.legacy.to)}' 조례로 매칭 — ${esc(e.legacy.note)}${e.legacy.guessed ? ' (법정동 미확인 · 기본 관할 적용, 담당 부서 확인 필요)' : ` (법정동 ${esc(e.legacy.dong)} 기준)`}</td></tr>` : ''}
     <tr><th>점포 운영 형태</th><td colspan="3">${esc(STORE_TYPE[g.st] || '미확인')} — ${esc(stc.txt)}</td></tr>
+    <tr><th>면적 기준</th><td colspan="3"><b>2,000㎡ 절대 상한(중기부 2026.08 가이드라인 · 전국 공통)</b> — 2,000㎡를 넘으면 과거처럼 면적에 비례해 점포 수 기준을 올려 인정하지 않고 <b>지정 불가</b>. 면적은 대지면적이 아니라 <b>건물 내 1층~꼭대기 층 점포 전용면적 합산</b>${e.cap && e.cap.over ? `<br><b style="color:var(--danger)">이 검토 면적(${fmt(e.area)}㎡)은 상한을 ${fmt(Math.round(e.cap.excess))}㎡ 초과 — 구역 축소·분할 필요</b>` : ''}</td></tr>
+    <tr><th>건축물대장(국토부)</th><td colspan="3">${bldTxt}</td></tr>
     <tr><th>법적 용도지역</th><td colspan="3">점포 필지 ${pointTxt}${sim ? ` · 도면 혼합 ${esc(zoneTxt)}` : ''}</td></tr>
     <tr><th>특수입지 판정</th><td colspan="3">${ssTxt}</td></tr>
   </table></div>
@@ -4684,7 +4913,7 @@ function buildReportHTML(e) {
     <tr><th>구분</th><th>법적 근거·기준</th><th>확인된 수치</th><th>판정 상태</th></tr>
     <tr><td>적용 조례</td><td colspan="3">${r ? esc(r.ordinance) + ` (기준일 ${esc(r.updated || '—')})` : esc(NAT_RULE.ordinance) + ' — 조례 미확인, 법정 기본 기준으로 단정하지 않음'}</td></tr>
     <tr><td><b>A. 골목형상점가 지정 적격성</b><br>(밀집도)</td>
-      <td>${thTxt}<br>면적 기준: ${esc(assess.areaBasisLabel)}<br>${esc((DENSITY_POLICIES[assess.policy] || DENSITY_POLICIES.UNKNOWN).label)}${r && r.exclusion_legal_basis ? `<br><span class="faint">${esc(r.exclusion_legal_basis)}</span>` : ''}</td>
+      <td>${thTxt}<br>면적 기준: ${esc(assess.areaBasisLabel)}<br>2,000㎡ 절대 상한(중기부 2026.08 전국 공통) · 건물 전 층 점포 전용면적 합산<br>${esc((DENSITY_POLICIES[assess.policy] || DENSITY_POLICIES.UNKNOWN).label)}${r && r.exclusion_legal_basis ? `<br><span class="faint">${esc(r.exclusion_legal_basis)}</span>` : ''}</td>
       <td>${e.counts ? `확인 점포 ${fmt(e.nSmall)}개` : '확인 점포 미수집'} / 필요 ${need}${pct != null ? ` (${pct}%)` : ''}<br>조례상 제외 확인 ${assess.excludedSample != null ? assess.excludedSample : '—'}건 (표본 ${bs.n || 0}건)</td>
       <td><b>${esc(assess.statusLabel)}</b><br><span class="faint">${esc(assess.basis || '')}</span><br><span class="faint">출처: ${bs.src === 'nearby' ? '공단 CSV(표본)' : bs.src === 'kakao' ? '카카오 대조(표본)' : '표본 없음'} · 실측 아님</span></td></tr>
     <tr><td><b>B. 온누리상품권 가맹 적격성</b><br>(참고)</td>
@@ -4706,7 +4935,8 @@ function buildReportHTML(e) {
     <tr><th>도면 총 면적</th><td>${fmt(Math.round(sim.area))}㎡ (꼭짓점 ${T1.poly.pts.length}개 · 신발끈 공식)</td><th>유효 면적</th><td>${fmt(Math.round(sim.eff))}㎡ (도로·주차장 제외 ${sim.excl}%)</td></tr>
     <tr><th>도면 내 상가(카카오)</th><td>${sim.nSmall}개 / 전체 ${sim.nAll}개 (밀집도 인정 ${sim.nDensity}개 · 조례상 제외 ${(DENSITY_POLICIES[sim.policy] || DENSITY_POLICIES.UNKNOWN).label}${sim.policy === 'UNKNOWN' ? ` → ${sim.nDensityLo}~${sim.nDensityHi}개` : ` · 가맹 제한 의심 ${sim.nEx}건`}${sim.nNonSmall ? ` · 소상공인 아님 ${sim.nNonSmall}건` : ''})</td><th>공단 실측 환산</th><td>${sim.gongdan ? `${sim.gongdan.small}개 (상가 전체 ${sim.gongdan.all})` : '—'} — 공단 자료는 좌표가 없어 면적 비례 환산</td></tr>
     <tr><th>조례 필요 점포 수</th><td>${sim.required ?? '—'}개${sim.over ? ` (2,000㎡ 기준 ${sim.overInfo.thBase ?? '—'}개에서 상향)` : ''}</td><th>2,000㎡ 환산 밀도</th><td>${sim.per != null ? sim.per.toFixed(1) : '—'}개${sim.ratio != null ? ` (${Math.round(sim.ratio * 100)}%)` : ''}</td></tr>
-    <tr><th>도면 기준 재판정</th><td colspan="3"><b>${esc(sim.label)}</b>${sim.over ? ' · 도면 유효 면적이 2,000㎡를 넘어 2,000㎡ 이상 기준으로 상향해 비교했습니다.' : ''}</td></tr>
+    <tr><th>도면 기준 재판정</th><td colspan="3"><b>${esc(sim.label)}</b>${sim.over ? ` · 도면 유효 면적 ${fmt(Math.round(sim.eff))}㎡가 2,000㎡ 절대 상한을 넘어 지정 불가 — 구역 축소·분할 필요(구 기준 면적 비교값은 참고).` : ''}</td></tr>
+    <tr><th>건축물대장 면적</th><td colspan="3">${bf.ok ? `도면 지면 면적 ≠ 건물 전 층 점포 전용면적 합산 — 이 건물 합계 <b>${fmt(Math.round(bf.area))}㎡</b>${bf.units ? ` (${fmt(bf.units)}호실)` : ''} · 2,000㎡ ${bf.over ? `<b style="color:var(--danger)">초과 — 이 건물이 든 구역은 지정 불가</b>` : '이내'}` : '미조회 — 건축물대장 열람 필요'}</td></tr>
   </table></div>` : ''}
   <h2>3. 제외·주의 업종 및 주변 상가 요약</h2>
   <div class="tblwrap"><table class="kv">
@@ -4725,6 +4955,7 @@ function buildReportHTML(e) {
 }
 function reportText(e) {
   const hv = headlineOf(e, bizStatsOf(e).assess);
+  const bf = bldFacts(e);
   const g = reportFacts(e), p = g.p, r = g.r, bs = g.bs, an = bs.assess || {};
   const pct = e.ratio != null ? Math.round(e.ratio * 100) : null;
   const stc = storeTypeCheck(g.st);
@@ -4733,6 +4964,8 @@ function reportText(e) {
     `주소: ${p.address}`,
     `분석 기준일: ${fmtDate(new Date())}`,
     `검토 구역: ${fmt(e.area)}㎡ (원형 반경 ${Math.round(e.r)}m)`,
+    `2,000㎡ 절대 상한(중기부 2026.08 전국 공통): ${e.cap && e.cap.over ? `검토 면적이 상한을 ${fmt(Math.round(e.cap.excess))}㎡ 초과 — 구역 축소·분할 필요(비례 인정 없음)` : '검토 면적은 상한 이내'} · 면적은 건물 내 1층~꼭대기 층 점포 전용면적 합산`,
+    `건축물대장: ${bf.ok ? `${bf.name || '건축물'} · ${bf.kindLabel} · 점포 전용면적 합계 ${Math.round(bf.area)}㎡${bf.units ? ` (${bf.units}호실)` : ''} · 지상 ${Math.round(bf.aboveGround || 0)}㎡ + 지하 ${Math.round(bf.underground || 0)}㎡ · 2,000㎡ 상한 ${bf.over ? `초과 +${Math.round((bf.cap || {}).excess || 0)}㎡(지정 불가)` : '이내'}` : '미조회 — 건축물대장 열람(eum.go.kr·정부24)으로 확인 필요'}`,
     `분석 좌표: ${pinOf(p) ? `핀 보정 ${e.pos.lat.toFixed(6)}, ${e.pos.lng.toFixed(6)} (공단 등록 위치에서 ${pinShift(p)}m 이동)` : `공단 등록 ${(+p.lat).toFixed(6)}, ${(+p.lng).toFixed(6)}`}`,
     g.sim ? `직접 그린 도면(예비): 총 ${Math.round(g.sim.area)}㎡ · 유효 ${Math.round(g.sim.eff)}㎡(제외율 가정 ${g.sim.excl}%) · 카카오 발견 ${g.sim.nSmall}개 · 공단 원형 추정 ${g.sim.gongdan ? g.sim.gongdan.small : '—'}개 · 최소 기준 ${g.sim.required ?? '미검증'}개${g.sim.over ? ' (초과면적 별도 조례 검증 필요)' : ''}` : '',
     g.sim ? `도면 기준 재판정: ${g.sim.label}${g.sim.ratio != null ? ` (${Math.round(g.sim.ratio * 100)}%)` : ''}` : '',
@@ -5064,6 +5297,7 @@ function polySim(e) {
   const excl = Math.max(0, Math.min(90, +P.excl || 0));
   const eff = area * (1 - excl / 100);
   const base = e.base || 2000, thCom = e.thCom, thNon = e.thNon, thFlat = e.th;
+  const cap = areaCapOf(eff);            /* 도면 유효 면적 기준 2,000㎡ 절대 상한 */
   const over = eff > base;
   const overInfo = over ? over2000For(e, eff) : null;
   const th = thFlat;
@@ -5077,7 +5311,11 @@ function polySim(e) {
   const semStats = sem && sem.status === 'ok' ? semasStats(sem) : null;
   const conflict = !!(e.rule && e.rule.rule_conflict_flag);
   let v = 'na', label = '확인 자료 부족';
-  if (!live) {
+  if (cap.over) {
+    /* 2,000㎡ 절대 상한 — 도면이 상한을 넘으면 상가 조회·업종·밀집도·조례와 무관하게 지정 불가 */
+    v = 'fail';
+    label = `2,000㎡ 상한 초과 — 구역 축소·분할 필요(유효 ${fmt(Math.round(eff))}㎡)`;
+  } else if (!live) {
     label = '구역 내 상가 미조회 — 카카오 조회 필요';
   } else if (conflict) {
     label = '조례·시행규칙 충돌 — 유권해석 전 확정 불가';
@@ -5092,18 +5330,20 @@ function polySim(e) {
   } else {
     v = 'cond'; label = '발견 상가 수 부족 — 누락 상가 현장 조사 필요';
   }
-  return { area, eff, excl, nAll, nSmall, inside, required, requiredNon, per, ratio, ratioLo, base, th, thFlat, thCom, thNon,
+  return { area, eff, excl, nAll, nSmall, inside, required, requiredNon, per, ratio, ratioLo, base, th, thFlat, thCom, thNon, cap,
     nSmallAll: smallAll.length, nEx: bizEx.length, nChk: bizChk.length, nNonSmall: bizNon.length, bizOn,
     policy, nDensity, nDensityLo, nDensityHi, conflict, ownConfirmed, over, overInfo, gongdan,
     sem, semStats, semRatio: required && semStats ? semStats.small / required : null,
     v, label, live: !!live, liveState: APP.live.key === o.id ? APP.live.state : 'idle', span: polySpan(pts, pos), ring };
 }
 
-/* 초과 면적은 검증된 조례 증가식 이외에 임의 환산하지 않는다 */
+/* 초과 면적은 검증된 조례 증가식 이외에 임의 환산하지 않는다.
+   더불어 2,000㎡ 절대 상한(중기부 2026.08 전국 공통)을 넘으면 비례 인정이 없어 지정 불가다. */
 function over2000For(e, eff) {
   const r = e.rule || NAT_RULE, base = e.base || 2000;
+  const cap = areaCapOf(eff);
   const required = requiredShopsFor(r, eff, e.th);
-  return { alt: required != null, th: e.th, thBase: e.th, base, required, eff };
+  return { alt: required != null, th: e.th, thBase: e.th, base, required, eff, cap, capped: cap.over };
 }
 
 /* --- 지도 오버레이(카카오) --- */
@@ -5420,7 +5660,8 @@ function renderPolyCard() {
       <div class="right">${badge(sim.v)}</div></div>
     ${sim.excl > 0 && exclOk !== true ? `<div class="ssite s1" style="margin:10px 20px 0"><span class="si">${ic('warn', 16)}</span><div class="sb"><b>공용면적 제외는 조례 근거가 확인되지 않았습니다</b><span class="sx">이 지자체는 도로·주차장 면적 제외 조항이 확인되지 않았는데 제외율 ${sim.excl}%를 적용 중입니다. 이 값은 <b>가정값</b>이며 심의·담당 부서 확인 전에는 인정되지 않습니다.</span></div></div>` : ''}
     ${sim.conflict ? `<div class="ssite s1" style="margin:10px 20px 0"><span class="si">${ic('warn', 16)}</span><div class="sb"><b>조례·시행규칙 문언 충돌</b><span class="sx">${esc(e.rule && e.rule.rule_conflict_note || '유권해석 전에는 확정 판정이 아닙니다.')} — 조례 기준으로 계산했습니다.</span></div></div>` : ''}
-    ${sim.over ? `<div class="ssite s2" style="margin:10px 20px 0"><span class="si">${ic('warn', 16)}</span><div class="sb"><b>기준 면적 초과 — ${sim.overInfo.alt ? '검증된 초과면적 규칙 반영' : '적용 계산식 확인 필요'}</b><span class="sx">도면 유효 면적 ${fmt(Math.round(sim.eff))}㎡는 기본 단위 ${fmt(sim.base)}㎡를 넘습니다. ${sim.overInfo.alt ? '조례에 검증된 비율식으로 필요 점포 수를 계산했습니다.' : '별도 규정이 검증되지 않아 자동 적합 판정을 하지 않습니다.'}</span></div></div>` : ''}
+    ${sim.over ? `<div class="ssite s1" style="margin:10px 20px 0"><span class="si">${ic('warn', 16)}</span><div class="sb"><b>2,000㎡ 절대 상한 초과 — 구역 축소·분할 필요</b><span class="sx">도면 유효 면적 ${fmt(Math.round(sim.eff))}㎡는 2,000㎡ 상한을 ${fmt(Math.round((sim.cap || {}).excess || (sim.eff - 2000)))}㎡ 넘깁니다. ${AREA_CAP_BASIS}에 따라 <b>2,000㎡를 넘으면 과거처럼 면적에 비례해 점포 수 기준을 올려 인정하지 않고 지정 불가</b>입니다 — 구역을 줄이거나 나누세요. (조례상 필요 점포 수 ${sim.overInfo.alt ? `비교값 ${sim.overInfo.required}개` : '기준'}는 참고용으로만 표시합니다)</span></div></div>` : ''}
+    ${bldDrawHTML(e)}
     <div class="trio num">
       <div><div class="k">도면 총 면적</div><div class="v">${fmt(Math.round(sim.area))}<small>㎡</small></div></div>
       <div><div class="k">유효 면적 <span class="faint">(제외 ${sim.excl}%)</span></div><div class="v">${fmt(Math.round(sim.eff))}<small>㎡</small></div></div>
@@ -5441,7 +5682,7 @@ function renderPolyCard() {
         <span class="chip ${sim.policy === 'NONE' ? 's' : sim.policy === 'UNKNOWN' ? 'o' : 'a'}">${esc((DENSITY_POLICIES[sim.policy] || DENSITY_POLICIES.UNKNOWN).label)}</span>
         <span class="faint" style="font-size:11.5px">${sim.policy === 'NONE' ? '이 조례에는 업종 제외 조항이 없습니다 → 도면 내 제한업종도 밀집도에 포함' : sim.policy === 'UNKNOWN' ? `조문 미확인 → 차감하지 않고 ${sim.nDensityLo}~${sim.nDensityHi}개 범위로 표시` : `도면 내 확인분 ${sim.nEx}건을 제외 → ${sim.nDensity}개`} · 가맹 제한 의심 ${sim.nEx}건 · 조건부(주점 등) ${sim.nChk}건 · 소상공인 아님 ${sim.nNonSmall}건</span></span></div>
       <div class="vrow"><span class="k">조례 공용면적</span><span class="v">${exclChip} <span class="faint" style="font-size:11.5px">${exclOk === true ? '이 지자체는 심의를 거쳐 도로·주차장 부지를 뺄 수 있습니다' : exclOk === false ? '이 조례는 도로 면적을 포함해 산정합니다' : '조례에 면적 제외 규정이 확인되지 않습니다'}</span></span></div>
-      <div class="vrow"><span class="k">필요 상가 수</span><span class="v"><b class="num">${sim.required ?? '—'}</b>개 <span class="faint">유효 면적 기준${sim.requiredNon != null ? ` (비상업 ${sim.requiredNon}개)` : ''}${sim.over ? ' · 기준면적 초과(별도 규정 확인)' : ''}</span>
+      <div class="vrow"><span class="k">필요 상가 수</span><span class="v"><b class="num">${sim.required ?? '—'}</b>개 <span class="faint">유효 면적 기준${sim.requiredNon != null ? ` (비상업 ${sim.requiredNon}개)` : ''}${sim.over ? ' · 2,000㎡ 상한 초과 — 구 기준 참고값' : ''}</span>
         ${sim.thNon != null ? `<span class="faint" style="font-size:11.5px">· ${fmt(sim.base)}㎡당 상업 ${sim.thCom}·비상업 ${sim.thNon}개</span>` : ''}</span></div>
       <div class="vrow"><span class="k">공단 상가 DB 전수 <span class="faint">(도면 그대로)</span></span><span class="v" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
         <span><b class="num">${semStats ? fmt(semStats.n) : '—'}</b>개 <span class="faint">전체 점포</span></span>
@@ -5468,7 +5709,7 @@ function renderPolyCard() {
       <div class="vrow" style="border-bottom:0"><span class="k">충족률 · 판정</span><span class="v" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
         <span class="prog" style="flex:1;min-width:120px"><i style="width:${w}%;background:${m.color}"></i><span class="tick" style="left:${100 / 1.5}%" title="기준 100%"></span></span>
         <b class="num" style="min-width:44px;text-align:right;color:${m.color}">${pct != null ? pct + '%' : '—'}</b>
-        <b style="color:${m.color}">${esc(sim.label)}</b>${sim.over ? `<span class="chip cf">${fmt(sim.base)}㎡ 초과 기준</span>` : ''}${sim.policy === 'UNKNOWN' ? '<span class="chip o">법적 기준 미확인</span>' : ''}${sim.conflict ? '<span class="chip d">조례·시행규칙 충돌</span>' : ''}${liveChip}</span></div>
+        <b style="color:${m.color}">${esc(sim.label)}</b>${sim.over ? `<span class="chip cf">2,000㎡ 상한 초과</span>` : ''}${sim.policy === 'UNKNOWN' ? '<span class="chip o">법적 기준 미확인</span>' : ''}${sim.conflict ? '<span class="chip d">조례·시행규칙 충돌</span>' : ''}${liveChip}</span></div>
     </div>
     <div class="poly-acts">
       <button class="btn sm" id="poly-list">${P.list ? '구역 내 상가 접기' : `구역 내 상가 보기 (${semStats ? fmt(semStats.n) : sim.nAll})`}</button>
@@ -6418,7 +6659,8 @@ function renderGuide() {
     <h4>${ic('info', 15)}골목형상점가란</h4>
     <p>「전통시장 및 상점가 육성을 위한 특별법」에 따라 지방자치단체가 지정하는 구역입니다. 소상공인 점포가 일정 면적 안에 밀집한 곳을 골목형상점가로 지정하면 온누리상품권 가맹과 시설·경영 지원을 받을 수 있습니다.</p>
     <ul>
-      <li>면적: 기본 <b>2,000㎡ 이내</b> — 조례로 5,000㎡·10,000㎡까지 확대 가능</li>
+      <li>면적: <b>2,000㎡ 이내</b> — 중기부 2026.08 가이드라인(전국 공통)부터 <b>2,000㎡ 절대 상한</b>입니다. 과거처럼 조례로 5,000㎡·10,000㎡까지 확대해 비례 인정하는 방식은 현장 기준에서 적용되지 않아, 2,000㎡를 넘으면 지정할 수 없습니다</li>
+      <li>면적 산정: 대지면적이 아니라 <b>건물 내 1층~꼭대기 층(지하 영업층 포함) 점포 전용면적 합산</b> — 점포 카드의 [건축물대장 자동조회]로 바로 확인됩니다</li>
       <li>점포 수: 기본 <b>2,000㎡당 소상공인 30개 이상</b> — 조례로 달리 정할 수 있음</li>
       <li>상인 조직(상인회 등) 구성과 점포주 동의가 필요하며, 소유자 동의 요건은 조례마다 다릅니다</li>
     </ul>

@@ -9,6 +9,24 @@
 | `GET /zoning?mode=area&bbox=w,s,e,n` | 신청 구역 경계 상자의 용도지역 도형(상업·비상업 면적 계산용) | 예 |
 | `GET /semas?mode=polygon&key=POLYGON((lng lat,...))` | 직접 그린 구역 안 **공단 상가업소 전수**(storeListInPolygon) | 예(`SEMAS_API_KEY`) |
 | `GET /semas?mode=zones&cx=&cy=&radius=` | 반경(≤2,000m) 안 공단 상권 구역(storeZoneInRadius) | 예 |
+| `GET /building?pnu=19자리` | 필지(PNU)의 건축물대장 — 표제부·전유부(집합)·층별개요(일반) 집계와 2,000㎡ 상한 판정 | 예(`SEMAS_API_KEY` 재사용) |
+
+## 건축물대장 `/building`
+
+골목형상점가 면적 요건은 **대지면적이 아니라 건물 내 1층~꼭대기 층(지하 영업층 포함) 점포 전용면적 합산**이고,
+중기부 2026.08 가이드라인(전국 공통)부터 **2,000㎡ 절대 상한**을 넘으면 비례 인정 없이 지정 불가다.
+브라우저는 점포 좌표에서 19자리 PNU(법정동 10 + 대지구분 1 + 본번 4 + 부번 4)를 만들어 이 라우트를 부른다.
+
+- PNU 분해: `sigunguCd=pnu[0..5]`, `bjdongCd=pnu[5..10]`, `platGbCd={'1':'0','2':'1','3':'2'}[pnu[10]]`, `bun=pnu[11..15]`, `ji=pnu[15..19]`.
+- 표제부(`getBrTitleInfo`)로 대장구분(`1` 일반 / `2` 집합)·건물명·대지·연면적·층수를 읽는다.
+- **집합건축물**은 전유부(`getBrExposPubuseAreaInfo`)에서 `exposPubuseGbCd==='1'`(전유)만 합산하고 공용면적은 뺀다.
+  주거(공동·단독주택 등) 전유는 따로 분리해 `residentialArea`로 돌려주고 점포 합계에서 제외한다. 100건×최대 6페이지.
+- **일반건축물**은 층별개요(`getBrFlrOulnInfo`)에서 층별 바닥면적을 용도로 갈라 합산한다. 주차장·기계실·전기실 등
+  부대설비만 있는 층은 영업면적에서 빼고 `otherArea`로 돌려준다. 대장에 호실별 전유면적이 없으므로
+  `shops.estimatedExclusive`(공용부 20% 차감 참고치)와 `notes`의 임대차계약서 확인 안내를 함께 준다.
+- 응답: `{status, source:'bldrgst', pnu, building:{kind,kindLabel,name,address,mainPurps,platArea,totalArea,groundFloors,underFloors,dongs,hasExpos}, shops:{area,aboveGround,underground,units,estimatedExclusive,residentialArea,otherArea,over2000,excess}, floors:[{label,area,residential,other,units,kind,purposes}], cap:{limit,basis,exceeded,excess,verdict}, notes, checkedAt}`
+- 없음 `404 {status:'not_found'}`, 형식 오류 `400 {status:'coordinate'}`, 키 없음 `503`, 게이트웨이 오류 `502 {status:'upstream'}`.
+- 인증키(`SEMAS_API_KEY`)와 원응답은 브라우저로 나가지 않는다. 건축물대장은 초당 요청 제한이 있어 페이지를 순차로 받는다.
 
 ## 공단 상가(상권)정보 `/semas`
 
@@ -51,6 +69,7 @@
 cd zoning-proxy
 npx wrangler deploy                       # name = onnuri-zoning
 npx wrangler secret put VWORLD_API_KEY    # 키를 받은 뒤 (선택)
+npx wrangler secret put SEMAS_API_KEY     # 상가(상권)정보·건축물대장 공통 키
 ```
 
 `wrangler.toml`의 `SITE_ORIGINS`는 쉼표로 여러 Origin을 둘 수 있고, `CORS`는 그 목록에 든 Origin에만 붙는다.
