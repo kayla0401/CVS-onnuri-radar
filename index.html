@@ -700,6 +700,13 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
   #rules-body .tbl td:nth-child(4),#rules-body .tbl th:nth-child(4){min-width:84px}
   /* 구역 내 상가 표 — 390px 에서도 상호·주소가 남고 집계 칩이 여러 줄로 접힌다 */
   .semas-tbl .chip{font-size:10.5px;padding:2px 6px;border-radius:7px}
+  /* 카카오 탭 — 업종·거리에 최소 폭을 주고 집계 칩을 조금 넓혀 70px 안팎 열에서도 단어가 어색하게 꺾이지 않게 한다 */
+  .kakao-tbl col:nth-child(1){width:24%!important}
+  .kakao-tbl col:nth-child(2){width:17%!important}
+  .kakao-tbl col:nth-child(3){width:10%!important}
+  .kakao-tbl col:nth-child(4){width:26%!important}
+  .kakao-tbl col:nth-child(5){width:23%!important}
+  .kakao-tbl .chip{font-size:10px;padding:2px 5px;border-radius:7px}
   .tbl td .btn.xs{padding:0 8px}
 }
 @media (max-width:520px){
@@ -5506,7 +5513,7 @@ function semasTableHTML(sem, e) {
 }
 function kakaoTableHTML(sim, e) {
   return `<div class="tbl-wrap" style="max-height:230px;margin:10px 16px 0;border:1px solid var(--border);border-radius:var(--r)">
-      <table class="tbl num semas-tbl" style="width:100%;table-layout:fixed">
+      <table class="tbl num semas-tbl kakao-tbl" style="width:100%;table-layout:fixed">
       <colgroup><col style="width:24%"><col style="width:14%"><col style="width:13%"><col style="width:26%"><col style="width:23%"></colgroup>
       <thead><tr><th>상호</th><th>업종</th><th>거리</th><th>주소</th><th>집계</th></tr></thead><tbody>
       ${sim.inside.length ? sim.inside.slice().sort((a, b) => a.p.d - b.p.d).map(x => `<tr><td><b>${esc(x.p.name)}</b></td><td>${esc(x.p.cat)}</td>

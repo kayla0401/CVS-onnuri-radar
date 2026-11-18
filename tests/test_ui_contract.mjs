@@ -508,7 +508,7 @@ const kakaoRowsHTML = kakaoTableHTML({
 }, { rule: {} });
 test('카카오 표는 고정 레이아웃 + 5열 colgroup(합 100%)으로 상호·주소 열이 붕괴하지 않는다', () => {
   assert.ok(kakaoRowsHTML.includes('table-layout:fixed'), 'table-layout:fixed 없음');
-  assert.ok(kakaoRowsHTML.includes('class="tbl num semas-tbl"'), '공단 DB 표와 같은 표 클래스');
+  assert.ok(kakaoRowsHTML.includes('class="tbl num semas-tbl kakao-tbl"'), '공단 DB 표와 같은 표 클래스 + 카카오 전용 클래스');
   const cols = [...kakaoRowsHTML.matchAll(/<col style="width:(\d+)%">/g)].map((m) => Number(m[1]));
   assert.equal(cols.length, 5, 'col 개수 ' + cols.length);
   assert.equal(cols.reduce((a, b) => a + b, 0), 100, '열 폭 합계 ' + cols.reduce((a, b) => a + b, 0));
@@ -523,6 +523,13 @@ test('좁은 열의 집계·참고 칩은 줄바꿈되고 nowrap 으로 열을 �
   assert.ok(/\.semas-tbl \.chip\{[^}]*max-width:100%/.test(css), '칩 max-width:100%');
   assert.ok(css.includes('word-break:keep-all'), '한글 단어 단위 줄바꿈');
   assert.ok(kakaoRowsHTML.includes('<span class="chip cf">가맹 제한(참고) · 일반음식점</span>'), '긴 집계 칩 렌더');
+});
+test('390px 에서는 카카오 표 열 폭·칩 크기를 따로 조정한다', () => {
+  const cols = [...m760.matchAll(/\.kakao-tbl col:nth-child\((\d)\)\{width:(\d+)%!important\}/g)].map((m) => Number(m[2]));
+  assert.equal(cols.length, 5, '카카오 모바일 열 폭 ' + cols.length + '개');
+  assert.equal(cols.reduce((a, b) => a + b, 0), 100, '모바일 열 폭 합 ' + cols.reduce((a, b) => a + b, 0));
+  assert.ok(cols[1] >= 17, '업종 열 최소 폭 ' + cols[1]);
+  assert.ok(/\.kakao-tbl \.chip\{font-size:10px/.test(m760), '모바일 집계 칩 크기');
 });
 
 console.log(`FINAL ${passed} contract/async tests passed`);
