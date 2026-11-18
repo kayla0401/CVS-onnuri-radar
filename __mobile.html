@@ -10,9 +10,10 @@ const f = document.getElementById('f');
 f.onload = () => {
   const w = f.contentWindow;
   const tick = () => {
-    if (!(w.DB && w.DB.stores && w.DB.stores.length && w.t1Match && w.t1Select)) return setTimeout(tick, 300);
-    const hit = w.t1Match('GS25망포센트럴점')[0];
-    if (hit) w.t1Select(hit);
+    let hit = null;
+    try { hit = (w.t1Match && w.t1Match('GS25망포센트럴점')) || null; } catch (_) { hit = null; }
+    if (!hit || !hit.length || !w.t1Select) return setTimeout(tick, 300);
+    w.t1Select(hit[0]);
     setTimeout(() => {
       const el = f.contentDocument.querySelector('.bld-card');
       if (el) el.scrollIntoView({ block: 'center' });
