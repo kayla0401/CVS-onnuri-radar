@@ -457,6 +457,9 @@ svg.fmap [data-sid],svg.fmap [data-zone],svg.fmap [data-gs]{cursor:pointer}
 .vtx.drag{background:#0B6A57;transform:scale(1.18);cursor:grabbing;box-shadow:0 0 0 3px rgba(14,124,102,.22)}
 .mapzone.pinning .pane-canvas{cursor:crosshair}
 /* 공단 상가업소 전수 — 카카오 점(원)과 구분되는 사각 마커 */
+.semas-tbl th,.semas-tbl td{word-break:keep-all;overflow-wrap:anywhere}
+.semas-tbl td:nth-child(4){font-size:11.5px;line-height:1.45;color:var(--text-secondary)}
+.semas-tbl td:nth-child(3){text-align:center}
 .semas-square{width:7px;height:7px;background:#B45309;border:1.2px solid #fff;border-radius:1.5px;box-shadow:0 0 0 1px rgba(180,83,9,.35);pointer-events:none;box-sizing:border-box}
 .poly-lb{padding:3px 9px;background:#fff;border:1.5px solid #0E7C66;border-radius:999px;font:800 11.5px var(--font-family);color:#0E7C66;white-space:nowrap;box-shadow:0 2px 8px rgba(30,55,90,.16);pointer-events:none}
 
@@ -5488,7 +5491,9 @@ function semasTableHTML(sem, e) {
     return `<div class="tbl-wrap" style="max-height:130px;margin:10px 16px 0;border:1px solid var(--border);border-radius:var(--r)"><div style="padding:16px" class="faint">공단 상가 DB를 불러오지 못했습니다. 카카오 탭에서 실시간 결과를 보세요.</div></div>`;
   }
   return `<div class="tbl-wrap" style="max-height:230px;margin:10px 16px 0;border:1px solid var(--border);border-radius:var(--r)">
-      <table class="tbl num"><thead><tr><th>상호</th><th>업종</th><th>층/호</th><th>주소</th><th>참고</th></tr></thead><tbody>
+      <table class="tbl num semas-tbl" style="width:100%;table-layout:fixed">
+      <colgroup><col style="width:31%"><col style="width:14%"><col style="width:9%"><col style="width:31%"><col style="width:15%"></colgroup>
+      <thead><tr><th>상호</th><th>업종</th><th>층/호</th><th>주소</th><th>참고</th></tr></thead><tbody>
       ${sem.items.length ? sem.items.map(x => semasRowHTML(x, e)).join('')
         : '<tr><td colspan="5" class="faint">이 도면 안에서 공단 DB에 등록된 상가업소가 없습니다.</td></tr>'}
       </tbody></table></div>
