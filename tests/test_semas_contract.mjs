@@ -180,9 +180,22 @@ test('zoning-config 에 공단 상가 엔드포인트가 추가되고 기존 엔
   assert.ok(!config.includes('SEMAS_API_KEY') && !config.includes('serviceKey'), '브라우저 설정에 키가 없어야 한다');
 });
 
-test('Worker CORS 허용 목록에 wildcard 를 넣지 않는다', () => {
-  assert.ok(wrangler.includes('SITE_ORIGINS = "https://kayla0401.github.io"'));
-  assert.ok(!/SITE_ORIGINS\s*=\s*"[^"]*\*/.test(wrangler));
+await test('Worker CORS 허용 목록은 github.io 를 유지하고 wildcard 를 쓰지 않는다', async () => {
+  const m = wrangler.match(/SITE_ORIGINS\s*=\s*"([^"]*)"/);
+  assert.ok(m, 'SITE_ORIGINS 를 선언한다');
+  const origins = m[1].split(',').map(s => s.trim()).filter(Boolean);
+  assert.ok(origins.includes('https://kayla0401.github.io'), '기존 GitHub Pages Origin 유지');
+  assert.ok(!m[1].includes('*'), 'wildcard 금지');
+
+  /* 선언한 쉼표 목록을 워커가 그대로 읽어 두 주소 모두 허용하는지 확인한다 */
+  const both = { ...env, SITE_ORIGINS: m[1] };
+  for (const origin of origins) {
+    const pre = await worker.fetch(new Request('https://onnuri-zoning.example/zoning', { method: 'OPTIONS', headers: { Origin: origin } }), both);
+    assert.equal(pre.status, 204, `${origin} 프리플라이트`);
+    assert.equal(pre.headers.get('Access-Control-Allow-Origin'), origin);
+  }
+  const other = await worker.fetch(new Request('https://onnuri-zoning.example/zoning', { method: 'OPTIONS', headers: { Origin: 'https://evil.example' } }), both);
+  assert.equal(other.status, 403, '목록에 없는 Origin 은 거부');
 });
 
 test('직접 그리기에서 공단 DB 전수 조회를 호출한다(모드·POLYGON·페이지)', () => {
