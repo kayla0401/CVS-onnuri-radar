@@ -4,7 +4,7 @@ compatibility_date = "2026-11-16"
 
 [vars]
 # 허용 Origin 목록(쉼표 구분). 공용 조직·Pages 도메인을 쓰게 되면 여기에 추가한다.
-SITE_ORIGINS = "https://kayla0401.github.io"
+SITE_ORIGINS = "https://kayla0401.github.io,https://onnuri-radar.pages.dev"
 # 브이월드 오픈API에 등록한 서비스 도메인
 VWORLD_DOMAIN = "https://kayla0401.github.io"
 
