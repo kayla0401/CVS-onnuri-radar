@@ -495,3 +495,6 @@ test('시도별 상가 기준일(asof_by_sido)을 헤더 pill 과 KPI 카드에 
 });
 
 console.log(`FINAL ${passed} contract/async tests passed`);
+
+/* 공단 상가(상권)정보 프록시(/semas) 계약 — 워크플로 수정 없이 같은 CI 단계에서 실행한다 */
+await import('./test_semas_contract.mjs');

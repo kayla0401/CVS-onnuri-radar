@@ -7,6 +7,19 @@
 | --- | --- | --- |
 | `GET /zoning?lat=&lng=&pnu=` | 점포 핀 좌표·필지(PNU)의 용도지역 이름 | 아니오(토지이음 폴백) |
 | `GET /zoning?mode=area&bbox=w,s,e,n` | 신청 구역 경계 상자의 용도지역 도형(상업·비상업 면적 계산용) | 예 |
+| `GET /semas?mode=polygon&key=POLYGON((lng lat,...))` | 직접 그린 구역 안 **공단 상가업소 전수**(storeListInPolygon) | 예(`SEMAS_API_KEY`) |
+| `GET /semas?mode=zones&cx=&cy=&radius=` | 반경(≤2,000m) 안 공단 상권 구역(storeZoneInRadius) | 예 |
+
+## 공단 상가(상권)정보 `/semas`
+
+- 다각형은 `POLYGON((lng lat,...))` 형식만 받고, 꼭짓점 3~100개·국내 범위(경도 124~132, 위도 32~39)·
+  경계 상자 한 변 0.04°/넓이 0.0016° 가드를 통과해야 한다(넘으면 `400 coordinate`).
+- upstream `storeListInPolygon` 은 `type=json` 으로 부르고, `numOfRows` 는 최대 1,000.
+  1페이지가 모자라면 최대 3페이지(3,000건)까지 합산하며, 다 받지 못하면 `truncated: true` 로 알린다.
+- `header.resultCode === '00'` → `{status:'ok', stdrYm, totalCount, items}`, `'03'`(NODATA_ERROR) → `{status:'empty', items:[]}`,
+  게이트웨이 XML(`OpenAPI_ServiceResponse`)·기타 오류 → `502 {status:'upstream'}`. 인증키는 어떤 응답에도 넣지 않는다.
+- 점포 항목은 `bizesId·bizesNm·brchNm·indsLclsNm·indsMclsNm·indsSclsNm·ksicNm·rdnmAdr·lnoAdr·bldNm·flrNo·hoNo·lon·lat` 로 정리해 돌려준다.
+- 브라우저 쪽은 `/semas` 호출이 실패해도 기존 카카오 실시간 집계로 그대로 계산하고, 카드에 실패 안내와 재조회 버튼을 띄운다.
 
 ## 점포 조회 — 두 경로
 
