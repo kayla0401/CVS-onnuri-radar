@@ -29,7 +29,7 @@ function runTests(html, rules, stores) {
   const api = new Function(core + legacy + `
     return { classifyOnnuriEligibility, classifyShopBiz, classifyDensityExclusion, densityPolicyOf,
              requiredShopsFor, densityAssess, headlineVerdict, HEADLINE_STATUS,
-             ruleMatch, findRule, legacyRule,
+             ruleMatch, findRule, legacyRule, areaCapOf, AREA_CAP_M2, AREA_CAP_BASIS,
              ONNURI_RESTRICTED, DENSITY_STATUS, DENSITY_POLICIES };`)();
   const { classifyOnnuriEligibility: onnuri, classifyDensityExclusion: dens, requiredShopsFor: req,
     densityAssess: assess, headlineVerdict: headline, ruleMatch, ONNURI_RESTRICTED } = api;
@@ -186,7 +186,7 @@ function runTests(html, rules, stores) {
   const hvConflict = headline({ population: 18, maxShops: 18, minShops: 11, reqCom: 15, reqNon: null, policy: 'ALL_RESTRICTED', conflict: true, conflictSub: '조례(15개) vs 시행규칙(30개) 충돌 — 담당 부서 확인 필요' });
   ok('충돌이면 확정 배너 대신 조건 확인', hvConflict.level === 'COND' && /충돌/.test(hvConflict.sub), `${hvConflict.level} / ${hvConflict.sub}`);
   /* 배너 상태 6종이 색상 클래스와 함께 정의되어 있는지 */
-  eq('헤드라인 상태 7종(이미 지정·가맹 MEMBER 포함)', Object.keys(api.HEADLINE_STATUS).sort(), ['BASIS', 'COND', 'COND_LEGAL', 'FAIL', 'MEMBER', 'NO_DATA', 'PASS']);
+  eq('헤드라인 상태 8종(이미 지정·가맹 MEMBER · 2,000㎡ 상한 OVER_CAP 포함)', Object.keys(api.HEADLINE_STATUS).sort(), ['BASIS', 'COND', 'COND_LEGAL', 'FAIL', 'MEMBER', 'NO_DATA', 'OVER_CAP', 'PASS']);
   ok('공개 판정 어휘는 MEMBER 를 더해도 3종 그대로', [...new Set(Object.values(api.HEADLINE_STATUS).map(x => x.title))].length === 3);
 
   lines.push('[6-1] 이미 가맹·이미 구역 내 — 점포 수 비교보다 먼저');
@@ -252,6 +252,29 @@ function runTests(html, rules, stores) {
   });
   eq('30m 이내·같은 주소 동일상호 중복은 0개', near, []);
   ok('점포코드는 서로 달라 코드 기준 중복은 0건', new Set(stores.map(s => s[0])).size === stores.length);
+
+  lines.push('[9] 2,000㎡ 절대 상한 — 중기부 2026.08 가이드라인(전국 공통)');
+  const cap2 = api.areaCapOf(2000), cap5 = api.areaCapOf(5000), cap15 = api.areaCapOf(1500);
+  eq('2,000㎡는 상한 이내', [cap2.over, cap2.excess], [false, 0]);
+  eq('1,500㎡는 상한 이내', cap15.over, false);
+  eq('5,000㎡는 상한 초과(+3,000㎡)', [cap5.over, cap5.excess], [true, 3000]);
+  ok('상한 기준 문구는 중기부 2026.08', /2026\.08/.test(api.AREA_CAP_BASIS), api.AREA_CAP_BASIS);
+  eq('상한 상수는 2,000㎡', api.AREA_CAP_M2, 2000);
+  /* 조례 비율식(서해구)은 2,000㎡를 넘으면 계산값만 참고로 남기고, 판정은 적합을 내지 않는다 */
+  eq('서해구 3,000㎡ 비율식 계산값은 참고값으로 유지(23개)', req(seohae, 3000, 15), 23);
+  const capA = assess({ rule: seohae, area: 3000, population: 60, thCom: 15, thNon: null,
+    sample: { n: 60, nEx: 0, nChk: 0, nNonSmall: 0, truncated: false, src: 'nearby' } });
+  eq('2,000㎡ 초과 검토 면적은 밀집도 판정 보류', capA.status, 'NEEDS_CHECK');
+  ok('2,000㎡ 초과는 적합 단정 차단(blocksVerdict)', capA.blocksVerdict === true);
+  ok('상한 초과 사유 문구', /상한 초과/.test(capA.basis) && /2,000㎡/.test(capA.basis), capA.basis);
+  ok('점포가 아무리 많아도 2,000㎡ 초과는 적합이 아니다', capA.status !== 'EST_PASS');
+  const hvCap = headline({ population: 60, maxShops: 60, minShops: 60, reqCom: 15, reqNon: null, policy: 'NONE', overCap: { area: 3000, excess: 1000 } });
+  eq('헤드라인: 상한 초과 = 부적합(OVER_CAP)', [hvCap.level, hvCap.title, hvCap.cls], ['OVER_CAP', '부적합', 'fail']);
+  ok('헤드라인 부제에 상한·초과 면적·축소·분할 안내', /2,000㎡/.test(hvCap.sub) && /초과/.test(hvCap.sub) && /분할/.test(hvCap.sub), hvCap.sub);
+  eq('상한 초과를 더해도 공개 판정 어휘는 3종', [...new Set(Object.values(api.HEADLINE_STATUS).map(x => x.title))].length, 3);
+  const hvCapZone = headline({ population: 60, minShops: 60, maxShops: 60, reqCom: 15, policy: 'NONE', overCap: { area: 3000, excess: 1000 }, insideZone: { name: '테스트상권', type: '골목형상점가' } });
+  eq('이미 구역 안이면 상한보다 구역 안내가 먼저', hvCapZone.level, 'MEMBER');
+  ok('상한 규칙에 건물 전 층 점포 전용면적 합산 기준이 명시된다', /점포 전용면적 합산/.test(api.AREA_CAP_BASIS + ' ' + cap5.rule), api.AREA_CAP_BASIS);
 
   lines.push('');
   lines.push(`결과: ${pass}개 통과 · ${fail}개 실패`);

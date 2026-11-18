@@ -65,7 +65,8 @@ test('report does not claim building-wide deduplication or official surveying',(
 const section=(a,b)=>{const i=html.indexOf(a),j=html.indexOf(b);assert.ok(i>=0&&j>i,`구간 없음: ${a}`);return html.slice(i,j);};
 const NAT_RULE={base_area:2000,min_shops:30,min_shops_non_commercial:null};
 const judge=new Function('DB','CONFIG','NAT_RULE','ruleMatch','posOf','pinOf','dist','inZone','josa','fmt',
- section('function requiredShopsFor(','/* 항목별 상한')+';return {ev,evKPI};')(
+ (()=>{const i=html.indexOf('/* @area-cap:start'),j=html.indexOf('/* @area-cap:end */');assert.ok(i>=0&&j>i,'@area-cap 블록 없음');return html.slice(html.indexOf('*/',i)+2,j);})()
+ + section('function requiredShopsFor(','/* 항목별 상한')+';return {ev,evKPI};')(
  {zones:[],meta:{sido_covered:[]}},{COND_RATIO:.85,MEMBER_NEAR_M:300,DEFAULT_AREA:2000},NAT_RULE,
  (sido,sigungu)=>({rule:rules.find(r=>r.sido===sido&&r.sigungu===sigungu)||null,legacy:null}),
  p=>p,()=>null,()=>9999,()=>false,(s,a)=>a,n=>String(n));

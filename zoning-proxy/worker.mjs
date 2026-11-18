@@ -33,6 +33,20 @@ const SEMAS_MAX_PAGES = 3;            /* 1,000건 초과분은 최대 3페이지
 const SEMAS_MAX_POINTS = 100;         /* 다각형 꼭짓점 상한 */
 const SEMAS_RADIUS_MAX = 2000;        /* 상권 반경 상한(m) */
 
+/* 국토교통부 건축HUB 건축물대장정보 서비스 — 표제부·전유공용면적·층별개요 */
+const BLD_URL = 'https://apis.data.go.kr/1613000/BldRgstHubService';
+const BLD_TIMEOUT_MS = 9000;
+const BLD_PAGE_ROWS = 100;
+const BLD_MAX_TITLE_PAGES = 2;
+const BLD_MAX_EXPOS_PAGES = 6;        /* 전유부 100건×6 = 600호실까지 */
+const BLD_MAX_FLOOR_PAGES = 3;
+/* 골목형상점가 면적 상한 — 중기부 2026.08 가이드라인(전국 공통). 넘으면 비례 인정 없이 지정 불가 */
+const AREA_CAP_M2 = 2000;
+const AREA_CAP_BASIS = '중소벤처기업부 2026.08 가이드라인(전국 공통) 2,000㎡ 절대 상한 — 초과 시 비례 인정 없이 지정 불가, 면적은 건물 내 점포 전용면적 합산';
+/* 부대설비(점포 아님) — 층별개요의 용도가 이것뿐이면 영업면적에서 뺀다 */
+const BLD_ANCILLARY = /(주차장|주차|기계실|전기실|발전실|변전실|창고|계단실|승강기|엘리베이터|화장실|정화조|저수조|관리사무소|경비실|보일러실|펌프실|공조실|방재실|쓰레기|차고)/;
+const BLD_RESIDENTIAL = /(공동주택|단독주택|아파트|다세대|다가구|연립|기숙사|오피스텔|주거)/;
+
 /* 경계 상자 안전가드 — 신청 구역(2,000㎡ 급)보다 넉넉하되, 시 단위 요청은 막는다 */
 const AREA_MAX_SIDE_DEG = 0.04;        // 한 변 약 4.4km
 const AREA_MAX_SPAN_DEG2 = 0.0016;     // 약 4km × 4km
@@ -346,6 +360,171 @@ async function semasZones(cx, cy, radius, env) {
   return { status: zones.length ? 'ok' : 'empty', zones, totalCount: rows.length };
 }
 
+/* ---- 건축물대장: 19자리 PNU → 시군구·법정동·대지구분·번·지 ---- */
+function pnuParts(pnu) {
+  if (!PNU_RE.test(String(pnu || ''))) return null;
+  const gb = { '1': '0', '2': '1', '3': '2' }[pnu[10]];   /* 1 대지 · 2 산 · 3 블록 */
+  if (!gb) return null;
+  return { sigunguCd: pnu.slice(0, 5), bjdongCd: pnu.slice(5, 10), platGbCd: gb, bun: pnu.slice(11, 15), ji: pnu.slice(15, 19) };
+}
+
+async function bldCall(op, params, env) {
+  const qs = new URLSearchParams({ serviceKey: env.SEMAS_API_KEY, _type: 'json', ...params });
+  const response = await fetch(`${BLD_URL}/${op}?${qs}`, {
+    signal: AbortSignal.timeout(BLD_TIMEOUT_MS),
+    headers: { Accept: 'application/json' },
+  });
+  const text = await response.text();
+  if (!response.ok) throw Object.assign(new Error('bld http'), { code: 'upstream' });
+  let body = null;
+  try { body = JSON.parse(text); } catch { body = null; }
+  /* 게이트웨이가 XML 오류(OpenAPI_ServiceResponse)를 200으로 돌려주는 경우가 있다 */
+  if (!body || typeof body !== 'object' || body.OpenAPI_ServiceResponse || !body.response) {
+    throw Object.assign(new Error('bld gateway'), { code: 'upstream' });
+  }
+  const header = body.response.header || {};
+  const code = String(header.resultCode == null ? '' : header.resultCode);
+  if (code === '03') return { status: 'empty', rows: [], total: 0 };          /* NODATA_ERROR */
+  if (code !== '00') throw Object.assign(new Error('bld result ' + code), { code: 'upstream' });
+  const b = body.response.body || {};
+  const raw = b.items && b.items.item;
+  const rows = Array.isArray(raw) ? raw : raw ? [raw] : [];
+  return { status: rows.length ? 'ok' : 'empty', rows, total: Number(b.totalCount || rows.length) };
+}
+
+/* 여러 페이지를 순서대로 받는다 — 건축물대장은 초당 요청 제한이 있어 동시 호출을 피한다 */
+async function bldPages(op, parts, maxPages, env) {
+  const rows = [];
+  let total = 0;
+  for (let page = 1; page <= maxPages; page++) {
+    const out = await bldCall(op, { ...parts, numOfRows: String(BLD_PAGE_ROWS), pageNo: String(page) }, env);
+    total = Math.max(total, out.total);
+    for (const row of out.rows) rows.push(row);
+    if (!out.rows.length || out.rows.length < BLD_PAGE_ROWS || rows.length >= total) break;
+    await new Promise(r => setTimeout(r, 80));
+  }
+  return { rows, total, truncated: rows.length < total };
+}
+
+const bldText = (v, n) => String(v == null ? '' : v).trim().slice(0, n);
+/* 층 이름 — '지2층'처럼 적힌 지하 표기를 '지하2층'으로 맞춘다 */
+function floorLabel(row) {
+  const raw = bldText(row.flrNoNm || `${row.flrGbCdNm || ''}${row.flrNo || ''}층`, 24) || '층 미상';
+  return raw.replace(/^지(\d)/, '지하$1');
+}
+const bldNum = v => { const n = +v; return Number.isFinite(n) ? n : 0; };
+const purposesOf = row => [row.mainPurpsCdNm, row.etcPurps]
+  .flatMap(v => String(v == null ? ' ' : v).split(/[,()]/))
+  .map(s => s.trim()).filter(Boolean);
+function bldKindOf(row) {
+  const list = purposesOf(row);
+  const main = bldText(row.mainPurpsCdNm, 40);
+  const etc = String(row.etcPurps == null ? '' : row.etcPurps).split(/[,()]/).map(s => s.trim()).filter(Boolean);
+  /* 용도 중 부대설비만 있는 층(주차장·기계실·전기실)은 점포 면적이 아니다.
+     etcPurps 가 부대설비만 나열하면(대표 용도가 '소매점'으로 적혀 있어도) 부대설비 층으로 본다. */
+  if (list.length && list.every(t => BLD_ANCILLARY.test(t))) return 'ancillary';
+  if (etc.length && etc.every(t => BLD_ANCILLARY.test(t))) return 'ancillary';
+  if (BLD_RESIDENTIAL.test(main)) return 'residential';
+  return 'shop';
+}
+const round2 = n => Math.round(n * 100) / 100;
+
+function summarizeBuilding(titleRows, expos, floors, pnu) {
+  const heads = titleRows.filter(r => String(r.regstrGbCd) === '1' || String(r.regstrGbCd) === '2');
+  const aggregate = heads.some(r => String(r.regstrGbCd) === '2');
+  const names = [...new Set(heads.map(r => bldText(r.bldNm, 60)).filter(Boolean))];
+  const addresses = [...new Set(heads.map(r => bldText(r.newPlatPlc || r.platPlc, 90)).filter(Boolean))];
+  const purposes = [...new Set(heads.map(r => bldText(r.mainPurpsCdNm, 30)).filter(Boolean))];
+  const building = {
+    pnu,
+    kind: aggregate ? 'aggregate' : 'general',
+    kindLabel: aggregate ? '집합건축물' : '일반건축물',
+    name: names.join(' · ').slice(0, 90),
+    address: addresses[0] || '',
+    mainPurps: purposes.slice(0, 4).join(' · ').slice(0, 80),
+    platArea: round2(heads.reduce((n, r) => Math.max(n, bldNum(r.platArea)), 0)),
+    totalArea: round2(heads.reduce((n, r) => n + bldNum(r.totArea), 0)),
+    groundFloors: heads.reduce((n, r) => Math.max(n, bldNum(r.grndFlrCnt)), 0),
+    underFloors: heads.reduce((n, r) => Math.max(n, bldNum(r.ugrndFlrCnt)), 0),
+    dongs: heads.length,
+    hasExpos: aggregate,
+    useAprDay: bldText((heads[0] || {}).useAprDay, 8),
+  };
+
+  let shopArea = 0, shopUnits = 0, residentialArea = 0, otherArea = 0, above = 0, under = 0;
+  const floorMap = new Map();
+  const notes = [];
+  if (aggregate) {
+    /* 집합건축물 — 전유부(호실별 전용면적)만 쓴다. 공용면적은 합산에서 뺀다. */
+    const privateRows = expos.rows.filter(r => String(r.exposPubuseGbCd) === '1');
+    const units = new Set();
+    for (const row of privateRows) {
+      const area = bldNum(row.area);
+      const kind = bldKindOf(row);
+      const label = floorLabel(row);
+      const key = label;
+      const bucket = floorMap.get(key) || { label, shop: 0, residential: 0, other: 0, units: 0 };
+      bucket.units += 1;
+      units.add([bldText(row.dongNm, 12), bldText(row.hoNm, 12), label].join('|'));
+      if (kind === 'shop') { shopArea += area; bucket.shop += area; if (/지하/.test(label)) under += area; else above += area; }
+      else if (kind === 'residential') { residentialArea += area; bucket.residential += area; }
+      else { otherArea += area; bucket.other += area; }
+      floorMap.set(key, bucket);
+    }
+    shopUnits = units.size;
+    if (expos.truncated) notes.push(`전유부가 ${expos.rows.length}/${expos.total}건까지만 조회되어 합계가 실제보다 적을 수 있습니다.`);
+    if (!privateRows.length) notes.push('전유부(호실별 면적)가 등록되어 있지 않습니다 — 관리사무소·건축물대장 열람으로 확인이 필요합니다.');
+  } else {
+    /* 일반건축물 — 층별개요. 대장에 호실별 전유면적이 없어 전용면적을 알 수 없다. */
+    for (const row of floors.rows) {
+      const area = bldNum(row.area);
+      const kind = bldKindOf(row);
+      const ground = String(row.flrGbCdNm || '').includes('지상');
+      const label = floorLabel(row);
+      const bucket = floorMap.get(label) || { label, shop: 0, residential: 0, other: 0, units: 0, purposes: new Set() };
+      bucket.purposes.add(bldText(row.mainPurpsCdNm, 30));
+      if (kind === 'shop') { shopArea += area; bucket.shop += area; ground ? above += area : under += area; }
+      else if (kind === 'residential') { residentialArea += area; bucket.residential += area; }
+      else { otherArea += area; bucket.other += area; }
+      floorMap.set(label, bucket);
+    }
+    if (floors.truncated) notes.push(`층별개요가 ${floors.rows.length}/${floors.total}건까지만 조회되어 합계가 실제보다 적을 수 있습니다.`);
+    notes.push('일반건축물은 건축물대장에 호실별 전유면적이 없습니다 — 위 합계는 층별개요의 바닥면적 합계이며, 실제 임대 전용면적은 임대차계약서로 확인해야 합니다.');
+  }
+
+  /* 층 정렬 — 지상은 높은 층부터, 지하는 낮은 층부터. '지2층' 표기도 지하로 본다. */
+  const order = x => {
+    const under = /(지하|^지)/.test(x.label);
+    const n = +(String(x.label).replace(/[^0-9]/g, '') || 0);
+    return (under ? -n : n) * 10 + (under ? 1 : 0);
+  };
+  const floorList = [...floorMap.values()].map(f => ({
+    label: f.label,
+    area: round2(f.shop),
+    residential: round2(f.residential),
+    other: round2(f.other),
+    units: f.units || 0,
+    kind: f.shop >= Math.max(f.residential, f.other) && f.shop > 0 ? 'shop' : f.residential > f.other ? 'residential' : 'ancillary',
+    purposes: f.purposes ? [...f.purposes].filter(Boolean).slice(0, 3) : undefined,
+  })).sort((a, b) => (order(b) - order(a)) || String(a.label).localeCompare(String(b.label))).slice(0, 40);
+
+  const totalShop = round2(shopArea);
+  const estimatedExclusive = aggregate ? totalShop : round2(totalShop * 0.8);
+  const shops = {
+    area: totalShop,
+    aboveGround: round2(above),
+    underground: round2(under),
+    units: aggregate ? shopUnits : null,
+    estimatedExclusive,
+    exclusiveBasis: aggregate ? '전유면적(공용 제외)' : '층별 바닥면적 − 공용부 20% 참고치',
+    residentialArea: round2(residentialArea),
+    otherArea: round2(otherArea),
+    over2000: totalShop > AREA_CAP_M2,
+    excess: round2(Math.max(0, totalShop - AREA_CAP_M2)),
+  };
+  return { building, shops, floors: floorList, notes };
+}
+
 function parseBbox(raw) {
   const parts = String(raw || '').split(',').map(Number);
   if (parts.length !== 4 || !parts.every(Number.isFinite)) return null;
@@ -354,6 +533,28 @@ function parseBbox(raw) {
   if (e - w > AREA_MAX_SIDE_DEG || n - s > AREA_MAX_SIDE_DEG) return null;
   if ((e - w) * (n - s) > AREA_MAX_SPAN_DEG2) return null;
   return [w, s, e, n];
+}
+
+async function lookupBuilding(pnu, env) {
+  const parts = pnuParts(pnu);
+  if (!parts) return { status: 'coordinate' };
+  const title = await bldPages('getBrTitleInfo', parts, BLD_MAX_TITLE_PAGES, env);
+  if (!title.rows.length) return { status: 'not_found' };
+  const aggregate = title.rows.some(r => String(r.regstrGbCd) === '2');
+  let expos = { rows: [], total: 0, truncated: false };
+  let floors = { rows: [], total: 0, truncated: false };
+  if (aggregate) expos = await bldPages('getBrExposPubuseAreaInfo', parts, BLD_MAX_EXPOS_PAGES, env);
+  else floors = await bldPages('getBrFlrOulnInfo', parts, BLD_MAX_FLOOR_PAGES, env);
+  const sum = summarizeBuilding(title.rows, expos, floors, pnu);
+  if (title.truncated) sum.notes.push(`표제부가 ${title.rows.length}/${title.total}건까지만 조회되어 일부 동이 빠졌을 수 있습니다.`);
+  const cap = {
+    limit: AREA_CAP_M2, basis: AREA_CAP_BASIS,
+    exceeded: sum.shops.area > AREA_CAP_M2, excess: sum.shops.excess,
+    verdict: sum.shops.area > AREA_CAP_M2
+      ? `건물 점포 전용면적 합계 ${round2(sum.shops.area)}㎡ — 2,000㎡ 상한을 ${sum.shops.excess}㎡ 초과해 현행 기준으로는 지정 불가(구역 축소·분할 필요)`
+      : `건물 점포 전용면적 합계 ${round2(sum.shops.area)}㎡ — 2,000㎡ 상한 이내`,
+  };
+  return { status: 'ok', source: 'bldrgst', pnu, building: sum.building, shops: sum.shops, floors: sum.floors, cap, notes: sum.notes };
 }
 
 export default {
@@ -375,6 +576,26 @@ export default {
     if (request.method === 'OPTIONS') {
       if (!matched) return new Response(null, { status: 403, headers });
       return new Response(null, { status: 204, headers });
+    }
+
+    /* ---- /building — 국토교통부 건축HUB 건축물대장(표제부·전유부·층별개요) ---- */
+    if (url.pathname === '/building') {
+      if (request.method !== 'GET') return reply(405, { status: 'method' });
+      if (!matched) return reply(403, { status: 'origin' });
+      if (!env.SEMAS_API_KEY) return reply(503, { status: 'unavailable', source: 'bldrgst' });
+      const pnu = String(url.searchParams.get('pnu') || '');
+      if (!pnuParts(pnu)) return reply(400, { status: 'coordinate' });
+      if (!await allowLookup(env, request.headers.get('CF-Connecting-IP') || 'unknown')) {
+        return reply(429, { status: 'rate_limit' });
+      }
+      const checkedAt = new Date().toISOString();
+      try {
+        const out = await lookupBuilding(pnu, env);
+        if (out.status === 'not_found') return reply(404, { status: 'not_found', source: 'bldrgst' });
+        return reply(200, { ...out, checkedAt });
+      } catch {
+        return reply(502, { status: 'upstream', source: 'bldrgst' });
+      }
     }
 
     /* ---- /semas — 공단 상가(상권)정보 다각형·반경 조회 ---- */
