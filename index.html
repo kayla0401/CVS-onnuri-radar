@@ -5311,14 +5311,14 @@ function polySim(e) {
   const semStats = sem && sem.status === 'ok' ? semasStats(sem) : null;
   const conflict = !!(e.rule && e.rule.rule_conflict_flag);
   let v = 'na', label = '확인 자료 부족';
-  if (!live) {
+  if (cap.over) {
+    /* 2,000㎡ 절대 상한 — 도면이 상한을 넘으면 상가 조회·업종·밀집도·조례와 무관하게 지정 불가 */
+    v = 'fail';
+    label = `2,000㎡ 상한 초과 — 구역 축소·분할 필요(유효 ${fmt(Math.round(eff))}㎡)`;
+  } else if (!live) {
     label = '구역 내 상가 미조회 — 카카오 조회 필요';
   } else if (conflict) {
     label = '조례·시행규칙 충돌 — 유권해석 전 확정 불가';
-  } else if (cap.over) {
-    /* 2,000㎡ 절대 상한 — 도면이 상한을 넘으면 상가 조회·업종·밀집도와 무관하게 지정 불가 */
-    v = 'fail';
-    label = `2,000㎡ 상한 초과 — 구역 축소·분할 필요(유효 ${fmt(Math.round(eff))}㎡)`;
   } else if (policy === 'UNKNOWN' && e.rule) {
     label = `법적 기준 미확인 — 조례상 제외 범위 병기(${nDensityLo}~${nDensityHi}개)`;
   } else if (required == null) {
