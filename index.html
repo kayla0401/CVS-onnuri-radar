@@ -456,6 +456,8 @@ svg.fmap [data-sid],svg.fmap [data-zone],svg.fmap [data-gs]{cursor:pointer}
 .vtx:hover{background:#0B6A57;transform:scale(1.12)}
 .vtx.drag{background:#0B6A57;transform:scale(1.18);cursor:grabbing;box-shadow:0 0 0 3px rgba(14,124,102,.22)}
 .mapzone.pinning .pane-canvas{cursor:crosshair}
+/* 공단 상가업소 전수 — 카카오 점(원)과 구분되는 사각 마커 */
+.semas-square{width:7px;height:7px;background:#B45309;border:1.2px solid #fff;border-radius:1.5px;box-shadow:0 0 0 1px rgba(180,83,9,.35);pointer-events:none;box-sizing:border-box}
 .poly-lb{padding:3px 9px;background:#fff;border:1.5px solid #0E7C66;border-radius:999px;font:800 11.5px var(--font-family);color:#0E7C66;white-space:nowrap;box-shadow:0 2px 8px rgba(30,55,90,.16);pointer-events:none}
 
 /* ============================ TABLES ============================ */
@@ -1037,6 +1039,7 @@ table.tbl{width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
                   <span><svg width="10" height="12" viewBox="0 0 10 12"><path d="M5 12C1.5 7.5 0 5.8 0 4.5a5 5 0 0110 0C10 5.8 8.5 7.5 5 12z" fill="#D43B3B"/></svg>선택 점포</span>
                   <span><i class="lg" style="background:#315F95"></i>실시간 조회 상가(카카오)</span>
                   <span id="lg-poly" hidden><i class="lg" style="background:#0E7C66"></i>직접 그린 구역 내 상가</span>
+                  <span id="lg-semas" hidden><i class="lg sq" style="background:#FDE8C8;border:1.5px solid #B45309"></i>공단 상가 DB 전수</span>
                   <span><i class="lg" style="background:#16A36B"></i>온누리 가맹 GS25</span>
                   <span><i class="lg sq" style="border:1.5px dashed var(--text-primary)"></i>검토 구역(후보)</span>
                   <span><i class="lg sq" style="background:rgba(115,87,201,.18);border:1.5px solid var(--zone)"></i>기존 온누리 구역</span>
@@ -1932,6 +1935,12 @@ Object.assign(KMap, {
     this._labelLevel[id] = lvl;
     return lvl;
   },
+  /* 공단 상가업소 — 카카오 점(원)과 구분되는 사각 마커 */
+  sq(id, p, title) {
+    const el = document.createElement('div');
+    el.className = 'semas-square'; el.title = title;
+    return this.add(id, new kakao.maps.CustomOverlay({ position: this.ll(p), content: el, xAnchor: .5, yAnchor: .5, zIndex: 3 }));
+  },
   clickDot(id, p, color, size, title, onClick) { const o = this.dot(id, p, color, size, title); const el = o.getContent(); if (onClick) { el.style.cursor = 'pointer'; el.onclick = onClick; } return o; },
   gs(id, p, active, onClick) { const el = document.createElement('div'); el.className = 'gs-mk' + (active ? ' on' : ''); el.textContent = 'GS'; el.title = p.name; if (onClick) el.onclick = onClick; return this.add(id, new kakao.maps.CustomOverlay({ position: this.ll(p), content: el, xAnchor: .5, yAnchor: .5, zIndex: 5 })); },
   ring(id, p, r) { return this.add(id, new kakao.maps.Circle({ center: this.ll(p), radius: r, strokeWeight: 2, strokeColor: '#172438', strokeOpacity: .9, strokeStyle: 'dash', fillColor: '#172438', fillOpacity: .04 })); },
@@ -2109,7 +2118,7 @@ const MAPL = { cand: true, shops: true, zones: true, members: true };
 const T1 = { sel: null, area: CONFIG.DEFAULT_AREA, results: [], ev: null, hl: null, rv: true, viewMode: 'both', max: false, sort: { k: 'd', dir: 1 }, page: 0, filter: '', ac: -1, open: false,
   pinMode: false, sky: 'roadmap', split: 55,
   /* 구역 직접 그리기 — 꺾인 다각형 도면(꼭짓점은 위도·경도 객체 배열) */
-  poly: { on: false, done: false, pts: [], excl: 0, list: false, store: null, bizExcl: false, includeSelf: false } };
+  poly: { on: false, done: false, pts: [], excl: 0, list: false, listSrc: 'semas', store: null, bizExcl: false, includeSelf: false } };
 
 /* ---- 점포 핀 위치 보정 ----
    공단 상가정보의 점포 좌표는 대표지번(도로명 중심) 기준이라 A문·B문처럼 같은 건물의 다른 출입구에
@@ -2192,6 +2201,9 @@ function t1Init() {
     if (e.target.closest('#poly-done')) { polyFinish(); return; }
     if (e.target.closest('#poly-go')) { polyToggle(true); return; }
     if (e.target.closest('#poly-live')) { if (T1.ev) t1Live(T1.ev); return; }
+    if (e.target.closest('#poly-list-semas')) { T1.poly.listSrc = 'semas'; renderPolyCard(); return; }
+    if (e.target.closest('#poly-list-kakao')) { T1.poly.listSrc = 'kakao'; renderPolyCard(); return; }
+    if (e.target.closest('#semas-retry')) { if (T1.ev) semasLoad(T1.ev, true); return; }
   });
   $('#t1-poly').addEventListener('change', e => {
     if (e.target.id === 'poly-excl') {
@@ -4899,6 +4911,107 @@ function polyCentroid(pts, o) {
 /* 다각형 최대 반지름(중심~꼭짓점) — 첫 점 근처 클릭 판정·지도 표시 범위에 쓴다 */
 function polySpan(pts, o) { const c = polyCentroid(pts, o); let r = 0; pts.forEach(q => { const [x, y] = polyXY(o, q); r = Math.max(r, Math.hypot(x - c[0], y - c[1])); }); return r; }
 
+/* ---- 공단 상가(상권)정보 전수 추출 — 직접 그린 구역 ----
+   카카오 Places 는 업종당 45건까지만 돌려주므로 넓은 구역에서는 표본이 빠진다.
+   소상공인시장진흥공단 `storeListInPolygon` 은 그린 다각형 그대로를 받아 전수(최대 3,000건)를 준다.
+   키는 Worker(`/semas`)에만 있고, 브라우저는 결과만 받는다. */
+const SEMAS_DB_SRC = '소상공인시장진흥공단 상가(상권)정보';
+const SEM = { cur: null, cache: new Map(), seq: 0, t: null };
+function semasActive() { return !!window.ONNURI_SEMAS_ENDPOINT; }
+function semasKeyOf(pts) { return pts.map(q => `${(+q.lat).toFixed(6)},${(+q.lng).toFixed(6)}`).join(';'); }
+function semasWkt(pts) {
+  const ring = pts.map(q => `${(+q.lng).toFixed(6)} ${(+q.lat).toFixed(6)}`);
+  if (ring.length) ring.push(ring[0]);          /* 닫힌 고리(POLYGON((...)))*/
+  return `POLYGON((${ring.join(',')}))`;
+}
+function semasOf() {
+  const P = T1.poly;
+  if (!P || !P.pts || P.pts.length < 3) return null;
+  const key = semasKeyOf(P.pts);
+  return SEM.cur && SEM.cur.key === key ? SEM.cur : null;
+}
+function semasReset() {
+  SEM.cur = null;
+  (APP.semasOv || []).forEach(o => { try { o.setMap(null); } catch (_) { } });
+  APP.semasOv = [];
+  const lg = $('#lg-semas'); if (lg) lg.hidden = true;
+}
+async function semasLoad(e, force) {
+  const P = T1.poly, pts = P.pts, endpoint = window.ONNURI_SEMAS_ENDPOINT;
+  if (!endpoint || !e || !pts || pts.length < 3) return null;
+  const key = semasKeyOf(pts);
+  const hit = SEM.cache.get(key);
+  const ttl = hit && hit.status === 'error' ? 30000 : 600000;
+  if (!force && hit && (hit.status === 'loading' || (hit.at || 0) > Date.now() - ttl)) {
+    SEM.cur = hit;
+    if (T1.ev === e) { renderPolyCard(); syncDrawBar(); polySemasMarks(e); }
+    return hit;
+  }
+  const ring = semasWkt(pts);
+  const job = { key, ring, status: 'loading', items: [], totalCount: 0, stdrYm: '', truncated: false, at: 0 };
+  SEM.cache.set(key, job); SEM.cur = job;
+  const seq = ++SEM.seq;
+  if (T1.ev === e) { renderPolyCard(); syncDrawBar(); }
+  let out = job;
+  try {
+    const url = new URL(endpoint);
+    url.searchParams.set('mode', 'polygon');
+    url.searchParams.set('key', ring);
+    url.searchParams.set('pageNo', '1');
+    url.searchParams.set('numOfRows', '1000');
+    const response = await fetch(url, { credentials: 'omit', signal: AbortSignal.timeout(20000) });
+    const data = await response.json().catch(() => null);
+    if (seq !== SEM.seq) return job;               /* 더 새로운 도면 요청이 있으면 늦은 응답을 버린다 */
+    if (!response.ok || !data) throw new Error('semas');
+    if (!['ok', 'empty'].includes(data.status) || !Array.isArray(data.items)) throw new Error('semas');
+    const items = data.items.filter(x => x && Number.isFinite(+x.lat) && Number.isFinite(+x.lon)).map(x => ({
+      bizesId: String(x.bizesId || ''), bizesNm: String(x.bizesNm || ''), brchNm: String(x.brchNm || ''),
+      indsLclsNm: String(x.indsLclsNm || ''), indsMclsNm: String(x.indsMclsNm || ''), indsSclsNm: String(x.indsSclsNm || ''),
+      ksicNm: String(x.ksicNm || ''), rdnmAdr: String(x.rdnmAdr || ''), lnoAdr: String(x.lnoAdr || ''),
+      bldNm: String(x.bldNm || ''), flrNo: String(x.flrNo || ''), hoNo: String(x.hoNo || ''),
+      lat: +x.lat, lon: +x.lon,
+    }));
+    out = { key, ring, status: items.length ? 'ok' : 'empty', items,
+      totalCount: Number.isFinite(+data.totalCount) ? +data.totalCount : items.length,
+      stdrYm: String(data.stdrYm || ''), truncated: !!data.truncated, at: Date.now() };
+  } catch {
+    if (seq !== SEM.seq) return job;
+    out = { key, ring, status: 'error', items: [], totalCount: 0, stdrYm: '', truncated: false, at: Date.now() };
+  }
+  SEM.cache.set(key, out);
+  if (SEM.cache.size > 12) { const first = SEM.cache.keys().next().value; if (first !== key) SEM.cache.delete(first); }
+  if (SEM.cur && SEM.cur.key === key) SEM.cur = out;
+  if (T1.ev === e) { renderPolyCard(); syncDrawBar(); polySemasMarks(e); }
+  return out;
+}
+function semasSoon(e) {
+  clearTimeout(SEM.t);
+  SEM.t = setTimeout(() => { if (T1.ev) semasLoad(T1.ev, false); }, 350);
+}
+/* 공단 DB 점포의 가맹 제한·소상공인 여부(참고) — 판정식은 기존 분류기를 그대로 쓴다 */
+function semasCat(x) { return x.indsSclsNm || x.indsMclsNm || x.indsLclsNm || ''; }
+function semasClass(x) { return classifyOnnuriEligibility(x.bizesNm, semasCat(x)); }
+function semasStats(sem) {
+  if (!sem || sem.status !== 'ok') return null;
+  if (sem._stats) return sem._stats;
+  let ex = 0, chk = 0, non = 0;
+  sem.items.forEach(x => {
+    const c = semasClass(x);
+    if (c.nonSmallBiz) non += 1;
+    else if (c.status === 'RESTRICTED') ex += 1;
+    else if (c.status === 'CONDITIONAL_REVIEW') chk += 1;
+  });
+  sem._stats = { n: sem.items.length, ex, chk, non, small: sem.items.length - non };
+  return sem._stats;
+}
+function semasNote(x, rule) {
+  const c = semasClass(x);
+  if (c.nonSmallBiz) return '소상공인 아님(참고)';
+  if (c.status === 'RESTRICTED') return `가맹 제한(참고) · ${c.label}`;
+  if (c.status === 'CONDITIONAL_REVIEW') return `조건부 확인 · ${c.label}`;
+  return '포함';
+}
+
 /* 실측 시뮬레이션 — 도면 면적 → (조례상 허용될 때만) 공용면적 제외 → 조례 기준 필요 상가·충족률
    밀집도 제외는 조례 density_exclusion_policy 로만 결정한다(NONE 미제외 / ALL_RESTRICTED·PARTIAL 제외 /
    UNKNOWN 자동 차감 금지·양쪽 범위 병기). 표본 비율 외삽은 하지 않는다. */
@@ -4945,6 +5058,8 @@ function polySim(e) {
   const ratio = required ? nDensity / required : null;
   const ratioLo = required ? nDensityLo / required : null;
   const gongdan = countsFor(o, eff); // 원형 반경 데이터(도면 상가 수가 아님)
+  const sem = semasOf();             // 공단 상가업소 전수(다각형 그대로 조회)
+  const semStats = sem && sem.status === 'ok' ? semasStats(sem) : null;
   const conflict = !!(e.rule && e.rule.rule_conflict_flag);
   let v = 'na', label = '확인 자료 부족';
   if (!live) {
@@ -4965,6 +5080,7 @@ function polySim(e) {
   return { area, eff, excl, nAll, nSmall, inside, required, requiredNon, per, ratio, ratioLo, base, th, thFlat, thCom, thNon,
     nSmallAll: smallAll.length, nEx: bizEx.length, nChk: bizChk.length, nNonSmall: bizNon.length, bizOn,
     policy, nDensity, nDensityLo, nDensityHi, conflict, ownConfirmed, over, overInfo, gongdan,
+    sem, semStats, semRatio: required && semStats ? semStats.small / required : null,
     v, label, live: !!live, liveState: APP.live.key === o.id ? APP.live.state : 'idle', span: polySpan(pts, pos), ring };
 }
 
@@ -4990,6 +5106,8 @@ function resetPolyState() {
   try { polyClearOv(); } catch (_) { }
   (APP.polyDotOv || []).forEach(o => { try { o.setMap(null); } catch (_) { } });
   APP.polyDotOv = [];
+  try { semasReset(); } catch (_) { }
+  clearTimeout(SEM.t);
   const card = $('#t1-poly'); if (card) { card.hidden = true; card.innerHTML = ''; }
   const bar = $('#draw-bar'); if (bar) bar.hidden = true;
   const lg = $('#lg-poly'); if (lg) lg.hidden = true;
@@ -4998,6 +5116,29 @@ function resetPolyState() {
   /* 상태바(토스트)에 남은 '도면 작성 완료…' 문구도 지운다 */
   const t = $('#toast'); if (t) { t.classList.remove('show'); t.textContent = ''; }
   syncCaption();
+}
+/* 공단 상가업소 점포 — 카카오 점(원)과 구분되는 주황 사각 마커 */
+function polySemasMarks(e) {
+  (APP.semasOv || []).forEach(o => { try { o.setMap(null); } catch (_) { } });
+  APP.semasOv = [];
+  const lg = $('#lg-semas'); if (lg) lg.hidden = !(T1.poly.pts.length >= 3);
+  if (!KMap.ready || !MAPL.shops) return;
+  const sem = semasOf();
+  if (!sem || sem.status !== 'ok') return;
+  sem.items.slice(0, 400).forEach(x => {
+    if (!Number.isFinite(+x.lat) || !Number.isFinite(+x.lon)) return;
+    try {
+      APP.semasOv.push(KMap.sq('map1', { lat: +x.lat, lng: +x.lon },
+        `${x.bizesNm}${x.brchNm ? ' ' + x.brchNm : ''} · ${semasCat(x)}${x.flrNo ? ' · ' + x.flrNo + (x.hoNo ? '/' + x.hoNo : '') : ''} · 공단 DB`));
+    } catch (_) { }
+  });
+}
+function simSemasDots(e) {
+  const sem = semasOf();
+  if (!sem || sem.status !== 'ok') return [];
+  return sem.items.slice(0, 400)
+    .map(x => ({ lat: +x.lat, lng: +x.lon, title: `${x.bizesNm} · 공단 상가 DB` }))
+    .filter(p => Number.isFinite(p.lat) && Number.isFinite(p.lng));
 }
 function polyDotList(e) {
   const R = T1.poly.on ? 400 : e.r * 2.4;
@@ -5120,7 +5261,7 @@ function polyLiveGeometry() {
 }
 function polyMouse(ev) { polyClick(ev); }
 function polyLL(ev) { const ll = ev && ev.latLng; return ll ? { lat: ll.getLat(), lng: ll.getLng() } : null; }
-function polyAfterEdit() { const e = T1.ev; if (!e) return; polyDrawMap(e); polyRecolor(e); renderPolyCard(); syncDrawBar(); zoneAreaSoon(e); }
+function polyAfterEdit() { const e = T1.ev; if (!e) return; polyDrawMap(e); polyRecolor(e); polySemasMarks(e); renderPolyCard(); syncDrawBar(); zoneAreaSoon(e); if (T1.poly.pts.length >= 3) semasSoon(e); }
 
 /* --- 그리기 조작 --- */
 function polyToggle(force) {
@@ -5131,7 +5272,8 @@ function polyToggle(force) {
   if (!want) {
     P.on = false;
     if (P.pts.length >= 3) P.done = true;
-    polyDrawMap(e); polyRecolor(e); syncPolyUI(); renderPolyCard();
+    polyDrawMap(e); polyRecolor(e); polySemasMarks(e); syncPolyUI(); renderPolyCard();
+    if (P.pts.length >= 3) semasLoad(e, false);      /* 그리기를 끝내면 공단 전수 조회 */
     return;
   }
   if (P.store !== e.p.id) { P.pts = []; P.done = false; P.list = false; P.store = e.p.id; polyClearOv(); }
@@ -5175,6 +5317,7 @@ function polyFinish() {
   if (P.pts.length < 3) { toast('꼭짓점을 3개 이상 찍어야 면적·판정을 계산합니다'); return; }
   P.done = true; polyAfterEdit();
   zoneAreaSoon(e, true);
+  semasLoad(e, false);           /* 공단 상가업소 전수 — 도면이 완성된 시점에 바로 조회 */
   if (KMap.ready) {
     try {
       const b = new kakao.maps.LatLngBounds(); P.pts.forEach(q => b.extend(KMap.ll(q)));
@@ -5210,7 +5353,7 @@ function syncDrawBar() {
   const set = (id, v) => { const el = $('#' + id); if (el) el.textContent = v; };
   set('db-n', String(n));
   set('db-a', sim ? `${fmt(Math.round(sim.area))}㎡` : '—');
-  set('db-s', sim && sim.live ? `${sim.nSmall}개` : '—');
+  set('db-s', sim && sim.semStats ? `카카오 ${sim.nSmall} · 공단 ${sim.semStats.n}` : (sim && sim.live ? `${sim.nSmall}개` : '—'));
   const undo = $('#db-undo'), done = $('#db-done'), clr = $('#db-clear');
   if (undo) undo.disabled = !n;
   if (done) done.disabled = n < 3 || P.done;
@@ -5247,13 +5390,16 @@ function renderPolyCard() {
     : sim.liveState === 'error' ? '<span class="chip d">카카오 조회 실패</span>'
     : sim.liveState === 'empty' ? '<span class="chip o">카카오 결과 0건</span>'
     : `<span class="chip a">카카오 ${sim.live ? '실시간 조회' : '미조회'}</span>`;
-  const listHTML = P.list ? `<div class="tbl-wrap" style="max-height:230px;margin:10px 16px 0;border:1px solid var(--border);border-radius:var(--r)">
-      <table class="tbl num"><thead><tr><th>상호</th><th>업종</th><th>거리</th><th>주소</th><th>집계</th></tr></thead><tbody>
-      ${sim.inside.length ? sim.inside.slice().sort((a, b) => a.p.d - b.p.d).map(x => `<tr><td><b>${esc(x.p.name)}</b></td><td>${esc(x.p.cat)}</td>
-        <td>${Math.round(x.p.d)}m</td><td class="faint">${esc(x.p.addr || '')}</td>
-        <td>${x.self ? (sim.ownConfirmed ? '<span class="chip a">대상 GS25 수동 확인 · 포함(+1)</span>' : '<span class="chip o">대상 점포 · 미포함</span>') : !x.small ? '<span class="chip d">소상공인 확인 필요</span>' : (d => d.exclude ? `<span class="chip xx">밀집도 제외 · ${esc(d.label)}</span>` : d.status === 'RESTRICTED' ? `<span class="chip cf">가맹 제한(참고) · ${esc(d.label)}</span>` : d.status === 'CONDITIONAL_REVIEW' ? `<span class="chip cf">조건부 확인 · ${esc(d.label)}</span>` : '<span class="chip s">포함</span>')(classifyDensityExclusion({ name: x.p.name, cat: x.p.cat }, e.rule))}</td></tr>`).join('')
-      : '<tr><td colspan="5" class="faint">아직 구역 내에서 확인된 상가가 없습니다.</td></tr>'}
-      </tbody></table></div>` : '';
+  /* 공단 상가업소 전수 상태 — 실패해도 카카오 기준으로 그대로 쓸 수 있게 표시만 바꾼다 */
+  const sem = sim.sem, semStats = sim.semStats;
+  const semStatus = !semasActive() ? 'off' : !sem ? 'idle' : sem.status;
+  const semYm = sem && sem.stdrYm && sem.stdrYm.length >= 6 ? `${sem.stdrYm.slice(0, 4)}.${sem.stdrYm.slice(4, 6)}` : '';
+  const semChip = semStatus === 'loading' ? '<span class="chip w">공단 DB 조회 중…</span>'
+    : semStatus === 'error' ? '<span class="chip d">공단 DB 조회 실패</span>'
+    : semStatus === 'empty' ? '<span class="chip o">공단 DB 0건</span>'
+    : semStatus === 'ok' ? `<span class="chip ${sem.truncated ? 'w' : 's'}">공단 DB ${sem.truncated ? '일부' : '전수'}${semYm ? ' · ' + semYm + ' 기준' : ''}</span>`
+    : '<span class="chip o">공단 DB 미조회</span>';
+  const listHTML = P.list ? polyListHTML(sim, e) : '';
   box.innerHTML = `
     <div class="card-h"><h3>📐 직접 그린 구역 실측 시뮬레이션</h3><span class="sub">${P.done ? '도면 작성 완료 · 예비 분석' : '그리는 중'}</span>
       <div class="right">${badge(sim.v)}</div></div>
@@ -5265,6 +5411,7 @@ function renderPolyCard() {
       <div><div class="k">유효 면적 <span class="faint">(제외 ${sim.excl}%)</span></div><div class="v">${fmt(Math.round(sim.eff))}<small>㎡</small></div></div>
       <div><div class="k">구역 내 상가 <span class="faint">(카카오)</span></div><div class="v" style="color:${m.color}">${sim.nSmall}<small>개 / 전체 ${sim.nAll}${sim.bizOn && sim.nEx ? ` · 가맹 제한 의심 ${sim.nEx}건(참고)` : ''}</small></div></div>
     </div>
+    ${(semStatus === 'error' || semStatus === 'off') ? `<div class="ssite s2" style="margin:10px 20px 0"><span class="si">${ic('warn', 16)}</span><div class="sb"><b>공단 상가 DB를 불러오지 못했습니다 — 카카오 실시간 기준으로 표시 중</b><span class="sx">${semStatus === 'off' ? '공단 상가정보 연동 주소가 설정되지 않았습니다. 기존 카카오 조회 결과만으로 계산합니다.' : 'Worker 또는 공단 API가 응답하지 않았습니다. 잠시 뒤 [공단 DB 조회]로 다시 시도해 주세요.'}</span></div></div>` : ''}
     ${zoneBlockHTML(e)}
     <div class="vrows" style="margin-top:12px;border-top:0">
       <div class="vrow"><span class="k">도로·주차장 제외율</span><span class="v" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
@@ -5281,11 +5428,27 @@ function renderPolyCard() {
       <div class="vrow"><span class="k">조례 공용면적</span><span class="v">${exclChip} <span class="faint" style="font-size:11.5px">${exclOk === true ? '이 지자체는 심의를 거쳐 도로·주차장 부지를 뺄 수 있습니다' : exclOk === false ? '이 조례는 도로 면적을 포함해 산정합니다' : '조례에 면적 제외 규정이 확인되지 않습니다'}</span></span></div>
       <div class="vrow"><span class="k">필요 상가 수</span><span class="v"><b class="num">${sim.required ?? '—'}</b>개 <span class="faint">유효 면적 기준${sim.requiredNon != null ? ` (비상업 ${sim.requiredNon}개)` : ''}${sim.over ? ' · 기준면적 초과(별도 규정 확인)' : ''}</span>
         ${sim.thNon != null ? `<span class="faint" style="font-size:11.5px">· ${fmt(sim.base)}㎡당 상업 ${sim.thCom}·비상업 ${sim.thNon}개</span>` : ''}</span></div>
+      <div class="vrow"><span class="k">공단 상가 DB 전수 <span class="faint">(도면 그대로)</span></span><span class="v" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <span><b class="num">${semStats ? fmt(semStats.n) : '—'}</b>개 <span class="faint">전체 점포</span></span>
+        <span class="faint">·</span>
+        <span>소상공인 성격(참고) <b class="num">${semStats ? fmt(semStats.small) : '—'}</b>개</span>
+        ${semChip}
+        ${(semStatus === 'error' || semStatus === 'idle') && semasActive() ? `<button class="btn xs" id="semas-retry">${ic('refresh', 12)}공단 DB 조회</button>` : ''}
+      </span></div>
+      ${semStats ? `<div class="vrow"><span class="k">공단 DB 업종 참고</span><span class="v" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <span>가맹 제한 의심 <b class="num">${semStats.ex}</b>건 · 조건부(주점 등) <b class="num">${semStats.chk}</b>건 · 소상공인 아님 <b class="num">${semStats.non}</b>건</span>
+        <span class="faint" style="font-size:11.5px">가맹 적격·밀집도 제외 판단과는 별개(참고)</span></span></div>
+      <div class="vrow"><span class="k">공단 DB 참고 충족률</span><span class="v" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+        <b class="num" style="color:${m.color}">${sim.semRatio != null ? Math.round(sim.semRatio * 100) + '%' : '—'}</b>
+        <span class="faint">= 소상공인 성격 ${fmt(semStats.small)}개 ÷ 필요 상가 ${sim.required ?? '—'}개 · 판정은 카카오 기준</span>
+        ${sim.semRatio != null ? `<span class="prog" style="flex:1;min-width:80px"><i style="width:${Math.min(sim.semRatio, 1.5) / 1.5 * 100}%;background:#B45309"></i></span>` : ''}</span></div>` : ''}
       <div class="vrow"><span class="k">공단 vs 카카오</span><span class="v" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
-        <span>공단 원형 반경 추정(다각형 실측 아님) <b class="num">${sim.gongdan ? sim.gongdan.small : '—'}</b>개 <span class="faint">(상가 전체 ${sim.gongdan ? sim.gongdan.all : '—'})</span></span>
+        <span>공단 DB 도면 내 <b class="num" style="color:#B45309">${semStats ? fmt(semStats.n) : '—'}</b>개</span>
         <span class="faint">↔</span>
         <span>카카오 도면 내 <b class="num" style="color:${m.color}">${sim.live ? sim.nSmall : '—'}</b>개</span>
-        ${!sim.live ? `<button class="btn xs" id="poly-live">${ic('refresh', 12)}도면 기준 카카오 조회</button>` : `<span class="faint" style="font-size:11.5px">점 좌표를 도면 안/밖으로 갈라 센 값</span>`}</span></div>
+        ${semStats && sim.live ? `<span class="chip ${semStats.n > sim.nSmall ? 'a' : 's'}">차이 ${semStats.n - sim.nSmall > 0 ? '+' : ''}${fmt(semStats.n - sim.nSmall)}개</span>` : ''}
+        ${!sim.live ? `<button class="btn xs" id="poly-live">${ic('refresh', 12)}도면 기준 카카오 조회</button>` : '<span class="faint" style="font-size:11.5px">카카오는 업종당 45건 표본 · 공단은 전수</span>'}
+        ${sim.gongdan ? `<span class="faint" style="font-size:11.5px">· 공단 원형 추정 ${sim.gongdan.small}개(다각형 아님)</span>` : ''}</span></div>
       <div class="vrow"><span class="k">참고: 기준면적 환산 지표(판정 미사용)</span><span class="v"><b class="num" style="color:${m.color}">${sim.per != null ? sim.per.toFixed(1) : '—'}</b>개 <span class="faint">= 구역 내 상가 ${sim.nSmall}개 × ${fmt(sim.base)} ÷ ${fmt(Math.round(sim.eff))}㎡</span></span></div>
       <div class="vrow" style="border-bottom:0"><span class="k">충족률 · 판정</span><span class="v" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
         <span class="prog" style="flex:1;min-width:120px"><i style="width:${w}%;background:${m.color}"></i><span class="tick" style="left:${100 / 1.5}%" title="기준 100%"></span></span>
@@ -5293,24 +5456,79 @@ function renderPolyCard() {
         <b style="color:${m.color}">${esc(sim.label)}</b>${sim.over ? `<span class="chip cf">${fmt(sim.base)}㎡ 초과 기준</span>` : ''}${sim.policy === 'UNKNOWN' ? '<span class="chip o">법적 기준 미확인</span>' : ''}${sim.conflict ? '<span class="chip d">조례·시행규칙 충돌</span>' : ''}${liveChip}</span></div>
     </div>
     <div class="poly-acts">
-      <button class="btn sm" id="poly-list">${P.list ? '구역 내 상가 접기' : `구역 내 상가 보기 (${sim.nAll})`}</button>
+      <button class="btn sm" id="poly-list">${P.list ? '구역 내 상가 접기' : `구역 내 상가 보기 (${semStats ? fmt(semStats.n) : sim.nAll})`}</button>
       <button class="btn sm" id="poly-csv">${ic('down', 14)}구역 내 상가 CSV</button>
       <button class="btn sm" id="poly-copy">${ic('copy', 14)}시뮬레이션 요약 복사</button>
       ${!P.done ? '<button class="btn sm primary" id="poly-done">그리기 완료</button>' : ''}
     </div>
     ${listHTML}
-    <div class="poly-note">※ 카카오 실시간 위치 기준(업종당 최대 45건) 시뮬레이션이며, 실제 심사 시 소상공인 해당 여부·지번 도면 확인이 필요합니다.</div>`;
+    <div class="poly-note">※ 구역 내 점포는 <b>소상공인시장진흥공단 상가(상권)정보</b>(도면 그대로 조회한 전수)와 <b>카카오 실시간</b>(업종당 최대 45건 표본)를 함께 보여줍니다. 공단 DB는 기준월 시점 스냅샷이라 이미 폐업한 점포가 남아 있을 수 있고, 판정(충족률)은 기존처럼 카카오 실시간 실측을 기준으로 계산합니다. 실제 심사 전에는 소상공인 해당 여부·현장 영업과 지번 도면을 확인해야 합니다.</div>`;
+}
+/* ---- 구역 내 상가 목록 — 공단 상가업소 전수 / 카카오 실시간 두 출처 ---- */
+function semasRowHTML(x, e) {
+  const note = semasNote(x, e && e.rule);
+  const chip = note.startsWith('소상공인 아님') ? '<span class="chip d">소상공인 아님(참고)</span>'
+    : note.startsWith('가맹 제한') ? `<span class="chip cf">${esc(note)}</span>`
+    : note.startsWith('조건부') ? `<span class="chip cf">${esc(note)}</span>`
+    : '<span class="chip s">포함</span>';
+  const flr = [x.flrNo, x.hoNo].filter(Boolean).join('/');
+  const addr = x.rdnmAdr || x.lnoAdr || '';
+  return `<tr><td><b>${esc(x.bizesNm)}</b>${x.brchNm ? ` <span class="faint">${esc(x.brchNm)}</span>` : ''}</td>
+    <td>${esc(x.indsSclsNm || x.indsMclsNm || x.indsLclsNm || '')}</td>
+    <td class="num">${esc(flr || '—')}</td>
+    <td class="faint">${esc(addr)}</td>
+    <td>${chip}</td></tr>`;
+}
+function semasTableHTML(sem, e) {
+  if (!sem) return '';
+  if (sem.status === 'loading') {
+    return `<div class="tbl-wrap" style="max-height:230px;margin:10px 16px 0;border:1px solid var(--border);border-radius:var(--r)"><div style="padding:18px;text-align:center" class="faint">공단 상가 DB 전수를 불러오는 중…</div></div>`;
+  }
+  if (sem.status === 'error') {
+    return `<div class="tbl-wrap" style="max-height:130px;margin:10px 16px 0;border:1px solid var(--border);border-radius:var(--r)"><div style="padding:16px" class="faint">공단 상가 DB를 불러오지 못했습니다. 카카오 탭에서 실시간 결과를 보세요.</div></div>`;
+  }
+  return `<div class="tbl-wrap" style="max-height:230px;margin:10px 16px 0;border:1px solid var(--border);border-radius:var(--r)">
+      <table class="tbl num"><thead><tr><th>상호</th><th>업종</th><th>층/호</th><th>주소</th><th>참고</th></tr></thead><tbody>
+      ${sem.items.length ? sem.items.map(x => semasRowHTML(x, e)).join('')
+        : '<tr><td colspan="5" class="faint">이 도면 안에서 공단 DB에 등록된 상가업소가 없습니다.</td></tr>'}
+      </tbody></table></div>
+      ${sem.truncated ? `<div class="poly-note" style="margin-top:6px">※ 공단 DB 응답이 3,000건을 넘어 일부만 표시합니다(구역을 나눠 조회하세요). 총 ${fmt(sem.totalCount)}건.</div>` : ''}`;
+}
+function kakaoTableHTML(sim, e) {
+  return `<div class="tbl-wrap" style="max-height:230px;margin:10px 16px 0;border:1px solid var(--border);border-radius:var(--r)">
+      <table class="tbl num"><thead><tr><th>상호</th><th>업종</th><th>거리</th><th>주소</th><th>집계</th></tr></thead><tbody>
+      ${sim.inside.length ? sim.inside.slice().sort((a, b) => a.p.d - b.p.d).map(x => `<tr><td><b>${esc(x.p.name)}</b></td><td>${esc(x.p.cat)}</td>
+        <td>${Math.round(x.p.d)}m</td><td class="faint">${esc(x.p.addr || '')}</td>
+        <td>${x.self ? (sim.ownConfirmed ? '<span class="chip a">대상 GS25 수동 확인 · 포함(+1)</span>' : '<span class="chip o">대상 점포 · 미포함</span>') : !x.small ? '<span class="chip d">소상공인 확인 필요</span>' : (d => d.exclude ? `<span class="chip xx">밀집도 제외 · ${esc(d.label)}</span>` : d.status === 'RESTRICTED' ? `<span class="chip cf">가맹 제한(참고) · ${esc(d.label)}</span>` : d.status === 'CONDITIONAL_REVIEW' ? `<span class="chip cf">조건부 확인 · ${esc(d.label)}</span>` : '<span class="chip s">포함</span>')(classifyDensityExclusion({ name: x.p.name, cat: x.p.cat }, e.rule))}</td></tr>`).join('')
+      : '<tr><td colspan="5" class="faint">아직 구역 내에서 확인된 상가가 없습니다.</td></tr>'}
+      </tbody></table></div>`;
+}
+function polyListHTML(sim, e) {
+  const P = T1.poly, sem = sim.sem, semStats = sim.semStats;
+  const src = (P.listSrc === 'kakao' || !semStats) ? 'kakao' : 'semas';
+  const tab = (id, on, label) => `<button class="btn xs" id="${id}" aria-pressed="${on}">${label}</button>`;
+  return `<div class="poly-list-h" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin:10px 16px 0">
+      ${tab('poly-list-semas', src === 'semas', `공단 DB ${semStats ? fmt(semStats.n) : '—'}개`)}
+      ${tab('poly-list-kakao', src === 'kakao', `카카오 ${sim.live ? fmt(sim.nAll) : '—'}개`)}
+      <span class="faint" style="font-size:11.5px">${src === 'semas' ? '공단 상가업소 전수 · 기준월 스냅샷' : '카카오 실시간 · 업종당 최대 45건 표본'}</span>
+    </div>` + (src === 'semas' ? semasTableHTML(sem, e) : kakaoTableHTML(sim, e));
 }
 function polyCopy() {
   const e = T1.ev, sim = polySim(e);
   if (!sim) { toast('꼭짓점 3개 이상을 찍어 구역을 먼저 그리세요'); return; }
   const r = e.rule;
+  const semYm = sim.sem && sim.sem.stdrYm && sim.sem.stdrYm.length >= 6 ? sim.sem.stdrYm.slice(0, 4) + '.' + sim.sem.stdrYm.slice(4, 6) : '';
+  const semLine = sim.semStats
+    ? '공단 상가 DB 전수: ' + fmt(sim.semStats.n) + '개 (' + SEMAS_DB_SRC + (semYm ? ' ' + semYm + ' 기준' : '') + ' · 소상공인 성격 ' + fmt(sim.semStats.small) + '개)'
+    : '공단 상가 DB 전수: ' + (sim.sem ? ({ loading: '조회 중', error: '조회 실패 — 카카오 기준', empty: '0건', off: '미연결' }[sim.sem.status] || '미조회') : '미조회');
   copyText([
     `[직접 그린 구역 실측 시뮬레이션] ${e.p.name}`,
     `주소: ${e.p.address}`,
     `도면: 꼭짓점 ${T1.poly.pts.length}개 · 총 면적 ${fmt(Math.round(sim.area))}㎡ (신발끈 공식 실측)`,
     `도로·주차장 제외율: ${sim.excl}% → 유효 면적 ${fmt(Math.round(sim.eff))}㎡`,
     `구역 내 확인 상가: ${sim.nSmall}개 (카카오 실시간 · 전체 ${sim.nAll}개)`,
+    semLine,
+    `공단 DB 참고 충족률: ${sim.semRatio != null ? Math.round(sim.semRatio * 100) + '%' : '—'} (판정은 카카오 기준) — 가맹 제한 의심 ${sim.semStats ? sim.semStats.ex : '—'}건 · 조건부 ${sim.semStats ? sim.semStats.chk : '—'}건 · 소상공인 아님 ${sim.semStats ? sim.semStats.non : '—'}건`,
     `조례상 밀집도 제외: ${(DENSITY_POLICIES[sim.policy] || DENSITY_POLICIES.UNKNOWN).label} — 인정 점포 ${sim.nDensity}개${sim.policy === 'UNKNOWN' ? ` (범위 ${sim.nDensityLo}~${sim.nDensityHi}개)` : ''}`,
     `온누리 가맹업종(참고): 가맹 제한 의심 ${sim.nEx}건 · 조건부(주점 등) ${sim.nChk}건 · 소상공인 아님 ${sim.nNonSmall}건 — 지정 요건과 가맹 적격은 별개`,
     `기준: ${r ? r.ordinance : NAT_RULE.ordinance} — ${sim.thNon != null ? `${fmt(sim.base)}㎡당 상업 ${sim.thCom}개·비상업 ${sim.thNon}개` : `${fmt(sim.base)}㎡당 ${sim.th}개`}`,
@@ -5325,10 +5543,36 @@ function polyCopy() {
 function polyCSV() {
   const e = T1.ev, sim = polySim(e);
   if (!sim) { toast('꼭짓점 3개 이상을 찍어 구역을 먼저 그리세요'); return; }
-  const rows = sim.inside.slice().sort((a, b) => a.p.d - b.p.d);
+  const rows = [];
+  /* 공단 상가업소 — 그린 다각형 그대로 조회한 전수 */
+  const sem = sim.sem;
+  if (sem && sem.status === 'ok') {
+    sem.items.forEach(x => rows.push({
+      src: SEMAS_DB_SRC, bizesId: x.bizesId, bizesNm: x.bizesNm, brchNm: x.brchNm,
+      inds: [x.indsLclsNm, x.indsMclsNm, x.indsSclsNm].filter(Boolean).join(' > '), ksic: x.ksicNm,
+      flrNo: x.flrNo, hoNo: x.hoNo, rdnmAdr: x.rdnmAdr, lnoAdr: x.lnoAdr,
+      note: semasNote(x, e.rule), d: null, lat: x.lat, lon: x.lon,
+    }));
+  }
+  /* 카카오 실시간 표본 */
+  sim.inside.slice().sort((a, b) => a.p.d - b.p.d).forEach(x => {
+    const d = classifyDensityExclusion({ name: x.p.name, cat: x.p.cat }, e.rule);
+    rows.push({
+      src: '카카오 실시간', bizesId: '', bizesNm: x.p.name, brchNm: '',
+      inds: x.p.cat || '', ksic: '', flrNo: '', hoNo: '', rdnmAdr: x.p.addr || '', lnoAdr: '',
+      note: x.self ? (sim.ownConfirmed ? '대상 GS25 수동확인 포함' : '대상 GS25 미포함') : !x.small ? '소상공인 확인 필요 업종'
+        : d.exclude ? `밀집도 제외(${d.label})` : d.status === 'RESTRICTED' ? `가맹 제한 참고(${d.label})`
+        : d.status === 'CONDITIONAL_REVIEW' ? '유흥 확인(주점)' : '포함',
+      d: x.p.d, lat: x.p.lat, lon: x.p.lng,
+    });
+  });
+  if (!rows.length) { toast('구역 안에서 확인된 상가가 없어 머리글만 내려받습니다'); }
   downloadCSV(`직접그린구역_${e.p.name}_${Math.round(sim.area)}m2.csv`, toCSV([
-    ['상호', x => x.p.name], ['업종', x => x.p.cat], ['거리(m)', x => Math.round(x.p.d)], ['주소', x => x.p.addr || ''],
-    ['집계', x => { const d = classifyDensityExclusion({ name: x.p.name, cat: x.p.cat }, e.rule); return x.self ? (sim.ownConfirmed ? '대상 GS25 수동확인 포함' : '대상 GS25 미포함') : !x.small ? '소상공인 확인 필요 업종' : d.exclude ? `밀집도 제외(${d.label})` : d.status === 'RESTRICTED' ? `가맹 제한 참고(${d.label})` : d.status === 'CONDITIONAL_REVIEW' ? '유흥 확인(주점)' : '포함'; }], ['위도', x => x.p.lat], ['경도', x => x.p.lng],
+    ['출처', x => x.src], ['상가업소번호', x => x.bizesId], ['상호', x => x.bizesNm], ['지점', x => x.brchNm],
+    ['업종', x => x.inds], ['표준산업분류', x => x.ksic], ['층', x => x.flrNo], ['호', x => x.hoNo],
+    ['도로명주소', x => x.rdnmAdr], ['지번주소', x => x.lnoAdr],
+    ['거리(m)', x => x.d == null ? '' : Math.round(x.d)], ['참고', x => x.note],
+    ['위도', x => x.lat], ['경도', x => x.lon],
   ], rows));
 }
 
@@ -5352,7 +5596,7 @@ function renderMap1(e) {
     KMap.add(id, new kakao.maps.Marker({ position: KMap.ll(pos), title: p.name + (pinOf(p) ? ' (핀 보정)' : '') }));
     wireMapEv(m);
     skyApply();
-    polyRecolor(e); polyDrawMap(e);
+    polyRecolor(e); polyDrawMap(e); polySemasMarks(e);
     if (!drawing) { m.setCenter(KMap.ll(pos)); m.setLevel(e.r > 60 ? 3 : 2); }
     KMap.zoomCtl('map1');
     if (T1.viewMode !== 'map') { if (KMap.rv) KMap.rv.relayout(); KMap.roadview('rv1', pos, () => { $('#rv1').innerHTML = rvPlaceholder(p, '주변 60m 이내 로드뷰 파노라마가 없습니다.'); KMap.rv = null; }); }
@@ -5364,6 +5608,7 @@ function renderMap1(e) {
       ...near.map(s => { const inP = ring ? inPoly(s, ring) : null; return { t: 'dot', p: s, color: inP === null ? '#315F95' : inP ? PGL.ON : PGL.OUT, size: inP === null ? 4 : inP ? 4.4 : 2.6, title: `${s.name} · ${s.cat}` }; }),
       ...(P.pts.length >= 3 ? [{ t: 'poly', pts: P.pts, color: PGL.ON }] : P.pts.length === 2 ? [{ t: 'line', pts: P.pts, color: PGL.ON }] : []),
       ...P.pts.map((q, i) => ({ t: 'vtx', p: q, n: i + 1 })),
+      ...((MAPL.shops && simSemasDots(e)) || []).map(p => ({ t: 'dot', p, color: '#B45309', size: 2.6, title: p.title })),
       ...memberNear.map(x => ({ t: 'dot', p: x, color: '#16A36B', size: 4.2, title: `${x.name} · 온누리 가맹` })),
       { t: 'pin', p: pos, label: p.name },
     ] });

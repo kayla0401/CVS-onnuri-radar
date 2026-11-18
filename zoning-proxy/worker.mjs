@@ -4,6 +4,10 @@
  *   GET /zoning?lat=&lng=&pnu=               점포 핀 좌표의 용도지역 이름
  *   GET /zoning?mode=area&bbox=w,s,e,n        신청 구역 경계 상자의 용도지역 도형(폴리곤)
  *
+ *   GET /semas?mode=polygon&key=POLYGON((lng lat,...))  직접 그린 구역 안 공단 상가업소 전수
+ *   GET /semas?mode=zones&cx=&cy=&radius=               반경 안 공단 상권 구역
+ *     — 상가(상권)정보 API 키(SEMAS_API_KEY)는 Worker 시크릿에만 둔다.
+ *
  * 점포 조회는 두 경로를 쓴다.
  *   1) VWORLD_API_KEY가 있으면 브이월드 공식 API(국토교통부 용도지역 레이어)를 먼저 부른다.
  *   2) 키가 없거나 브이월드가 실패·무응답이면 19자리 PNU로 토지이음 토지이용계획 열람을 읽어
@@ -19,6 +23,15 @@ const UPSTREAM = 'https://api.vworld.kr/req/data';
 const EUM_URL = 'https://www.eum.go.kr/web/ar/lu/luLandDet.jsp';
 const TIMEOUT_MS = 6500;
 const EUM_TIMEOUT_MS = 9000;
+
+/* 소상공인시장진흥공단 상가(상권)정보 — 다각형 안 상가업소·반경 안 상권 */
+const SEMAS_STORE_URL = 'https://apis.data.go.kr/B553077/api/open/sdsc2/storeListInPolygon';
+const SEMAS_ZONE_URL = 'https://apis.data.go.kr/B553077/api/open/sdsc2/storeZoneInRadius';
+const SEMAS_TIMEOUT_MS = 12000;
+const SEMAS_MAX_ROWS = 1000;          /* upstream 1페이지 상한(요청해도 1000으로 잘린다) */
+const SEMAS_MAX_PAGES = 3;            /* 1,000건 초과분은 최대 3페이지(3,000건)까지 합산 */
+const SEMAS_MAX_POINTS = 100;         /* 다각형 꼭짓점 상한 */
+const SEMAS_RADIUS_MAX = 2000;        /* 상권 반경 상한(m) */
 
 /* 경계 상자 안전가드 — 신청 구역(2,000㎡ 급)보다 넉넉하되, 시 단위 요청은 막는다 */
 const AREA_MAX_SIDE_DEG = 0.04;        // 한 변 약 4.4km
@@ -235,6 +248,104 @@ async function allowLookup(env, key) {
   return memoAllow(key);
 }
 
+/* ---- 상가(상권)정보: 다각형 안 상가업소 ---- */
+const SEMAS_POLY_RE = /^POLYGON\s*\(\(([^()]*)\)\)$/i;
+const numOr = v => { const n = +v; return Number.isFinite(n) ? n : null; };
+
+/* POLYGON((lng lat,lng lat,...)) 문자열 검증 — 좌표 수·국내 범위·경계 상자 크기 */
+function parsePolygon(raw) {
+  const m = SEMAS_POLY_RE.exec(String(raw == null ? '' : raw).trim());
+  if (!m) return null;
+  const tokens = m[1].split(',').map(t => t.trim()).filter(Boolean);
+  if (tokens.length < 3 || tokens.length > SEMAS_MAX_POINTS) return null;
+  const pts = [];
+  for (const token of tokens) {
+    const parts = token.split(/\s+/).map(Number);
+    if (parts.length !== 2 || !parts.every(Number.isFinite)) return null;
+    const [lng, lat] = parts;
+    if (lng < 124 || lng > 132 || lat < 32 || lat > 39) return null;
+    pts.push([lng, lat]);
+  }
+  const lngs = pts.map(p => p[0]), lats = pts.map(p => p[1]);
+  const w = Math.min(...lngs), e = Math.max(...lngs), s = Math.min(...lats), n = Math.max(...lats);
+  if (e - w > AREA_MAX_SIDE_DEG || n - s > AREA_MAX_SIDE_DEG) return null;
+  if ((e - w) * (n - s) > AREA_MAX_SPAN_DEG2) return null;
+  return pts;
+}
+
+function semasPolygonWkt(pts) {
+  const ring = pts.map(([lng, lat]) => `${lng.toFixed(7)} ${lat.toFixed(7)}`);
+  if (ring.length) ring.push(ring[0]);              /* 닫힌 고리로 보낸다 */
+  return `POLYGON((${ring.join(',')}))`;
+}
+
+async function semasCall(base, params, env) {
+  const qs = new URLSearchParams({ serviceKey: env.SEMAS_API_KEY, type: 'json', ...params });
+  const response = await fetch(`${base}?${qs}`, {
+    signal: AbortSignal.timeout(SEMAS_TIMEOUT_MS),
+    headers: { Accept: 'application/json' },
+  });
+  const text = await response.text();
+  if (!response.ok) throw Object.assign(new Error('semas http'), { code: 'upstream' });
+  let body = null;
+  try { body = JSON.parse(text); } catch { body = null; }
+  /* 게이트웨이가 XML 오류(OpenAPI_ServiceResponse)를 200으로 돌려주는 경우가 있다 */
+  if (!body || typeof body !== 'object' || body.OpenAPI_ServiceResponse || !body.header) {
+    throw Object.assign(new Error('semas gateway'), { code: 'upstream' });
+  }
+  return body;
+}
+
+function semasStore(raw) {
+  const s = raw || {};
+  const str = (v, n) => String(v == null ? '' : v).trim().slice(0, n);
+  return {
+    bizesId: str(s.bizesId, 30), bizesNm: str(s.bizesNm, 80), brchNm: str(s.brchNm, 40),
+    indsLclsNm: str(s.indsLclsNm, 20), indsMclsNm: str(s.indsMclsNm, 20), indsSclsNm: str(s.indsSclsNm, 30),
+    ksicNm: str(s.ksicNm, 60),
+    rdnmAdr: str(s.rdnmAdr, 120), lnoAdr: str(s.lnoAdr, 120), bldNm: str(s.bldNm, 60),
+    flrNo: str(s.flrNo, 12), hoNo: str(s.hoNo, 12),
+    lon: numOr(s.lon), lat: numOr(s.lat),
+  };
+}
+
+async function semasStores(pts, pageNo, numOfRows, env) {
+  const key = semasPolygonWkt(pts);
+  const items = [];
+  let totalCount = 0, stdrYm = '', page = pageNo;
+  for (let i = 0; i < SEMAS_MAX_PAGES; i++) {
+    const body = await semasCall(SEMAS_STORE_URL, { key, pageNo: String(page), numOfRows: String(numOfRows) }, env);
+    const header = body.header || {};
+    const code = String(header.resultCode == null ? '' : header.resultCode);
+    if (!stdrYm) stdrYm = String(header.stdrYm || '');
+    if (code === '03') break;                        /* NODATA_ERROR — 구역 안 상가 없음 */
+    if (code !== '00') throw Object.assign(new Error('semas result ' + code), { code: 'upstream' });
+    const bodyData = body.body || {};
+    const rows = Array.isArray(bodyData.items) ? bodyData.items
+      : (bodyData.items && typeof bodyData.items === 'object' ? [bodyData.items] : []);
+    totalCount = Math.max(totalCount, Number(bodyData.totalCount || 0));
+    for (const row of rows) items.push(semasStore(row));
+    if (items.length >= totalCount || rows.length < numOfRows) break;
+    page += 1;
+  }
+  return { status: items.length ? 'ok' : 'empty', stdrYm, totalCount: Math.max(totalCount, items.length), items,
+    returned: items.length, truncated: items.length < Math.max(totalCount, items.length) };
+}
+
+async function semasZones(cx, cy, radius, env) {
+  const body = await semasCall(SEMAS_ZONE_URL, { cx: String(cx), cy: String(cy), radius: String(radius) }, env);
+  const header = body.header || {};
+  const code = String(header.resultCode == null ? '' : header.resultCode);
+  if (code === '03') return { status: 'empty', zones: [], totalCount: 0 };
+  if (code !== '00') throw Object.assign(new Error('semas result ' + code), { code: 'upstream' });
+  const rows = Array.isArray(body.body?.items) ? body.body.items : [];
+  const zones = rows.slice(0, 40).map(z => ({
+    trarNo: String(z.trarNo || ''), name: String(z.mainTrarNm || '').slice(0, 80),
+    area: numOr(z.trarArea), coords: String(z.coords || '').slice(0, 4000),
+  }));
+  return { status: zones.length ? 'ok' : 'empty', zones, totalCount: rows.length };
+}
+
 function parseBbox(raw) {
   const parts = String(raw || '').split(',').map(Number);
   if (parts.length !== 4 || !parts.every(Number.isFinite)) return null;
@@ -265,6 +376,44 @@ export default {
       if (!matched) return new Response(null, { status: 403, headers });
       return new Response(null, { status: 204, headers });
     }
+
+    /* ---- /semas — 공단 상가(상권)정보 다각형·반경 조회 ---- */
+    if (url.pathname === '/semas') {
+      if (request.method !== 'GET') return reply(405, { status: 'method' });
+      if (!matched) return reply(403, { status: 'origin' });
+      if (!env.SEMAS_API_KEY) return reply(503, { status: 'unavailable', source: 'semas' });
+      if (!await allowLookup(env, request.headers.get('CF-Connecting-IP') || 'unknown')) {
+        return reply(429, { status: 'rate_limit' });
+      }
+      const sMode = url.searchParams.get('mode') || 'polygon';
+      const checkedAt = new Date().toISOString();
+      if (sMode === 'polygon') {
+        const pts = parsePolygon(url.searchParams.get('key'));
+        if (!pts) return reply(400, { status: 'coordinate' });
+        const pageNo = Math.max(1, Math.min(100, Math.floor(+url.searchParams.get('pageNo') || 1)));
+        const numOfRows = Math.max(1, Math.min(SEMAS_MAX_ROWS, Math.floor(+url.searchParams.get('numOfRows') || SEMAS_MAX_ROWS)));
+        try {
+          const out = await semasStores(pts, pageNo, numOfRows, env);
+          return reply(200, { ...out, source: 'semas', mode: 'polygon', pageNo, numOfRows, checkedAt });
+        } catch {
+          return reply(502, { status: 'upstream', source: 'semas', mode: 'polygon' });
+        }
+      }
+      if (sMode === 'zones') {
+        const cx = Number(url.searchParams.get('cx')), cy = Number(url.searchParams.get('cy'));
+        const radius = Number(url.searchParams.get('radius'));
+        const ptOk = Number.isFinite(cx) && Number.isFinite(cy) && cx >= 124 && cx <= 132 && cy >= 32 && cy <= 39;
+        if (!ptOk || !(radius > 0 && radius <= SEMAS_RADIUS_MAX)) return reply(400, { status: 'coordinate' });
+        try {
+          const out = await semasZones(cx, cy, radius, env);
+          return reply(200, { ...out, source: 'semas', mode: 'zones', radius, checkedAt });
+        } catch {
+          return reply(502, { status: 'upstream', source: 'semas', mode: 'zones' });
+        }
+      }
+      return reply(400, { status: 'mode' });
+    }
+
     if (url.pathname !== '/zoning') return reply(404, { status: 'not_found' });
     if (request.method !== 'GET') return reply(405, { status: 'method' });
     if (!matched) return reply(403, { status: 'origin' });
